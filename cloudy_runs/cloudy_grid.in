@@ -1,19 +1,18 @@
-title cloudy interpolation table at z=4.5
+title interpolation table at z=4.5
 #
 # commands controlling continuum =========
 # ionized by cosmic background
 # plus quasar/starburst continuum
 cmb z=4.5
-table hm12 z=4.5 # this specifies both shape and intensity
+table hm12 z = 4.5
 #
 # commands for density & metallicity & temperature =========
-## hden -2.
-hden -4. vary
-grid -7 -3 0.1 ncpus 16 # total 40 models 
-metals -3.5 vary # 10^(-3.5)
-grid -3.5 -1.5 2
-constant temperature 4. vary
-grid 3 6 0.1 # total 30 models
+hden -2. vary
+grid -7 -1 0.1 ncpus 32 # total 61 models
+metals -3.5 vary 
+grid -3.5 -1.5 2 # 2 models
+constant temperature 4. vary 
+grid 3 6 0.1 # total 31 models
 #
 # commands controlling geometry  =========
 # stop neutral column density 20
@@ -24,16 +23,17 @@ stop zone 1
 iterate to convergence ## must iterate since optically thin
 #
 # commands controlling output    =========
-print line faint -1 # print the weakest lines; -1 means log scale
+print line faint -1
 set save prefix "cloudy_grid"
 save performance ".per"
-save overview last ".ovr" # no hash
+save overview last ".ovr" no hash
 save results last ".rlt"
 save continuum last ".con"
 save incident continuum last ".inc"
 save ionization means last ".ion"
-save averages ".avr" last # no hash
-ionization, hydrogen 1 over volume   ## or radius (denoted with 0 in .avr) volume (denoted with 1 in .avr)
+save grid ".grd"
+save averages ".avr" last no hash
+ionization, hydrogen 1 over volume   ## or radius (=0 in .avr) volume (=1 in .avr)
 ionization, hydrogen 2 over volume
 ionization, helium 1 over volume
 ionization, helium 2 over volume
@@ -42,8 +42,8 @@ ionization, carbon 1 over volume
 ionization, carbon 2 over volume
 ionization, carbon 3 over volume
 ionization, carbon 4 over volume
-ionization, carbon 5 over volume
-ionization, carbon 6 over volume
+ionization, carbon 5 over volume # added
+ionization, carbon 6 over volume # added
 ionization, oxygen 1 over volume
 ionization, oxygen 2 over volume
 ionization, oxygen 3 over volume
@@ -53,14 +53,6 @@ ionization, silicon 1 over volume
 ionization, silicon 2 over volume
 ionization, silicon 3 over volume
 ionization, silicon 4 over volume
-ionization, silicon 5 over volume
-ionization, silicon 6 over volume
-column density, hydrogen 1
-column density, hydrogen 2
-column density, carbon 1
-column density, carbon 2
-column density, carbon 3
-column density, carbon 4
-column density, carbon 5
-column density, carbon 6
+ionization, silicon 5 over volume # added
+ionization, silicon 6 over volume # added
 end of averages
