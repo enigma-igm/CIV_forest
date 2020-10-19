@@ -61,6 +61,7 @@ def create_metal_lookup(filename, metal_name='CARB'):
     met6_frac = lookup['%s' % ('IONI ' + metal_name + ' 6 1')]
 
     # use log10 values instead...?! Should maybe be consistent with skewers values
+    # pandas dataframe format
     lookup_new = pd.concat([np.log10(hden), np.log10(temp), Z, \
                             met1_frac, met2_frac, met3_frac, met4_frac, met5_frac, met6_frac], axis=1)
 
@@ -74,26 +75,27 @@ def create_metal_lookup(filename, metal_name='CARB'):
 
     return lookup_new
 
-def arr_lookup(lookup_new, Z, metal_ion='CARB4', plot=False):
+def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, fixed_hden_value=None, fixed_temp_value=None):
 
-    ind = np.where(lookup_new['Z'] == Z)[0]
-    hden = np.array(lookup_new['hden'][ind])
-    te = np.array(lookup_new['Te'][ind])
-    ion = np.array(lookup_new[metal_ion][ind])
+    # lookup_new = read_cloudy_koki()
+    # fixed_Z_value must be specified; options are -3.5 or -1.5
 
-    new_hden = np.reshape(hden, (61, 31)) # hden grids x temperature grids
-    new_te = np.reshape(te, (61, 31))
-    new_ion = np.reshape(ion, (61, 31))
+    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
+    if fixed_hden_value != None:
+        ind_slice = np.where(lookup_new['HDEN=%f L'] == fixed_hden_value)[0]
+    elif fixed_temp_value != None:
+        ind_slice = np.where(lookup_new['CONSTANT'] == fixed_temp_value)[0]
 
-    if plot:
-        plt.title(metal_ion, fontsize=18)
-        plt.imshow(new_ion, extent=[3, 6, -6, -1])
-        plt.colorbar()
-        plt.xticks(np.arange(3, 6.5, 0.5))
-        plt.yticks(np.arange(-6, -0.5, 0.5))
-        plt.xlabel('log10(T)', fontsize=15)
-        plt.ylabel('log10(hden)', fontsize=15)
-        plt.show()
+    if fixed_hden_value != None or fixed_temp_value != None:
+        comm_ind = np.intersect1d(metal_ind, ind_slice)
+    else:
+        comm_ind = metal_ind
 
-    return new_ion
+    ion_frac = lookup_new[metal_ion][comm_ind].values
+    nh_grid = lookup_new['HDEN=%f L'][comm_ind].values
+    temp_grid = lookup_new['CONSTANT'][comm_ind].values
+
+    return ion_frac, nh_grid, temp_grid
+
+
 
