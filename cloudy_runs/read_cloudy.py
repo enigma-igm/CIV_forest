@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
+from scipy.interpolate import interp2d, RectBivariateSpline
 
 def read_cloudy_koki(filename):
     # modified from Koki (https://github.com/enigma-igm/xcorr_QSOfield/blob/master/cloudy/plot_cloudy.py)
@@ -96,6 +96,40 @@ def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, fixed_hden_value=None, fi
     temp_grid = lookup_new['CONSTANT'][comm_ind].values
 
     return ion_frac, nh_grid, temp_grid
+
+# IN PROG
+def get_ion_frac2(lookup_new, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
+
+    # lookup_new = read_cloudy_koki()
+    # fixed_Z_value must be specified; options are -3.5 or -1.5
+
+    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
+    nh_grid = np.array(lookup_new['HDEN=%f L'][metal_ind])
+    temp_grid = np.array(lookup_new['CONSTANT'][metal_ind])
+    ion_frac = np.array(lookup_new[metal_ion][metal_ind])
+
+    # defining additional arrays
+    nh_grid_uniq = np.unique(nh_grid)
+    temp_grid_uniq = np.unique(temp_grid)
+    ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq))) # hden grids x temperature grids
+
+    if want_hden_value != None and want_temp_value is None: # get 1D slice at fixed density
+        ind_slice = np.where(nh_grid == want_hden_value)[0]
+    elif want_temp_value != None and want_hden_value is None: # get 1D slice at fixed temperature
+        ind_slice = np.where(temp_grid == want_temp_value)[0]
+    elif want_hden_value != None and want_temp_value != None:
+        # TO CHECK: row is temp grid and col is nh_grid, or is it vice versa?
+
+        # RectBivariateSpline is a (faster) subclass of interp2d if x and y are regular grids
+        interp_func = RectBivariateSpline(nh_grid_uniq, temp_grid_uniq, ion_frac2d, kx=1, ky=1) # linear 2D interpolation
+        outfrac = interp_func(want_hden_value, want_temp_value)
+        print("interpolating")
+        return outfrac
+    else: # if not fixing hden and not fixing temp (i.e. just fixing metallicity)
+        return ion_frac, nh_grid, temp_grid
+
+    return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
+
 
 
 
