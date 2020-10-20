@@ -30,29 +30,7 @@ def read_cloudy_koki(filename):
 
     return lookup
 
-def get_ion_frac_old(lookup_new, metal_ion, fixed_Z_value, fixed_hden_value=None, fixed_temp_value=None):
-
-    # lookup_new = read_cloudy_koki()
-    # fixed_Z_value must be specified; options are -3.5 or -1.5
-
-    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
-    if fixed_hden_value != None:
-        ind_slice = np.where(lookup_new['HDEN=%f L'] == fixed_hden_value)[0]
-    elif fixed_temp_value != None:
-        ind_slice = np.where(lookup_new['CONSTANT'] == fixed_temp_value)[0]
-
-    if fixed_hden_value != None or fixed_temp_value != None:
-        comm_ind = np.intersect1d(metal_ind, ind_slice)
-    else:
-        comm_ind = metal_ind
-
-    ion_frac = lookup_new[metal_ion][comm_ind].values
-    nh_grid = lookup_new['HDEN=%f L'][comm_ind].values
-    temp_grid = lookup_new['CONSTANT'][comm_ind].values
-
-    return ion_frac, nh_grid, temp_grid
-
-def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
+def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
 
     # lookup_new = read_cloudy_koki()
     # fixed_Z_value must be specified; options are -3.5 or -1.5
@@ -63,29 +41,43 @@ def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, want_hden_value=None, wan
     temp_grid = np.array(lookup_new['CONSTANT'][metal_ind])
     ion_frac = np.array(lookup_new[metal_ion][metal_ind])
 
-    if want_hden_value != None and want_temp_value is None: # get 1D slice at fixed density
-        ind_slice = np.where(nh_grid == want_hden_value)[0]
-    elif want_temp_value != None and want_hden_value is None: # get 1D slice at fixed temperature
-        ind_slice = np.where(temp_grid == want_temp_value)[0]
-    elif want_hden_value != None and want_temp_value != None: # get either exact or interpolated value
+    # defining additional arrays for 2D interpolation
+    nh_grid_uniq = np.unique(nh_grid) # returns unique and sorted values
+    temp_grid_uniq = np.unique(temp_grid)
+    ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq)))
 
-        # defining additional arrays for 2D interpolation
-        nh_grid_uniq = np.unique(nh_grid)
-        temp_grid_uniq = np.unique(temp_grid)
-        ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq)))
-
-        # RectBivariateSpline is a (faster) subclass of interp2d if x and y are regular grids
-        # linear interpolation if kx=1 and ky=1
-        # checked: x = density grid and y = temp grid
-        interp_func = RectBivariateSpline(nh_grid_uniq, temp_grid_uniq, ion_frac2d, kx=1, ky=1)
+    # RectBivariateSpline is a (faster) subclass of interp2d if x and y are regular grids
+    # linear interpolation if kx=1 and ky=1
+    # checked: x = density grid and y = temp grid
+    # values outside of grid are assigned very small numbers close to zero
+    interp_func = RectBivariateSpline(nh_grid_uniq, temp_grid_uniq, ion_frac2d, kx=1, ky=1)
+    if np.ndim(want_hden_value) == 0:
         outfrac = interp_func(want_hden_value, want_temp_value)
-        return outfrac
+    else:
+        outfrac = interp_func.ev(want_hden_value, want_temp_value)
+    return outfrac
 
+def get_ion_frac1d(lookup_new, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
+
+    # lookup_new = read_cloudy_koki()
+    # fixed_Z_value must be specified; options are -3.5 or -1.5
+
+    # selecting out a specific metallicity
+    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
+    nh_grid = np.array(lookup_new['HDEN=%f L'][metal_ind])
+    temp_grid = np.array(lookup_new['CONSTANT'][metal_ind])
+    ion_frac = np.array(lookup_new[metal_ion][metal_ind])
+
+    if want_hden_value != None: # get 1D slice at fixed density
+        ind_slice = np.where(nh_grid == want_hden_value)[0]
+    elif want_temp_value != None: # get 1D slice at fixed temperature
+        ind_slice = np.where(temp_grid == want_temp_value)[0]
     else: # if not fixing hden and not fixing temp (i.e. just fixing metallicity)
         return ion_frac, nh_grid, temp_grid
-
     # return 1D slice
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
+
+
 
 
 
