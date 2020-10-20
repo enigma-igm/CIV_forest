@@ -22,7 +22,7 @@ total_frac_fixed_temp = np.zeros(61)
 plt.figure(figsize=(10,9))
 plt.subplot(221)
 for metal_ion in metal_ion_ls:
-    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac(met_lookup, metal_ion, Z, fixed_hden_value=nh_bar_log10)
+    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac1d(met_lookup, metal_ion, Z, fixed_hden_value=nh_bar_log10)
     total_frac_fixed_hden += selected_ion_frac
     plt.plot(temp_grid, selected_ion_frac, label=metal_ion)
 plt.title('fixed log10(hden)=%0.2f' % nh_bar_log10, fontsize=13)
@@ -39,7 +39,7 @@ plt.ylabel('Sum(ion fraction)', fontsize=13)
 
 plt.subplot(223)
 for metal_ion in metal_ion_ls:
-    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac(met_lookup, metal_ion, Z, fixed_temp_value=temp_log10)
+    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac1d(met_lookup, metal_ion, Z, fixed_temp_value=temp_log10)
     total_frac_fixed_temp += selected_ion_frac
     plt.plot(nh_grid, selected_ion_frac, label=metal_ion)
 

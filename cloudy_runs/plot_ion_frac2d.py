@@ -11,7 +11,7 @@ met_lookup = rc.read_cloudy_koki('output/cloudy_grid')
 
 plt.figure(figsize=(10,8))
 for i in range(len(metal_ion_ls)):
-    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac(met_lookup, metal_ion_ls[i], Z)
+    selected_ion_frac, nh_grid, temp_grid = rc.get_ion_frac1d(met_lookup, metal_ion_ls[i], Z)
     selected_ion_frac = np.reshape(selected_ion_frac, (61, 31))
 
     plt.subplot(2,3,i+1)
