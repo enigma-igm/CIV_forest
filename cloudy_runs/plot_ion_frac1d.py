@@ -9,9 +9,7 @@ import pandas as pd
 
 Z = -3.5
 nh_bar_log10 = -4.5 # mean density
-nh_bar_log10 = -3.0
 temp_log10 = 4.0    # temperature at mean density
-temp_log10 = 5.2
 
 metal_ion_ls = ['IONI CARB 1 1', 'IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1']
 #metal_ion_ls = ['IONI SILI 1 1', 'IONI SILI 2 1', 'IONI SILI 3 1', 'IONI SILI 4 1', 'IONI SILI 5 1', 'IONI SILI 6 1']

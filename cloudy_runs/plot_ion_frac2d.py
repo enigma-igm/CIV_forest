@@ -19,8 +19,12 @@ for i in range(len(metal_ion_ls)):
 
     plt.subplot(2,3,i+1)
     plt.title(metal_ion_ls[i], fontsize=15)
-    plt.imshow(selected_ion_frac, vmin=0, vmax=1, origin='lower', extent=[3, 6, -7, -1]) # 3 to 6 are the grid limits for log10(T)
-                                                                         # -7 to -1 are the grid limits for log10(hden)
+
+    # 3 to 6 are the grid limits for log10(T)
+    # -7 to -1 are the grid limits for log10(hden)
+    # origin='lower' means (0,0) is at lower left
+    # extent defines the limit of the axes labels
+    plt.imshow(selected_ion_frac, vmin=0, vmax=1, origin='lower', extent=[3, 6, -7, -1])
     plt.plot(temp_log10, nh_bar_log10, 'r*', ms=10)
     plt.colorbar()
     #plt.xticks(np.arange(3, 6.5, 0.5))

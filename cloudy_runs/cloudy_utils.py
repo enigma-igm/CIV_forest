@@ -75,6 +75,45 @@ def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_
     # return 1D slice; also 1D array
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
 
+def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \
+                          metals_start, metals_end, \
+                          temp_start, temp_end, temp_step, \
+                          ncpus, metals_list, title='interpolation table', z=4.5):
+
+    prefix = outfile.split('.')[0]
+    newfile = open(outfile, 'w')
+    newfile.write('title %s\n' % title)
+    newfile.write('cmb z=%0.1f\n' % z)
+    newfile.write('table hm12 z=%0.1f\n' % z)
+    newfile.write('hden -2. vary\n')
+    newfile.write('grid %0.1f %0.1f %0.1f ncpus %d\n' % (hden_start, hden_end, hden_step, ncpus))
+    newfile.write('metals -3.5 vary\ sn')
+    newfile.write('grid %0.1f %0.1f 2\n' % (metals_start, metals_end))
+    newfile.write('constant temperature 4. vary\n')
+    newfile.write('grid %0.1f %0.1f %0.1f\n' % (temp_start, temp_end, temp_step))
+    newfile.write('stop zone 1\n')
+    newfile.write('iterate to convergence\n')
+    newfile.write('print line faint -1\n')
+    newfile.write('set save prefix "%s"\n' % prefix)
+    newfile.write('save performance ".per"\n')
+    newfile.write('save overview last ".ovr" no hash\n')
+    newfile.write('save results last ".rlt"\n')
+    newfile.write('save continuum last ".con"\n')
+    newfile.write('save incident continuum last ".inc"\n')
+    newfile.write('save ionization means last ".ion"\n')
+    newfile.write('save grid ".grd"\n')
+    newfile.write('save averages ".avr" last no hash\n')
+
+    #metals_list = ['hydrogen 1 2', 'oxygen 4 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
+    for metal in metals_list:
+        name = metal.split(' ')[0]
+        ion_start = int(metal.split(' ')[1])
+        ion_end = int(metal.split(' ')[2])
+        for i in range(ion_start, ion_end+1):
+            newfile.write('ionization, %s %d over volume\n' % (name, int(i)))
+    newfile.write('end of averages')
+    newfile.close()
+
 
 
 
