@@ -30,26 +30,24 @@ def read_cloudy_koki(filename):
 
     return lookup
 
-def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
+def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
 
-    # lookup_new = read_cloudy_koki()
-    # fixed_Z_value must be specified; options are -3.5 or -1.5
+    # fixed_Z_value options are -3.5 or -1.5
 
     # selecting out a specific metallicity
-    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
-    nh_grid = np.array(lookup_new['HDEN=%f L'][metal_ind])
-    temp_grid = np.array(lookup_new['CONSTANT'][metal_ind])
-    ion_frac = np.array(lookup_new[metal_ion][metal_ind])
+    metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
+    nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
+    temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+    ion_frac = np.array(lookup[metal_ion][metal_ind])
 
     # defining additional arrays for 2D interpolation
     nh_grid_uniq = np.unique(nh_grid) # returns unique and sorted values
     temp_grid_uniq = np.unique(temp_grid)
     ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq)))
 
-    # RectBivariateSpline is a (faster) subclass of interp2d if x and y are regular grids
+    # RectBivariateSpline is a (faster) subclass of interp2d if x and y are rectangular grids
     # linear interpolation if kx=1 and ky=1
     # checked: x = density grid and y = temp grid
-    # values outside of grid are assigned very small numbers close to zero
     interp_func = RectBivariateSpline(nh_grid_uniq, temp_grid_uniq, ion_frac2d, kx=1, ky=1)
     if np.ndim(want_hden_value) == 0:
         outfrac = interp_func(want_hden_value, want_temp_value)
@@ -57,24 +55,24 @@ def get_ion_frac(lookup_new, metal_ion, fixed_Z_value, want_hden_value, want_tem
         outfrac = interp_func.ev(want_hden_value, want_temp_value)
     return outfrac
 
-def get_ion_frac1d(lookup_new, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
+def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
 
-    # lookup_new = read_cloudy_koki()
     # fixed_Z_value must be specified; options are -3.5 or -1.5
 
     # selecting out a specific metallicity
-    metal_ind = np.where(lookup_new['METALS= %'] == fixed_Z_value)[0]
-    nh_grid = np.array(lookup_new['HDEN=%f L'][metal_ind])
-    temp_grid = np.array(lookup_new['CONSTANT'][metal_ind])
-    ion_frac = np.array(lookup_new[metal_ion][metal_ind])
+    metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
+    nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
+    temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+    ion_frac = np.array(lookup[metal_ion][metal_ind])
 
     if want_hden_value != None: # get 1D slice at fixed density
         ind_slice = np.where(nh_grid == want_hden_value)[0]
     elif want_temp_value != None: # get 1D slice at fixed temperature
         ind_slice = np.where(temp_grid == want_temp_value)[0]
     else: # if not fixing hden and not fixing temp (i.e. just fixing metallicity)
-        return ion_frac, nh_grid, temp_grid
-    # return 1D slice
+        return ion_frac, nh_grid, temp_grid # 1D array
+
+    # return 1D slice; also 1D array
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
 
 
