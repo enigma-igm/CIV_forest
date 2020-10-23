@@ -41,10 +41,14 @@ def make_xmetal_skewer(params, skewers, cloudy_lookup, cloudy_lookup_str, out_st
     nh_skewers = np.log10(nh_bar*skewers['ODEN']) # since the interpolation takes log10 units
     temp_skewers = np.log10(skewers['T']) # since the interpolation takes log10 units
 
+    # hardcoded grid limit...
+    clip_nh_skewers = np.clip(nh_skewers, -7, 0)
+    clip_temp_skewers = np.clip(temp_skewers, 2, 7)
+
     Nskew = len(skewers)
     xmetal_arr = []
     for i in range(Nskew): # ~1 min to process 10,000 skewers
-        xmetal_out = cloudy_utils.get_ion_frac(cloudy_lookup, cloudy_lookup_str, -3.5, nh_skewers[i], temp_skewers[i])
+        xmetal_out = cloudy_utils.get_ion_frac(cloudy_lookup, cloudy_lookup_str, -3.5, clip_nh_skewers[i], clip_temp_skewers[i])
         xmetal_arr.append(xmetal_out)
     skewers[out_str] = xmetal_arr
 
