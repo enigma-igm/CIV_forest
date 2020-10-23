@@ -75,6 +75,8 @@ def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_
     # return 1D slice; also 1D array
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
 
+# cu.make_cldy_grid_script('cloudy_grid_more.in', -7, 0, 0.1, -3.5, -1.5, 2, 7, 0.1, 32, metals_list)
+# metals_list = ['hydrogen 1 2', 'oxygen 1 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
 def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \
                           metals_start, metals_end, \
                           temp_start, temp_end, temp_step, \
@@ -104,7 +106,6 @@ def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \
     newfile.write('save grid ".grd"\n')
     newfile.write('save averages ".avr" last no hash\n')
 
-    #metals_list = ['hydrogen 1 2', 'oxygen 4 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
     for metal in metals_list:
         name = metal.split(' ')[0]
         ion_start = int(metal.split(' ')[1])
