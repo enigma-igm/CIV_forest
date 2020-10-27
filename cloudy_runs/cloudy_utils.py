@@ -1,3 +1,11 @@
+"""
+Functions in this module:
+    - read_cloudy_koki
+    - get_ion_frac
+    - get_ion_frac1d
+    - make_cldy_grid_script
+"""
+
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp2d, RectBivariateSpline

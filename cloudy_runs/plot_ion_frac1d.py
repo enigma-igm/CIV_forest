@@ -12,10 +12,10 @@ nh_bar_log10 = -4.5 # mean density
 temp_log10 = 4.0    # temperature at mean density
 
 metal_ion_ls = ['IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1', 'IONI CARB 7 1']
-#metal_ion_ls = ['IONI SILI 2 1', 'IONI SILI 3 1', 'IONI SILI 4 1', 'IONI SILI 5 1', 'IONI SILI 6 1', 'IONI SILI 7 1']
-#metal_ion_ls = ['IONI NITR 1 1', 'IONI NITR 3 1', 'IONI NITR 4 1', 'IONI NITR 5 1', 'IONI NITR 6 1', 'IONI NITR 7 1']
+metal_ion_ls = ['IONI SILI 2 1', 'IONI SILI 3 1', 'IONI SILI 4 1', 'IONI SILI 5 1', 'IONI SILI 6 1', 'IONI SILI 7 1']
+#metal_ion_ls = ['IONI NITR 2 1', 'IONI NITR 3 1', 'IONI NITR 4 1', 'IONI NITR 5 1', 'IONI NITR 6 1', 'IONI NITR 7 1']
 #metal_ion_ls = ['IONI OXYG 2 1', 'IONI OXYG 3 1', 'IONI OXYG 4 1', 'IONI OXYG 5 1', 'IONI OXYG 6 1', 'IONI OXYG 7 1']
-#metal_ion_ls = ['IONI OXYG 2 1', 'IONI OXYG 3 1', 'IONI OXYG 4 1', 'IONI OXYG 5 1', 'IONI OXYG 6 1', 'IONI OXYG 7 1']
+
 out_filename = 'silicon_ion_fraction.pdf'
 
 met_lookup = cu.read_cloudy_koki('output/cloudy_grid_more')

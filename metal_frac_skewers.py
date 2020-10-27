@@ -1,13 +1,14 @@
+"""
+Functions in this module:
+    - make_xciv_skewer
+    - make_xmetal_skewer
+    - plot_skewers
+"""
+
 import numpy as np
 from matplotlib import pyplot as plt
 import cloudy_runs.cloudy_utils as cloudy_utils
 from astropy.io import fits
-
-"""
-data_path = '/Users/suksientie/research/CIV_forest/sim_data/'
-tau_params = Table.read(data_path + 'rand_skewers_z45_ovt_tau.fits', hdu=1)
-tau_skewers = Table.read(data_path + 'rand_skewers_z45_ovt_tau.fits', hdu=2)
-"""
 
 def make_xciv_skewer(params, skewers, cloudy_lookup, outfile):
     # modeled after enigma.tpe.utils.make_tau_skewers
@@ -68,7 +69,8 @@ def plot_skewers(params, skewers, i):
     # 8604, 2706, 7339 - pix > grid limits?
 
     print(i)
-    nh_bar = params['nH_bar']
+    #nh_bar = params['nH_bar']
+    #hden_skewers = nh_bar*skewers['ODEN']
     oden_skewers = skewers['ODEN']
     temp_skewers = skewers['T']
     xciv_skewers = skewers['X_CIV']
