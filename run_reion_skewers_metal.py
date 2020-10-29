@@ -14,15 +14,14 @@ def main():
     parser.add_argument('--outfile', type=str, required=True, help="Output file")
     parser.add_argument('--dmax', type=float, required=True, help="Maximum density threshold")
     parser.add_argument('--metal_colname', type=str, required=True, help="Column name for metal fraction")
+    parser.add_argument('--metal_mass', type=float, required=True, help="Atomic mass of the metal")
 
     args = parser.parse_args()
 
     # Now read in the skewers
     params=Table.read(args.ranskewerfile,hdu=1)
     skewers=Table.read(args.ranskewerfile,hdu=2)
-
-    #retval = make_reion_skewers(params, skewers, args.outfile, args.dmax)
-    retval = make_reion_skewers_metal(params, skewers, args.outfile, args.dmax, args.metal_colname, IMPOSE_EOS=False)
-
+    retval = make_reion_skewers_metal(params, skewers, args.outfile, args.dmax, args.metal_colname, args.metal_mass, \
+                                      IMPOSE_EOS=False)
 if __name__ == '__main__':
     main()
