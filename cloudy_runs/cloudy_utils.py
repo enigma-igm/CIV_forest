@@ -97,8 +97,13 @@ def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \
     newfile.write('table hm12 z=%0.1f\n' % z)
     newfile.write('hden -2. vary\n')
     newfile.write('grid %0.1f %0.1f %0.1f ncpus %d\n' % (hden_start, hden_end, hden_step, ncpus))
-    newfile.write('metals -3.5 vary\ sn')
-    newfile.write('grid %0.1f %0.1f 2\n' % (metals_start, metals_end))
+
+    if metals_end <= metals_start: # do not vary metallicity
+        newfile.write('metals -3.5\n')
+    else:
+        newfile.write('metals -3.5 vary\n')
+        newfile.write('grid %0.1f %0.1f 2\n' % (metals_start, metals_end))
+
     newfile.write('constant temperature 4. vary\n')
     newfile.write('grid %0.1f %0.1f %0.1f\n' % (temp_start, temp_end, temp_step))
     newfile.write('stop zone 1\n')
