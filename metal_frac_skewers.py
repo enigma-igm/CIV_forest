@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cloudy_runs.cloudy_utils as cloudy_utils
 from astropy.io import fits
+import enigma.reion_forest.utils as reion_utils
 
 def make_xciv_skewer(params, skewers, cloudy_lookup, outfile):
     # modeled after enigma.tpe.utils.make_tau_skewers
@@ -88,3 +89,18 @@ def plot_skewers(params, skewers, i):
 
     plt.tight_layout()
     plt.show()
+
+def get_tau0_frac(lookup, nh_log10, temp_log10, z, logZ=-3.5):
+
+    cldy_metal_ion_ls = ['IONI CARB 4 1', 'IONI SILI 4 1', 'IONI NITR 5 1', 'IONI OXYG 6 1']
+    metal_ion_ls = ['C IV', 'Si IV', 'N V', 'O VI']
+
+    t0f = []
+    for i, cldy_metal_ion in enumerate(cldy_metal_ion_ls):
+        ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, logZ, nh_log10, temp_log10)[0][0]
+        tau0, f_ratio, v_metal, nH_bar = reion_utils.metal_tau0(metal_ion_ls[i], z, logZ)
+        print(metal_ion_ls[i], tau0, ion_frac)
+        t0f.append(tau0*ion_frac)
+
+    return t0f
+
