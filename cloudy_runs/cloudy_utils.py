@@ -40,13 +40,18 @@ def read_cloudy_koki(filename):
 
 def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
 
-    # fixed_Z_value options are -3.5 or -1.5
+    # if not varying metallicity, set fixed_Z_value = None
 
-    # selecting out a specific metallicity
-    metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
-    nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
-    temp_grid = np.array(lookup['CONSTANT'][metal_ind])
-    ion_frac = np.array(lookup[metal_ion][metal_ind])
+    if fixed_Z_value != None:
+        # selecting out a specific metallicity
+        metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
+        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
+        temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+        ion_frac = np.array(lookup[metal_ion][metal_ind])
+    else:
+        nh_grid = np.array(lookup['HDEN=%f L'])
+        temp_grid = np.array(lookup['CONSTANT'])
+        ion_frac = np.array(lookup[metal_ion])
 
     # defining additional arrays for 2D interpolation
     nh_grid_uniq = np.unique(nh_grid) # returns unique and sorted values
@@ -65,13 +70,18 @@ def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_va
 
 def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
 
-    # fixed_Z_value must be specified; options are -3.5 or -1.5
+    # if not varying metallicity, set fixed_Z_value = None
 
-    # selecting out a specific metallicity
-    metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
-    nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
-    temp_grid = np.array(lookup['CONSTANT'][metal_ind])
-    ion_frac = np.array(lookup[metal_ion][metal_ind])
+    if fixed_Z_value != None:
+        # selecting out a specific metallicity
+        metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
+        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
+        temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+        ion_frac = np.array(lookup[metal_ion][metal_ind])
+    else:
+        nh_grid = np.array(lookup['HDEN=%f L'])
+        temp_grid = np.array(lookup['CONSTANT'])
+        ion_frac = np.array(lookup[metal_ion])
 
     if want_hden_value != None: # get 1D slice at fixed density
         ind_slice = np.where(nh_grid == want_hden_value)[0]
