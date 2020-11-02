@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp2d, RectBivariateSpline
 
-def read_cloudy_koki(filename):
+def read_cloudy_koki(filename, verbose=True):
     # modified from Koki (https://github.com/enigma-igm/xcorr_QSOfield/blob/master/cloudy/plot_cloudy.py)
 
     """
@@ -20,7 +20,8 @@ def read_cloudy_koki(filename):
                     output: lookup [pandas table]
     """
 
-    print('reading ... : ', filename)
+    if verbose:
+        print('reading ... : ', filename)
 
     avr=pd.read_csv(filename+'.avr',sep='\t') # load average ionization fraction of various speices
     avr=avr.drop(avr.columns[0],axis=1)       # drop the first column as it is nan
@@ -33,8 +34,9 @@ def read_cloudy_koki(filename):
     for i, col in enumerate(lookup):
         lookup.columns.values[i] = col.strip()
 
-    print('----- Available column names ----- ')
-    print(lookup.columns.values)
+    if verbose:
+        print('----- Available column names ----- ')
+        print(lookup.columns.values)
 
     return lookup
 
