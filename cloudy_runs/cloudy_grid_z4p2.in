@@ -1,0 +1,55 @@
+title interpolation table
+cmb z=4.2
+table hm12 z=4.2
+hden -2. vary
+grid -7.0 0.0 0.1 ncpus 16
+metals -3.5
+constant temperature 4. vary
+grid 2.0 7.0 0.1
+stop zone 1
+iterate to convergence
+print line faint -1
+set save prefix "cloudy_grid_z4p2"
+save performance ".per"
+save overview last ".ovr" no hash
+save results last ".rlt"
+save continuum last ".con"
+save incident continuum last ".inc"
+save ionization means last ".ion"
+save grid ".grd"
+save averages ".avr" last no hash
+ionization, hydrogen 1 over volume
+ionization, hydrogen 2 over volume
+ionization, oxygen 1 over volume
+ionization, oxygen 2 over volume
+ionization, oxygen 3 over volume
+ionization, oxygen 4 over volume
+ionization, oxygen 5 over volume
+ionization, oxygen 6 over volume
+ionization, oxygen 7 over volume
+ionization, carbon 1 over volume
+ionization, carbon 2 over volume
+ionization, carbon 3 over volume
+ionization, carbon 4 over volume
+ionization, carbon 5 over volume
+ionization, carbon 6 over volume
+ionization, carbon 7 over volume
+ionization, silicon 1 over volume
+ionization, silicon 2 over volume
+ionization, silicon 3 over volume
+ionization, silicon 4 over volume
+ionization, silicon 5 over volume
+ionization, silicon 6 over volume
+ionization, silicon 7 over volume
+ionization, nitrogen 1 over volume
+ionization, nitrogen 2 over volume
+ionization, nitrogen 3 over volume
+ionization, nitrogen 4 over volume
+ionization, nitrogen 5 over volume
+ionization, nitrogen 6 over volume
+ionization, nitrogen 7 over volume
+ionization, magnesium 1 over volume
+ionization, magnesium 2 over volume
+ionization, magnesium 3 over volume
+ionization, magnesium 4 over volume
+end of averages
