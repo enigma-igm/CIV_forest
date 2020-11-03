@@ -92,14 +92,18 @@ def plot_skewers(params, skewers, i):
 
 def get_tau0_frac(lookup, cldy_metal_ion, metal_ion, nh_log10, temp_log10, z, logZ=-3.5):
 
+    tau0, f_ratio, v_metal, nH_bar = reion_utils.metal_tau0(metal_ion, z, logZ)
+
+    # using the mean density at z if the input density is not specified
+    if nh_log10 == None:
+        nh_log10 = np.log10(nH_bar.value)
+        print('nh_log10 not provided... using log10(mean density)', nh_log10)
+
+    # because some Cloudy models are run without varying metallicity
     try:
         ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, logZ, nh_log10, temp_log10)[0][0]
     except KeyError:
         ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, None, nh_log10, temp_log10)[0][0]
-
-    tau0, f_ratio, v_metal, nH_bar = reion_utils.metal_tau0(metal_ion, z, logZ)
-    #print(z, nH_bar)
-    #t0f = tau0*ion_frac
 
     return tau0, ion_frac
 
