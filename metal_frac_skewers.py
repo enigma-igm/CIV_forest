@@ -3,6 +3,7 @@ Functions in this module:
     - make_xciv_skewer
     - make_xmetal_skewer
     - plot_skewers
+    - get_tau0_frac
 """
 
 import numpy as np
@@ -13,6 +14,7 @@ import enigma.reion_forest.utils as reion_utils
 
 def make_xciv_skewer(params, skewers, cloudy_lookup, outfile):
     # modeled after enigma.tpe.utils.make_tau_skewers
+    # old version ---> see make_xmetal_skewer
 
     nh_bar = params['nH_bar']
     nh_skewers = np.log10(nh_bar*skewers['ODEN']) # since the interpolation takes log10 units
@@ -37,22 +39,43 @@ def make_xciv_skewer(params, skewers, cloudy_lookup, outfile):
         return params.as_array(), skewers.as_array()
 
 def make_xmetal_skewer(params, skewers, cloudy_lookup, cloudy_lookup_str, out_str, outfile):
-    # modeled after enigma.tpe.utils.make_tau_skewers
+    """
+    Generate skewers of x_metal fraction.
+        - modeled after enigma.tpe.utils.make_tau_skewers.
+        - clipping on skewers falling outside of cloudy grid limits
+        - note: grid limits are hardcoded... please change as appropriate.
+
+    Args:
+        params (astropy table)
+        skewers (astropy table)
+        cloudy_lookup (pandas dataframe):
+            obtained by calling cloudy_utils.read_cloudy_koki
+        cloudy_lookup_str (str):
+            column name from cloudy files for the ionization stage of the desired metal ion. E.g. 'IONI CARB 4 1'
+        out_str (str):
+            name to assign to the ion fraction to be written out in 'outfile'. E.g., 'X_CIV' for CIV ion fraction
+        outfile (str, optional):
+            name of output file, .fits format.
+    Returns:
+        If outfile == None, then return the changed params and skewers arrays.
+        If outfile is given, then write out params and skewers.
+    """
 
     nh_bar = params['nH_bar']
     nh_skewers = np.log10(nh_bar*skewers['ODEN']) # since the interpolation takes log10 units
     temp_skewers = np.log10(skewers['T']) # since the interpolation takes log10 units
 
-    # hardcoded grid limit...
+    # Clipping for skewers outside of cloudy grid limits (hardcoded grid limit...)
     clip_nh_skewers = np.clip(nh_skewers, -7, 0)
     clip_temp_skewers = np.clip(temp_skewers, 2, 7)
 
     Nskew = len(skewers)
-    xmetal_arr = []
+    xmetal_arr = [] # metal ion fraction array to store the skewers and to be written out
     for i in range(Nskew): # ~1 min to process 10,000 skewers
         xmetal_out = cloudy_utils.get_ion_frac(cloudy_lookup, cloudy_lookup_str, -3.5, clip_nh_skewers[i], clip_temp_skewers[i])
         xmetal_arr.append(xmetal_out)
-    skewers[out_str] = xmetal_arr
+
+    skewers[out_str] = xmetal_arr # appending a new x_metal column to the skewers array
 
     if outfile is not None:
         hdu_param = fits.BinTableHDU(params.as_array())
@@ -66,8 +89,7 @@ def make_xmetal_skewer(params, skewers, cloudy_lookup, cloudy_lookup_str, out_st
         return params.as_array(), skewers.as_array()
 
 def plot_skewers(params, skewers, i):
-    # 9488, 1704, 5684
-    # 8604, 2706, 7339 - pix > grid limits?
+    # plot oden, T, and x_metal skewers for index 'i'
 
     print(i)
     #nh_bar = params['nH_bar']
@@ -91,6 +113,29 @@ def plot_skewers(params, skewers, i):
     plt.show()
 
 def get_tau0_frac(lookup, cldy_metal_ion, metal_ion, nh_log10, temp_log10, z, logZ=-3.5):
+    """
+    Compute tau0 and metal ion fraction.
+
+    Args:
+        lookup (pandas dataframe):
+            obtained by calling cloudy_utils.read_cloudy_koki
+        cldy_metal_ion (str):
+            column name from cloudy files for the ionization stage of the desired metal ion. E.g. 'IONI CARB 4 1'
+        metal_ion (str):
+            name of metal ion, e.g. 'Mg II' (must include whitespace between name and ionization stage)
+        nh_log10 (float or None):
+            value of HI density in log10 unit at which to extract the metal ionic fraction;
+            if set to None, then use the mean density at that redshift
+        temp_log10 (float):
+            value of temperature in log10 unit at which to extract the metal ionic fraction
+        z (float):
+            redshift of the cloudy models for the ionic fraction
+        logZ (float, optional):
+            log10 of metallicity relative to solar at which to compute tau0
+
+    Returns:
+        tau0 and metal ion fraction
+    """
 
     tau0, f_ratio, v_metal, nH_bar = reion_utils.metal_tau0(metal_ion, z, logZ)
 
@@ -106,22 +151,3 @@ def get_tau0_frac(lookup, cldy_metal_ion, metal_ion, nh_log10, temp_log10, z, lo
         ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, None, nh_log10, temp_log10)[0][0]
 
     return tau0, ion_frac
-
-def get_tau0_frac_old(lookup, nh_log10, temp_log10, z, logZ=-3.5):
-
-    cldy_metal_ion_ls = ['IONI CARB 4 1', 'IONI SILI 4 1', 'IONI NITR 5 1', 'IONI OXYG 6 1']
-    metal_ion_ls = ['C IV', 'Si IV', 'N V', 'O VI']
-
-    t0f = []
-    for i, cldy_metal_ion in enumerate(cldy_metal_ion_ls):
-        try:
-            ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, logZ, nh_log10, temp_log10)[0][0]
-        except KeyError:
-            ion_frac = cloudy_utils.get_ion_frac(lookup, cldy_metal_ion, None, nh_log10, temp_log10)[0][0]
-
-        tau0, f_ratio, v_metal, nH_bar = reion_utils.metal_tau0(metal_ion_ls[i], z, logZ)
-        #print(metal_ion_ls[i], tau0, ion_frac)
-        t0f.append(tau0*ion_frac)
-
-    return t0f
-

@@ -1,3 +1,7 @@
+"""
+Plot oden, T, x_metal, and flux skewers for a randomly selected skewer.
+"""
+
 import numpy as np
 from matplotlib import pyplot as plt
 from astropy.table import Table
@@ -31,24 +35,27 @@ ftot_lores_noise = ftot_lores[0] + noise
 
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, figsize=(12,8.5), sharex=True)
 
-# oden plot
+#### oden plot ####
 ax1.plot(v_hires, oden[0], c='k')
 ax1.set_ylabel('Overdensity', fontsize=13)
 ax1.set_xlim([vmin, vmax])
-# temp plot
+
+#### temp plot ####
 ax2.plot(v_hires, T[0], c='k')
 ax2.set_ylabel('Temperature', fontsize=13)
 ax2.set_xlim([vmin, vmax])
-# x_metal plot
+
+#### x_metal plot ####
 ax3.plot(v_hires, x_metal[0], c='k')
 ax3.set_ylabel('X_metal', fontsize=13)
 ax3.set_xlim([vmin, vmax])
+
 # tau plot
 #ax4.plot(tau)#
 #ax4.set_ylabel('Tau', fontsize=13)
 #ax4.set_xlim([vmin, vmax])
 
-# flux plot
+#### flux plot ####
 ax4.plot(v_hires, ftot_hires[0], label='hires', c='k')#, drawstyle='steps-mid', alpha=0.6, zorder=10, color='red')
 #ax4.plot(v_lores, ftot_lores[0], label='FWHM=%0.1f km/s' % fwhm, c='r', alpha=0.6)#, drawstyle='steps-mid', color='k', zorder=1, linewidth=1.5)
 ax4.plot(v_lores, ftot_lores_noise, label='FWHM=%0.1f km/s; SNR=%0.1f' % (fwhm, snr), c='r', alpha=0.6, zorder=1)#, drawstyle='steps-mid')

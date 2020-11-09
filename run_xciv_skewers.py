@@ -1,9 +1,13 @@
+"""
+Generates x_metal skewers for corresponding Nyx skewers and save the results
+"""
+
+
 from cloudy_runs.cloudy_utils import read_cloudy_koki
-from metal_frac_skewers import *
+from metal_frac_skewers import make_xmetal_skewer
 from astropy.table import Table
 import time
 
-# generate x_civ skewers for Nyx skewers and write out the results
 data_path = '/Users/suksientie/research/CIV_forest/nyx_sim_data/'
 cloudy_path = '/Users/suksientie/research/CIV_forest/cloudy_runs/'
 outfile = data_path + 'rand_skewers_z45_ovt_tau_xciv.fits'

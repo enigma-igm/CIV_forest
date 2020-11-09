@@ -1,0 +1,1 @@
+python run_reion_skewers_metal.py --ranskewerfile nyx_sim_data/rand_skewers_z45_ovt_tau_xciv.fits --outfile nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits --dmax 3000 --metal_colname X_CIV --metal_mass 12

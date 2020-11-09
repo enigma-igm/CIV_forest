@@ -3,15 +3,16 @@ from matplotlib import pyplot as plt
 import cloudy_runs.cloudy_utils as cloudy_utils
 import metal_frac_skewers
 
-#nh_log10 = -4.5 # mean density
-nh_log10_ls = np.log10([3.166686791788229e-05, 3.71365044820066e-05, 4.320226805030104e-05, 4.9894992778153774e-05, 5.724551282095286e-05, 6.52846623340864e-05])
+# mean density is automatically used if the density is not specified
 temp_log10 = np.log10(10000)
 
-cldy_outpath = 'cloudy_runs/output/'
-cldy_outfiles = [cldy_outpath + 'cloudy_grid_more', cldy_outpath + 'cloudy_grid_z4p8', cldy_outpath + 'cloudy_grid_z5p1', \
-                 cldy_outpath + 'cloudy_grid_z5p4', cldy_outpath + 'cloudy_grid_z5p7', cldy_outpath + 'cloudy_grid_z6']
+cldy_outpath = 'cloudy_runs/output/cloudy_grid_'
+cldy_outfiles = [cldy_outpath + 'z2p7', cldy_outpath + 'z3', cldy_outpath + 'z3p3', cldy_outpath + 'z3p6', \
+                 cldy_outpath + 'z3p9', cldy_outpath + 'z4p2', cldy_outpath + 'more', \
+                 cldy_outpath + 'z4p8', cldy_outpath + 'z5p1', cldy_outpath + 'z5p4', \
+                 cldy_outpath + 'z5p7', cldy_outpath + 'z6', cldy_outpath + 'z6p3']
 
-z_range = [4.5, 4.8, 5.1, 5.4, 5.7, 6.0] # redshifts of the cloudy models
+z_range = [2.7, 3, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0, 6.3] # redshifts of the cloudy models
 
 # list of metal ions
 cldy_metal_ion_ls = ['IONI CARB 4 1', 'IONI SILI 4 1', 'IONI NITR 5 1', 'IONI OXYG 6 1']
@@ -32,10 +33,9 @@ for i in range(len(cldy_metal_ion_ls)):
     temp3 = []
     for j in range(len(z_range)):
         lookup = lookup_all[j]
-        #tau0f = metal_frac_skewers.get_tau0_frac(lookup, cldy_metal_ion_ls[i], metal_ion_ls[i], nh_log10, temp_log10, z_range[j], logZ=-3.5)
-        nh_log10 = nh_log10_ls[j]
-        tau0, ion_frac = metal_frac_skewers.get_tau0_frac(lookup, cldy_metal_ion_ls[i], metal_ion_ls[i], nh_log10, temp_log10,
-                                                 z_range[j], logZ=-3.5)
+        # at mean density and the specified temperature
+        tau0, ion_frac = metal_frac_skewers.get_tau0_frac(lookup, cldy_metal_ion_ls[i], metal_ion_ls[i], None, temp_log10, \
+                                                          z_range[j], logZ=-3.5)
         temp1.append(tau0)
         temp2.append(ion_frac)
         temp3.append(np.array(tau0)*np.array(ion_frac))
@@ -61,7 +61,6 @@ for i in range(len(cldy_metal_ion_ls)):
     plt.ylabel(r'$f_{ion}$', fontsize=15)
 
     plt.subplot(133)
-
     plt.plot(z_range, all_tau0f[i], label='%s' % metal_ion_ls[i], marker='o', linestyle='--')
     plt.legend()
     plt.yscale('log')

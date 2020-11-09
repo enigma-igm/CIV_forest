@@ -34,6 +34,7 @@ def read_cloudy_koki(filename, verbose=True):
     for i, col in enumerate(lookup):
         lookup.columns.values[i] = col.strip()
 
+    # print out the column names if set to verbose
     if verbose:
         print('----- Available column names ----- ')
         print(lookup.columns.values)
@@ -41,8 +42,25 @@ def read_cloudy_koki(filename, verbose=True):
     return lookup
 
 def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
+    """
+    Extract or interpolate the metal ion fraction at given density and temperature from Cloudy models
 
-    # if not varying metallicity, set fixed_Z_value = None
+    Args:
+        lookup (pandas dataframe):
+            obtained by calling read_cloudy_koki
+        metal_ion (str):
+            column name from cloudy files for the ionization stage of the desired metal ion. E.g. 'IONI CARB 4 1'
+        fixed_Z_value (float or None):
+            log10 of metallicity at which to extract the ion fraction;
+            if Cloudy models are done without varying metallicity, then set this to None
+        want_hden_value (float):
+            value of HI density in log10 unit at which to extract the ion fraction
+        want_temp_value (float):
+            temperature in log10 unit at which to extract the ion fraction
+
+    Returns:
+        Metal ion fraction
+    """
 
     if fixed_Z_value != None:
         # selecting out a specific metallicity
@@ -72,7 +90,17 @@ def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_va
 
 def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_temp_value=None):
 
-    # if not varying metallicity, set fixed_Z_value = None
+    """
+    Same as get_ion_frac, except returning either 1D or 2D curve.
+        - if not varying metallicity, set fixed_Z_value = None
+        - if both want_hden_value and want_temp_value == None,
+            then extract the 2D ion fraction at given metallicity (must be provided in this scenario)
+        - if only want_hden_value provided, then extract 1D ion fraction as a function of temperature
+        - if only want_temo_value provided, then extract 1D ion fraction as a function of density
+
+    Returns:
+        1D or 2D slices of the ion fraction from Cloudy models
+    """
 
     if fixed_Z_value != None:
         # selecting out a specific metallicity
@@ -102,11 +130,44 @@ def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \
                           temp_start, temp_end, temp_step, \
                           ncpus, metals_list, title='interpolation table', z=4.5):
 
+    """
+    Generate a Cloudy input script.
+
+    Args:
+        outfile (str):
+            name of Cloudy input script, .in format
+        hden_start (float):
+            starting grid value for density, in log10 unit
+        hden_end (float):
+            ending grid value for density, in log10 unit
+        hden_step (float):
+            bin size at which to vary density
+        metals_start (float):
+            starting grid value for metallicity, in log10;
+            if not varying metallicty, then set metals_end = metals_start
+        metals_end (float):
+            ending grid value for metallicity, in log10;
+            if not varying metallicty, then set metals_end = metals_start
+        temp_start (float):
+            starting grid value for temperature, in log10
+        temp_end (float):
+            ending grid value for temperature, in log10
+        ncpus (int):
+            how many cores to use
+        metals_list (list):
+            list of metals and ionic stages to write out to cloudy's .avr file.
+            E.g.: metals_list = ['hydrogen 1 2', 'oxygen 1 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
+        title (str, optional):
+            title for cloudy run
+        z (float, optional):
+            redshift at which to run the Cloudy models
+    """
+
     prefix = outfile.split('.')[0]
     newfile = open(outfile, 'w')
     newfile.write('title %s\n' % title)
     newfile.write('cmb z=%0.1f\n' % z)
-    newfile.write('table hm12 z=%0.1f\n' % z)
+    newfile.write('table hm12 z=%0.1f\n' % z) # using the H&M 2012 UVB model for now
     newfile.write('hden -2. vary\n')
     newfile.write('grid %0.1f %0.1f %0.1f ncpus %d\n' % (hden_start, hden_end, hden_step, ncpus))
 
