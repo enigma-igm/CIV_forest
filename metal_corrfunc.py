@@ -5,13 +5,19 @@ from astropy.table import Table
 from astropy.io import fits
 from astropy.table import hstack, vstack
 
-def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, sampling=None, cgm_dict=None):
+def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, cgm_dict=None):
 
     # similar as enigma.reion_forest.fig_corrfunc.py
 
     vel_lores, (flux_lores_tot, flux_lores_igm, flux_lores_cgm), \
     vel_hires, (flux_hires_tot, flux_hires_igm, flux_hires_cgm), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(params, skewers, logZ, fwhm, metal_ion, sampling=sampling, cgm_dict=cgm_dict)
+
+    # Add noise if snr is provided
+    if snr != None:
+        print("adding random noise with SNR=%d" % snr)
+        noise = np.random.normal(0.0, 1.0 / snr, np.shape(flux_lores_tot))
+        flux_lores_tot += noise
 
     # Compute mean flux and delta_flux
     mean_flux_tot = np.mean(flux_lores_tot)
