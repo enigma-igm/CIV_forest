@@ -32,9 +32,13 @@ def write_corr(vel_mid, xi_tot, npix_tot, outfile):
     for i in range(len(xi_tot)):
         vel_mid2.append(vel_mid)
 
-    tab = Table([vel_mid2, xi_tot, npix_tot], names=('vel_mid', 'xi_tot', 'npix_tot'))
+    #xi_mean_tot = np.mean(xi_tot, axis=0)
+    #tab0 = Table([xi_mean_tot], names=('xi_mean_tot'))
+    tab1 = Table([vel_mid2, xi_tot, npix_tot], names=('vel_mid', 'xi_tot', 'npix_tot'))
 
-    hdu_table = fits.BinTableHDU(tab.as_array())
+    #hdu_param = fits.BinTableHDU(tab0.as_array())
+    hdu_table = fits.BinTableHDU(tab1.as_array())
     hdulist = fits.HDUList()
+    #hdulist.append(hdu_param)
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
