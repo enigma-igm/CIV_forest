@@ -8,6 +8,7 @@ from astropy.table import hstack, vstack
 def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, cgm_dict=None):
 
     # similar as enigma.reion_forest.fig_corrfunc.py
+    # if sampling not provided, then default to sampling=3
 
     vel_lores, (flux_lores_tot, flux_lores_igm, flux_lores_cgm), \
     vel_hires, (flux_hires_tot, flux_hires_igm, flux_hires_cgm), \

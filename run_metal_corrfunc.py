@@ -5,17 +5,22 @@ from astropy.table import Table
 import metal_corrfunc as mcf
 import time
 
+# parameters to set
 metal_ion = 'C IV'
 logZ = -3.5
-fwhm = 10
-sampling = 3
+fwhm = 10    # for creating the metal forest
+sampling = 3 # for creating the metal forest
 vmin_corr = fwhm
 vmax_corr = 3000.
 dv_corr = fwhm/sampling
-snr = 20 # or None for noiseless data
-corr_outfile = 'nyx_sim_data/subset100_civ_forest_corrfunc_fwhm10_snr20.fits' # saving output correlation functions
+dv_corr = 2.
+snr = None # or None for noiseless data
+
+# input and output files
 tau_metal_file = 'nyx_sim_data/subset100_civ_forest.fits' # 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits'
-compute_corr = False
+corr_outfile = 'nyx_sim_data/subset100_civ_forest_corrfunc_dv2.fits' # saving output correlation function
+
+compute_corr = True
 
 if compute_corr:
 
@@ -42,7 +47,7 @@ else:
 
     factor = 1.0
     plt.figure(figsize=(12,8))
-    plt.plot(vel_mid, factor*xi_mean_tot, linewidth=2.0, linestyle='-', label='SNR=%d' % snr)
+    plt.plot(vel_mid, factor*xi_mean_tot, linewidth=2.0, linestyle='-')#, label='SNR=%d' % snr)
     plt.plot(vel_mid_noiseless, factor*xi_mean_tot_noiseless, linewidth=2.0, linestyle='-', color='k', alpha=0.6, label='Noiseless')
     plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
     plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
