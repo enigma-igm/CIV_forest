@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 
-dv_ls = [2, 3.3, 10, 50, 100]
 dv2 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv2.fits')
 dv3p3 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_fwhm10.fits')
 dv10 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv10.fits')
 dv50 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv50.fits')
 dv100 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv100.fits')
+
 dv_file = [dv3p3, dv10, dv50, dv100]
+dv_ls = [3.3, 10, 50, 100]
 
 plt.figure(figsize=(8,6))
 for i in range(len(dv_file)):
