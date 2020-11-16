@@ -20,7 +20,7 @@ snr = None # or None for noiseless data
 tau_metal_file = 'nyx_sim_data/subset100_civ_forest.fits' # 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits'
 corr_outfile = 'nyx_sim_data/subset100_civ_forest_corrfunc_dv2.fits' # saving output correlation function
 
-compute_corr = True
+compute_corr = False
 
 if compute_corr:
 
