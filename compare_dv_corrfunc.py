@@ -3,20 +3,26 @@ import matplotlib.pyplot as plt
 from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 
-dv2 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv2.fits')
-dv3p3 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_fwhm10.fits')
+# all these are for 100 skewers, fwhm=10, sampling=3
+
+# dv2 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv2.fits') # cannot have dv < fwhm/sampling
+dv3p3 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv3p3_fwhm10.fits')
+dv5 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv5.fits')
 dv10 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv10.fits')
 dv50 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv50.fits')
 dv100 = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv100.fits')
 
-dv_file = [dv3p3, dv10, dv50, dv100]
-dv_ls = [3.3, 10, 50, 100]
+dv_file = [dv3p3, dv5, dv10, dv50, dv100]
+dv_ls = [3.3, 5, 10, 50, 100]
 
 plt.figure(figsize=(8,6))
 for i in range(len(dv_file)):
     vel_mid = dv_file[i]['vel_mid'][0]
     xi_mean = np.mean(dv_file[i]['xi_tot'], axis=0)
-    plt.plot(vel_mid, xi_mean, label='dv=%0.1f km/s' % dv_ls[i])
+    if i == 0: # dv=3.3 km/s
+        plt.plot(vel_mid, xi_mean, 'k.', ms=7, label='dv=%0.1f km/s' % dv_ls[i])
+    else:
+        plt.plot(vel_mid, xi_mean, label='dv=%0.1f km/s' % dv_ls[i])
 
 vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
 vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
