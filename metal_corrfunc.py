@@ -32,7 +32,7 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
 
     return vel_mid, xi_mean_tot, xi_tot, npix_tot
 
-def write_corr(vel_mid, xi_tot, npix_tot, outfile):
+def write_corrfunc(vel_mid, xi_tot, npix_tot, outfile):
 
     # hack because shape(vel_mid) != shape(xi_tot
     vel_mid2 = []
@@ -49,3 +49,53 @@ def write_corr(vel_mid, xi_tot, npix_tot, outfile):
     #hdulist.append(hdu_param)
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
+
+def plot_corr_matrix(params, covar):
+    # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+
+    nqsos = params['nqsos'][0]
+    delta_z = params['delta_z'][0]
+    npath = params['npath'][0]
+    ncovar = params['ncovar'][0]
+    SNR = params['SNR'][0]
+    vmin_corr = params['vmin_corr'][0]
+    vmax_corr = params['vmax_corr'][0]
+
+    corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
+
+    plt.figure(figsize=(8, 8))
+    plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
+                   extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
+    plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+    plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
+    plt.title(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
+    plt.colorbar()
+
+    plt.show()
+
+def plot_all_corr(params, covar_array):
+    # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+    
+    nqsos = params['nqsos'][0]
+    delta_z = params['delta_z'][0]
+    npath = params['npath'][0]
+    ncovar = params['ncovar'][0]
+    SNR = params['SNR'][0]
+    vmin_corr = params['vmin_corr'][0]
+    vmax_corr = params['vmax_corr'][0]
+    logZ_vec = params['logZ'][0]
+
+    plt.figure(figsize=(12,12))
+    for i in range(len(covar_array)):
+        covar = covar_array[i]
+        corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
+        plt.subplot(3, 3, i + 1)
+        plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
+                   extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
+        plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
+        #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+        #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
+
+    plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
+    #plt.tight_layout()
+    plt.savefig('plots/logZ_covar.pdf')
