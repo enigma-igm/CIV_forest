@@ -4,6 +4,7 @@ import enigma.reion_forest.utils as reion_utils
 from astropy.table import Table
 from astropy.io import fits
 from astropy.table import hstack, vstack
+from enigma.reion_forest.compute_model_grid_civ import read_model_grid
 
 def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, cgm_dict=None):
 
@@ -73,9 +74,12 @@ def plot_corr_matrix(params, covar):
 
     plt.show()
 
-def plot_all_corr(params, covar_array):
+def plot_all_corr(modelfile, outfig):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
-    
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    covar_array = covar_array[0]
+
     nqsos = params['nqsos'][0]
     delta_z = params['delta_z'][0]
     npath = params['npath'][0]
@@ -85,7 +89,7 @@ def plot_all_corr(params, covar_array):
     vmax_corr = params['vmax_corr'][0]
     logZ_vec = params['logZ'][0]
 
-    plt.figure(figsize=(12,12))
+    plt.figure(figsize=(10,10))
     for i in range(len(covar_array)):
         covar = covar_array[i]
         corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
@@ -96,6 +100,7 @@ def plot_all_corr(params, covar_array):
         #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
         #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
 
-    plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
+    plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d, ncovar=%d, SNR=%d' % (nqsos, delta_z, npath, ncovar, SNR), fontsize=18)
+    #plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
     #plt.tight_layout()
-    plt.savefig('plots/logZ_covar.pdf')
+    plt.savefig(outfig)
