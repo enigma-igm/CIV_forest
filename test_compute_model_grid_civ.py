@@ -1,3 +1,5 @@
+## 11/17/2020: To be deprecated, just for testing purpose. 
+
 import numpy as np
 from astropy.table import Table
 from matplotlib import pyplot as plt
@@ -14,8 +16,8 @@ fwhm = 10
 sampling = 3
 nqsos = 10
 delta_z = 0.2
-covar_outfile = 'nyx_sim_data/covar.fits'
-compute_corr = False
+covar_outfile = 'nyx_sim_data/covar_1mil.fits'
+compute_corr = True
 
 if compute_corr:
     npath = compute.get_npath(par100, ske100, logZ, fwhm, sampling, nqsos, delta_z)
@@ -24,7 +26,7 @@ if compute_corr:
     vmin_corr = 20
     vmax_corr = 2000
     dv_corr = 5
-    ncovar = int(1e5)
+    ncovar = int(1e6)
     nmock = 50 # number of mock datasets to store -- irrelevant for now
     seed = 1199
 
