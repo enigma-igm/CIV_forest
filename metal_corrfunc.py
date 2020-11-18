@@ -74,11 +74,10 @@ def plot_corr_matrix(params, covar):
 
     plt.show()
 
-def plot_all_corr(modelfile, outfig):
+def plot_all_corrmatrix(modelfile, outfig, type):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
 
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
-    covar_array = covar_array[0]
 
     nqsos = params['nqsos'][0]
     delta_z = params['delta_z'][0]
@@ -88,19 +87,34 @@ def plot_all_corr(modelfile, outfig):
     vmin_corr = params['vmin_corr'][0]
     vmax_corr = params['vmax_corr'][0]
     logZ_vec = params['logZ'][0]
+    vel_mid = params['vel_mid'][0]
 
     plt.figure(figsize=(10,10))
-    for i in range(len(covar_array)):
-        covar = covar_array[i]
-        corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
-        plt.subplot(3, 3, i + 1)
-        plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
-                   extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
-        plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
-        #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
-        #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
+    if type == 'cov':
+        covar_array = covar_array[0]
+        for i in range(len(covar_array)):
+            covar = covar_array[i]
+            corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
+            plt.subplot(3, 3, i + 1)
+            plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
+                       extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
+            plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
+            #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+            #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
+
+    elif type == 'corrfunc':
+        xi_model_array = xi_model_array[0]
+        vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
+        #factor = [1e8, 1e7, 1e6, 1e5, 1e4, 1e3, 1e2, 1, 1]
+
+        for i in range(len(xi_model_array)):
+            plt.subplot(3, 3, i + 1)
+            plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.2,
+                        label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+            plt.plot(vel_mid, xi_model_array[i], linewidth=2.0, linestyle='-')
+            plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
+            #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+            #plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
 
     plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d, ncovar=%d, SNR=%d' % (nqsos, delta_z, npath, ncovar, SNR), fontsize=18)
-    #plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
-    #plt.tight_layout()
     plt.savefig(outfig)
