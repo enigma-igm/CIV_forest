@@ -118,3 +118,36 @@ def plot_all_corrmatrix(modelfile, outfig, type):
 
     plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d, ncovar=%d, SNR=%d' % (nqsos, delta_z, npath, ncovar, SNR), fontsize=18)
     plt.savefig(outfig)
+
+def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
+    # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    logZ_vec = params['logZ'][0]
+
+    covar_array = covar_array[0] # shape = (logZ, vel_mid, vel_mid)
+
+    # constructing the correlation matrix
+    corr_array = []
+    for i in range(len(covar_array)):
+        corr = covar_array[i] / np.sqrt(np.outer(np.diag(covar_array[i]), np.diag(covar_array[i])))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
+        corr_array.append(corr)
+    corr_array = np.array(corr_array)
+
+    if rand_i == None and rand_j == None:
+        i_size, j_size = np.shape(covar_array)[1:]
+        rand_i, rand_j = np.random.randint(i_size), np.random.randint(j_size)
+        print(rand_i, rand_j)
+
+    #covar_array_d = np.abs(covar_array[:,rand_i, rand_i])
+    #covar_array_nd = np.abs(covar_array[:, rand_i, rand_j])
+    covar_array_d = covar_array[:, rand_i, rand_i]
+    covar_array_nd = covar_array[:, rand_i, rand_j]
+
+    plt.plot(logZ_vec, covar_array_d, 'o-', label=r"Diag: ($i,j$)=(%d,%d)" % (rand_i, rand_i))
+    plt.plot(logZ_vec, covar_array_nd, 'o-', label=r"Off-diag: ($i,j$)=(%d,%d)" % (rand_i, rand_j))
+    plt.xlabel('log(Z)', fontsize=13)
+    plt.ylabel('Covariance', fontsize=13)
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
