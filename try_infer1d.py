@@ -82,17 +82,6 @@ def init_var(modelfile, logZ_guess):
 
     return logZ_fine, logZ_coarse, lnlike_coarse
 
-import scipy
-def plot_prob(lnlike, logZ):
-    like_ratio = np.exp(lnlike - lnlike.max()) # linear; L/L_max
-    norm = scipy.integrate.trapz(like_ratio)
-    print(norm)
-
-    plt.plot(logZ, like_ratio/norm, 'k.-')
-    plt.xlabel('logZ', fontsize=13)
-    plt.ylabel(r'$L/L_{max}$', fontsize=13)
-    plt.show()
-
 def infer(logZ_fine, logZ_coarse, lnlike_coarse):
     nwalkers = 40
     ndim = 1
@@ -104,16 +93,25 @@ def infer(logZ_fine, logZ_coarse, lnlike_coarse):
     lnlike_fine = interp_lnlike_1d(logZ_fine, logZ_coarse, lnlike_coarse)
     args = lnlike_fine, logZ_fine, linearZprior
 
-    #return pos, lnlike_fine, logZ_fine, linearZprior
+    return pos, lnlike_fine, logZ_fine, linearZprior
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_1d, args=args)
     sampler.run_mcmc(pos, nsteps, progress=True)
 
-def plot_lnlike1d(modelfile):
-    logZ_fine, logZ_coarse, lnlike_coarse = init_var(modelfile)
-    pos, lnlike_fine, logZ_fine, linearZprior = infer(logZ_fine, logZ_coarse, lnlike_coarse)
+import scipy
+def plot_prob(lnlike, logZ):
+    like_ratio = np.exp(lnlike - lnlike.max()) # linear; L/L_max
+    norm = scipy.integrate.trapz(like_ratio)
+    print(norm)
 
-    plt.plot(logZ_fine, lnlike_fine, label=modelfile)
+    plt.figure()
+    plt.plot(logZ, like_ratio/norm, 'k.-')
+    plt.xlabel('logZ', fontsize=13)
+    plt.ylabel(r'$L/L_{max}$', fontsize=13)
+
+    plt.figure()
+    plt.plot(logZ, lnlike)
     plt.xlabel('logZ', fontsize=13)
     plt.ylabel('lnL', fontsize=13)
-    #plt.show()
+
+    plt.show()
