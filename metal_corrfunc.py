@@ -139,15 +139,16 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
         rand_i, rand_j = np.random.randint(i_size), np.random.randint(j_size)
         print(rand_i, rand_j)
 
-    #covar_array_d = np.abs(covar_array[:,rand_i, rand_i])
-    #covar_array_nd = np.abs(covar_array[:, rand_i, rand_j])
+    covar_array = corr_array # plot the correlation element instead
+
     covar_array_d = covar_array[:, rand_i, rand_i]
     covar_array_nd = covar_array[:, rand_i, rand_j]
 
     plt.plot(logZ_vec, covar_array_d, 'o-', label=r"Diag: ($i,j$)=(%d,%d)" % (rand_i, rand_i))
     plt.plot(logZ_vec, covar_array_nd, 'o-', label=r"Off-diag: ($i,j$)=(%d,%d)" % (rand_i, rand_j))
     plt.xlabel('log(Z)', fontsize=13)
-    plt.ylabel('Covariance', fontsize=13)
-    plt.yscale('log')
+    plt.ylabel(r'Corr$_{ij}$=Cov$_{ij}$/$\sqrt{Cov_{ii}Cov_{jj}}$', fontsize=13)
+    #plt.ylabel('Covariance', fontsize=13)
+    #plt.yscale('log')
     plt.legend()
     plt.show()
