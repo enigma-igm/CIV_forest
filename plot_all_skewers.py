@@ -48,7 +48,7 @@ ax2.set_xlim([vmin, vmax])
 
 #### x_metal plot ####
 ax3.plot(v_hires, x_metal[0], c='k')
-ax3.set_ylabel('X_metal', fontsize=13)
+ax3.set_ylabel('X_CIV', fontsize=13)
 ax3.set_xlim([vmin, vmax])
 
 # tau plot
@@ -61,7 +61,7 @@ ax4.plot(v_hires, ftot_hires[0], label='hires', c='k')#, drawstyle='steps-mid', 
 #ax4.plot(v_lores, ftot_lores[0], label='FWHM=%0.1f km/s' % fwhm, c='r', alpha=0.6)#, drawstyle='steps-mid', color='k', zorder=1, linewidth=1.5)
 ax4.plot(v_lores, ftot_lores_noise, label='FWHM=%0.1f km/s; SNR=%0.1f' % (fwhm, snr), c='r', alpha=0.6, zorder=1)#, drawstyle='steps-mid')
 ax4.set_xlabel('v (km/s)', fontsize=14)
-ax4.set_ylabel('F_metal', fontsize=13)
+ax4.set_ylabel('F_CIV', fontsize=13)
 ax4.legend()
 ax4.set_xlim([vmin, vmax])
 ax4.set_ylim([0.85, 1.1])
