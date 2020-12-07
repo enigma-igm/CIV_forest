@@ -3,7 +3,6 @@ from linetools.lists.linelist import LineList
 from astropy import constants as const
 from astropy import units as u
 from astropy.cosmology import Planck15
-from scipy import integrate
 
 def metalsline_info():
     strong = LineList('Strong', verbose=False)

@@ -1,3 +1,8 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+from astropy.cosmology import Planck15
+
 ### testing functions for CIV distribution functions from literatures.
 ### double-check before using
 def civ_dndzdW(W, z, type, k=None, alpha=None):
