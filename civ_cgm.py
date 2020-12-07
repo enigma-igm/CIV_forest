@@ -1,0 +1,80 @@
+### testing functions for CIV distribution functions from literatures.
+### double-check before using
+def civ_dndzdW(W, z, type, k=None, alpha=None):
+    # dN, where N = number, not column density
+
+    if k == None:
+        if type == 'Cooksey': # Table 4 and <z> = 3.25860
+            k = 1.82
+        elif type == 'DOdorico': # Cooksey's fit to D'Odorico et al. (2010); Sec 4.3
+            k = 3.72
+        elif type == 'Songaila': # Cooksey's fit to Songaila (2001); Sec 4.3
+            k = 2.29
+
+    if alpha == None:
+        if type == 'Cooksey':
+            alpha = -2.61
+        elif type == 'DOdorico':
+            alpha = -2.65
+        elif type == 'Songaila':
+            alpha = -2.58
+
+    # exponential form from Cooksey et al. (2013)
+    dn_dXdW = k*np.exp(alpha*W)
+
+    # converting to dNdzdW
+    omega_m = Planck15.Om0
+    omega_lambda = 1 - omega_m
+    dX_dz = ((1 + z)**2)*(omega_m*(1 + z)**3 + omega_lambda)**(-0.5) # correct for discrete dz??
+    dn_dzdW = dn_dXdW * dX_dz
+
+    return dn_dzdW, dn_dXdW
+
+def civ_dndNdX(B, alpha, N_CIV):
+    # alpha = 1.71 or 1.8 from D'Odorico et al. (2010)
+    # alpha = 1.75 for D'Odorico et al. (2013), Figure 18, 4.35 < z < 5.3
+    # what are obs values for B?
+    #    - log(B) = 9.5, by eye based on Figure 18 (i.e. for logN = 12.4 and logf = -12.2) of D'Odorico et al (2013)
+
+    dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
+    return dn_dNdX
+
+# want to match to Simcoe et al. (2011) or Songaila (2001) dN/dz (which one?) by adjusting alpha and k
+def civ_dNdz(k, alpha, z, W_min, W_max, nW):
+
+    W = np.linspace(W_min, W_max, nW)
+    dN_dXdW = k * np.exp(alpha * W)
+    dN_dX = integrate.simps(dN_dXdW, W) # integrate dN_dXdW over dW to get dN_dX
+
+    # convert dN_dX to dN_dz
+    omega_m = Planck15.Om0
+    omega_lambda = 1 - omega_m
+    dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)
+    dN_dz = dN_dX * dX_dz
+
+    return dN_dX, dN_dz
+
+def plot_cooksey2013_dndz():
+    # Table 4 (CIV results summary)
+    z_median = [1.96, 1.56, 1.66, 1.74, 1.82, 1.91, 2.02, 2.15, 2.36, 2.72, 3.26]
+    z_min = [1.47, 1.47, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97]
+    z_max = [4.54, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97, 4.54]
+    z_err_lo = np.array(z_median) - np.array(z_min)
+    z_err_hi = np.array(z_max) - np.array(z_median)
+
+    dndz = [0.92, 0.95, 1.00, 1.08, 1.09, 1.12, 1.04, 1.04, 0.96, 0.83, 0.59]
+    dndz_err_hi = [0.02, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.02]
+    dndz_err_lo = [0.01, 0.03, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.02]
+
+    # first point in the array is the largest bin that includes all subsequent smaller bins
+    plt.errorbar(z_median[1:], dndz[1:], xerr=(z_err_lo[1:], z_err_hi[1:]), yerr=(dndz_err_lo[1:], dndz_err_hi[1:]), fmt='o')
+
+    #plt.plot(z_median[0], dndz[0], 'r*')
+    #plt.hlines(dndz[0], dndz_err_lo[0] - dndz[0], dndz_err_hi[0] + dndz[0], color='r')
+    #plt.vlines(z_median[0], z_median[0] - z_err_lo[0], z_median[0] + z_err_hi[0], color='r')
+
+    plt.yscale('log')
+    plt.xlabel('z', fontsize=13)
+    plt.ylabel('dn/dz', fontsize=13)
+    plt.tight_layout()
+    plt.show()
