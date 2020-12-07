@@ -74,7 +74,7 @@ def plot_corr_matrix(params, covar):
 
     plt.show()
 
-def plot_all_corrmatrix(modelfile, outfig, type):
+def plot_all_corrmatrix(modelfile, outfig, type, cf_overplot=False):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
 
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
@@ -89,7 +89,7 @@ def plot_all_corrmatrix(modelfile, outfig, type):
     logZ_vec = params['logZ'][0]
     vel_mid = params['vel_mid'][0]
 
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(12,10))
     if type == 'cov':
         covar_array = covar_array[0]
         for i in range(len(covar_array)):
@@ -97,8 +97,9 @@ def plot_all_corrmatrix(modelfile, outfig, type):
             corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
             plt.subplot(3, 3, i + 1)
             plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
-                       extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
+                       extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr])#, vmin=0.0, vmax=1.0)
             plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
+            plt.colorbar()
             #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
             #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
 
@@ -108,16 +109,30 @@ def plot_all_corrmatrix(modelfile, outfig, type):
         #factor = [1e8, 1e7, 1e6, 1e5, 1e4, 1e3, 1e2, 1, 1]
 
         for i in range(len(xi_model_array)):
-            plt.subplot(3, 3, i + 1)
-            plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.2,
-                        label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-            plt.plot(vel_mid, xi_model_array[i], linewidth=2.0, linestyle='-')
-            plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
-            #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
-            #plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
+            if cf_overplot:
+                plt.plot(vel_mid, xi_model_array[i], linewidth=2.0, linestyle='-',
+                         label=r'logZ = $%0.1f$' % logZ_vec[i])
+                if i == (len(xi_model_array) - 1):
+                    plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.2,
+                                label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+                plt.legend(frameon=False, fontsize=12)
+                plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+                plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
+            else:
+                plt.subplot(3, 3, i + 1)
+                plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.2,
+                            label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+                plt.plot(vel_mid, xi_model_array[i], linewidth=2.0, linestyle='-')
+                plt.title(r'logZ = $%0.1f$' % logZ_vec[i], fontsize=12)
+                #plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+                #plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
 
     plt.suptitle(r'nqso=%d, $\Delta z$=%0.1f, npath=%d, ncovar=%d, SNR=%d' % (nqsos, delta_z, npath, ncovar, SNR), fontsize=18)
-    plt.savefig(outfig)
+
+    if outfig != None:
+        plt.savefig(outfig)
+    else:
+        plt.show()
 
 def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
