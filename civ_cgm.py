@@ -3,17 +3,23 @@ import matplotlib.pyplot as plt
 from scipy import integrate
 from astropy.cosmology import Planck15
 
-# is this right?
-def civ_dndNdz(n_star, alpha, N_star, N):
+
+def civ_dndNdz(n_star, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
     # note: small n refers to number
 
     dn_dNdz = (n_star / N_star) * np.power(N / N_star, alpha) * np.exp(-N/ N_star)
-    return dn_dNdz
 
-# dn_dNdX_sch = cgm.civ_dndNdz_test(1e-13, -0.8, 10**14, 10**logN_CIV, z=4.5) seems ok
-# when compared with dodorico2013_cddf()
+    if z != None:
+        omega_m = Planck15.Om0
+        omega_lambda = 1 - omega_m
+        dz_dX = 1/(((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5))
+        dn_dNdX = dn_dNdz * dz_dX
+        return dn_dNdX
+    else:
+        return dn_dNdz
+
 def civ_dndNdz_test(normalization, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
@@ -170,9 +176,33 @@ def reproduce_dodorico2013_fig18():
     f = civ_dndNdX(B, alpha, 10**logN_CIV)
     data_logN_CIV, data_logf = dodorico2013_cddf()
 
-    plt.plot(logN_CIV, np.log10(f), '--', label=r'f(N) = B N$^{-\alpha}$')
-    plt.plot(data_logN_CIV, data_logf, 'x')
+    plt.plot(data_logN_CIV, data_logf, 'kx')
+    plt.plot(logN_CIV, np.log10(f), ':', label=r'f(N) = B N$^{-\alpha}$')
+
     plt.legend(fontsize=13)
+    plt.xlabel('log N(CIV)', fontsize=13)
+    plt.ylabel('log f', fontsize=13)
+    plt.xlim([12.4, 15.2])
+    plt.ylim([-17.4, -11.2])
+    plt.show()
+
+def fit_dodorico2013_schechter():
+    B = 10 ** 10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    alpha = 1.75
+
+    f = civ_dndNdX(B, alpha, 10 ** logN_CIV)
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+
+    norm, alpha, N_star, z = 1e-13, -0.8, 10**14.0, 4.8
+    dn_dNdX_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV, z=z)
+
+    plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3')
+    plt.plot(logN_CIV, np.log10(f), ':', label=r"D'Odorico fit: f(N) = B N$^{-\alpha}$")
+    plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: log(norm)=%0.1f, alpha=%0.2f, log(N*)=%0.1f" % \
+                                                          (np.log10(norm), alpha, np.log10(N_star)))
+
+    plt.legend(fontsize=11)
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel('log f', fontsize=13)
     plt.xlim([12.4, 15.2])
