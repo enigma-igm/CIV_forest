@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate
 from astropy.cosmology import Planck15
-
+import mpmath
+from astropy import constants as const
+from astropy import units as u
 
 def civ_dndNdz(n_star, alpha, N_star, N, z=None):
 
@@ -35,7 +37,7 @@ def civ_dndNdz_test(normalization, alpha, N_star, N, z=None):
     else:
         return dn_dNdz
 
-def civ_dndz(n_star, alpha, N_star, N_min, N_max):
+def civ_dndz_schechter(n_star, alpha, N_star, N_min, N_max):
     """
     Compute Schechter integral over [N_min, N_max] interval using the incomplete gamma functions.
     """
@@ -53,6 +55,38 @@ def civ_dndz(n_star, alpha, N_star, N_min, N_max):
 
     dn_dz = n_star * I
     return dn_dz
+
+def civ_dndz_schechter_test(normalization, alpha, N_star, N_min, N_max):
+    """
+    Compute Schechter integral over [N_min, N_max] interval using the incomplete gamma functions.
+    """
+
+    z = alpha + 1 # slope
+    upper = N_max / N_star
+    lower = N_min / N_star
+    # \Gamma(z, l, u) = \int_lower^upper x^(z-1) exp(-x) dx, where x = W/W_star
+    if isinstance(N_max,float):
+        I = float(mpmath.gammainc(z, lower, upper))
+    elif isinstance(N_max,np.ndarray):
+        I = np.zeros_like(N_max)
+        for indx in range(N_max.size):
+            I[indx] = float(mpmath.gammainc(z, lower, upper[indx]))
+
+    dn_dz = (normalization * N_star) * I
+    return dn_dz
+
+def convert_dW2dN_civ(): # needs to be checked
+
+    # assuming linear part of COG
+    e_cgs = 4.8032e-10
+    me = const.m_e.to('g').value
+    c_cgs = const.c.to('cm/s').value
+    f = 0.1899 # oscillator strength for CIV 1548
+    wrest_A = 1548.204 # rest wavelength of CIV 1548
+
+    conversion_factor = (np.pi*(e_cgs**2)/(me*c_cgs**2))*wrest_A*f # Angstrom * cm2
+
+    return conversion_factor
 
 ##### EW distribution function #####
 def civ_dndzdW(W, z, type, k=None, alpha=None):
@@ -86,7 +120,7 @@ def civ_dndzdW(W, z, type, k=None, alpha=None):
     return dn_dzdW, dn_dXdW
 
 # want to match to Simcoe et al. (2011) or Songaila (2001) dN/dz (which one?) by adjusting alpha and k
-def civ_dNdz(k, alpha, z, W_min, W_max, nW):
+def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
 
     W = np.linspace(W_min, W_max, nW)
     dN_dXdW = k * np.exp(alpha * W)
