@@ -75,6 +75,18 @@ def civ_dndz_schechter_test(normalization, alpha, N_star, N_min, N_max):
     dn_dz = (normalization * N_star) * I
     return dn_dz
 
+def convert_W2N_civ(W):
+    ec = const.e.value
+    me = const.m_e.value
+    c = const.c.value
+    f = 0.1899  # oscillator strength for CIV 1548
+    wrest = 1.548204e-07 * u.m # rest wavelength of CIV 1548 in SI
+
+    N = ((me*c**2)/(np.pi*ec**2))* (W * u.m)/(wrest*f) # 1/m2
+    N /= (u.m * u.m)
+
+    return N
+
 def convert_dW2dN_civ(): # needs to be checked
 
     # assuming linear part of COG
