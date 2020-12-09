@@ -87,19 +87,6 @@ def convert_W2N_civ(W):
 
     return N
 
-def convert_dW2dN_civ(): # needs to be checked
-
-    # assuming linear part of COG
-    e_cgs = 4.8032e-10
-    me = const.m_e.to('g').value
-    c_cgs = const.c.to('cm/s').value
-    f = 0.1899 # oscillator strength for CIV 1548
-    wrest_A = 1548.204 # rest wavelength of CIV 1548
-
-    conversion_factor = (np.pi*(e_cgs**2)/(me*c_cgs**2))*wrest_A*f # Angstrom * cm2
-
-    return conversion_factor
-
 ##### EW distribution function #####
 def civ_dndzdW(W, z, type, k=None, alpha=None):
     # dN, where N = number, not column density
