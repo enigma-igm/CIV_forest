@@ -6,7 +6,7 @@ import mpmath
 from astropy import constants as const
 from astropy import units as u
 
-def civ_dndNdz(n_star, alpha, N_star, N, z=None):
+def civ_dndNdz_sch(n_star, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
     # note: small n refers to number
@@ -76,6 +76,13 @@ def civ_dndz_schechter_test(normalization, alpha, N_star, N_min, N_max):
     return dn_dz
 
 def convert_W2N_civ(W):
+    # N in 1/cm2, W in Angstrom
+    N = 1e14 * (W/0.6)
+    return N
+
+def convert_W2N_civ_old(W):
+
+    # all in SI units
     ec = const.e.value
     me = const.m_e.value
     c = const.c.value
@@ -85,6 +92,7 @@ def convert_W2N_civ(W):
     N = ((me*c**2)/(np.pi*ec**2))* (W * u.m)/(wrest*f) # 1/m2
     N /= (u.m * u.m)
 
+    # W ~ 0.6A should be logN ~ 14 (Cooksey+2010), but not getting this...
     return N
 
 ##### EW distribution function #####
@@ -134,7 +142,7 @@ def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
     return dN_dX, dN_dz
 ##############################
 
-def civ_dndNdX(B, alpha, N_CIV):
+def civ_dndNdX_pl(B, alpha, N_CIV):
     # alpha = 1.71 or 1.8 from D'Odorico et al. (2010)
     # alpha = 1.75 for D'Odorico et al. (2013), Figure 18, 4.35 < z < 5.3
     # what are obs values for B?
@@ -144,7 +152,7 @@ def civ_dndNdX(B, alpha, N_CIV):
     return dn_dNdX
 
 # to be verified if correct
-def civ_dndNdz(B, alpha, N_CIV, z):
+def civ_dndNdz_pl(B, alpha, N_CIV, z):
     dn_dNdX = B*N_CIV**(-alpha)
 
     # converting to dNdzdW
@@ -154,6 +162,18 @@ def civ_dndNdz(B, alpha, N_CIV, z):
 
     dn_dNdz = dn_dNdX * dX_dz
     return dn_dNdz
+
+def civ_dndNdX_pl_sch(N_star):
+    # attaching an exponential cutoff to D'Odorico et al. (2013) power law fit
+    B = 10 ** 10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    alpha = 1.75
+
+    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
+    N_Nstar = (10**logN_CIV)/N_star
+    f_sch = f * np.exp(-N_Nstar)
+
+    return f_sch
 
 ##### data observations #####
 def cooksey2013_dndz():
@@ -184,7 +204,7 @@ def cooksey2013_dndz():
 # option 1: by-eye estimate the data points for f(N), then convert data points to dX --> dz
 # option 2: get dn/dN and provided you have dX (or dz), then just divide to get dn/dN/dZ
 # option 3: make use of omega_civ
-def dodorico2013_cddf(z=None):
+def dodorico2013_cddf():
     # D'Odorico et al. (2013)
     # data points for CDDF not provided, so estimating the points by eye from Figure 18
     # for 4.35 < z < 5.3
@@ -192,21 +212,15 @@ def dodorico2013_cddf(z=None):
     logN_CIV = [12.82, 13.45, 13.64, 14.04]
     logf = [-12.98, -12.97, -13.59, -14.39] # f = dn/dN/dX
 
-    """
-    if z != None:
-        omega_m = Planck15.Om0
-        omega_lambda = 1 - omega_m
-        dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)
-        logf = np.array(logf) * dX_dz
-    """
     return logN_CIV, logf
 
 def reproduce_dodorico2013_fig18():
+    # to check if my by-eye estimate of the data points looks ok
     B = 10**10.3
     logN_CIV = np.arange(12.4, 15.2, 0.1)
     alpha = 1.75
 
-    f = civ_dndNdX(B, alpha, 10**logN_CIV)
+    f = civ_dndNdX_pl(B, alpha, 10**logN_CIV)
     data_logN_CIV, data_logf = dodorico2013_cddf()
 
     plt.plot(data_logN_CIV, data_logf, 'kx')
@@ -224,20 +238,22 @@ def fit_dodorico2013_schechter():
     logN_CIV = np.arange(12.4, 15.2, 0.1)
     alpha = 1.75
 
-    f = civ_dndNdX(B, alpha, 10 ** logN_CIV)
+    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
     data_logN_CIV, data_logf = dodorico2013_cddf()
 
-    norm, alpha, N_star, z = 1e-13, -0.8, 10**14.0, 4.8
-    dn_dNdX_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV, z=z)
+    plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
+    plt.plot(logN_CIV, np.log10(f), ':', label=r"D'Odorico fit: f(N) = B N$^{-\alpha'}$")
 
-    plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3')
-    plt.plot(logN_CIV, np.log10(f), ':', label=r"D'Odorico fit: f(N) = B N$^{-\alpha}$")
-    plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: log(norm)=%0.1f, alpha=%0.2f, log(N*)=%0.1f" % \
-                                                          (np.log10(norm), alpha, np.log10(N_star)))
+    norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
+    dn_dNdX_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV, z=z)
+    plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
+
+    dn_dNdX_sch2 = civ_dndNdX_pl_sch(N_star)
+    plt.plot(logN_CIV, np.log10(dn_dNdX_sch2), '--', label=r"PL + Exp fit: B N$^{-\alpha'}$ $e^{-N/N*}$")
 
     plt.legend(fontsize=11)
     plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log f', fontsize=13)
+    plt.ylabel('log (dn/dN/dX)', fontsize=13)
     plt.xlim([12.4, 15.2])
     plt.ylim([-17.4, -11.2])
     plt.show()
