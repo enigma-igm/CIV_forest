@@ -98,6 +98,7 @@ def convert_W2N_civ_old(W):
 ##### EW distribution function #####
 def civ_dndzdW(W, z, type, k=None, alpha=None):
     # dN, where N = number, not column density
+    # W = np.arange(0.03, 2.5, 0.01)
 
     if k == None:
         if type == 'Cooksey': # Table 4 and <z> = 3.25860
@@ -256,4 +257,23 @@ def fit_dodorico2013_schechter():
     plt.ylabel('log (dn/dN/dX)', fontsize=13)
     plt.xlim([12.4, 15.2])
     plt.ylim([-17.4, -11.2])
+    plt.show()
+
+def fit_cooksey(try_norm):
+    W = np.arange(0.03, 2.5, 0.01)
+    z = 3.25
+    dn_dzdW, dn_dXdW = civ_dndzdW(W, z, type='Cooksey')
+
+    converted_N = convert_W2N_civ(W)
+    plt.plot(np.log10(converted_N), np.log10(try_norm*dn_dXdW))
+
+    ####
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+    plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
+    ####
+    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
+    dn_dNdX_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV, z=z)
+    plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
+
     plt.show()
