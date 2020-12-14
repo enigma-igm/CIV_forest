@@ -22,10 +22,10 @@ def civ_dndNdz_sch(n_star, alpha, N_star, N, z=None):
     else:
         return dn_dNdz
 
-def civ_dndNdz_test(normalization, alpha, N_star, N, z=None):
+def civ_dndNdz_sch2(normalization, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
-    # note: small n refers to number
+    # same as above, but replacing absorbing 'n_star' into 'normalization'
 
     dn_dNdz = normalization * np.power(N / N_star, alpha) * np.exp(-N/ N_star)
     if z != None:
@@ -57,7 +57,7 @@ def civ_dndz_schechter(n_star, alpha, N_star, N_min, N_max):
     dn_dz = n_star * I
     return dn_dz
 
-def civ_dndz_schechter_test(normalization, alpha, N_star, N_min, N_max):
+def civ_dndz_schechter2(normalization, alpha, N_star, N_min, N_max):
     """
     Compute Schechter integral over [N_min, N_max] interval using the incomplete gamma functions.
     """
@@ -102,7 +102,7 @@ def convert_W2N_civ_old(W):
     # W ~ 0.6A should be logN ~ 14 (Cooksey+2010), but not getting this...
     return N
 
-##### EW distribution function #####
+##### EW distribution function from Cooksey et al. (2010) #####
 def civ_dndzdW(W, z, type, k=None, alpha=None):
     # dN, where N = number, not column density
     # W = np.arange(0.03, 2.5, 0.01)
@@ -148,7 +148,7 @@ def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
     dN_dz = dN_dX * dX_dz
 
     return dN_dX, dN_dz
-##############################
+###############################################################
 
 def civ_dndNdX_pl(B, alpha, N_CIV):
     # alpha = 1.71 or 1.8 from D'Odorico et al. (2010)
@@ -158,18 +158,6 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
 
     dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
     return dn_dNdX
-
-# to be verified if correct
-def civ_dndNdz_pl(B, alpha, N_CIV, z):
-    dn_dNdX = B*N_CIV**(-alpha)
-
-    # converting to dNdzdW
-    omega_m = Planck15.Om0
-    omega_lambda = 1 - omega_m
-    dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)  # correct for discrete dz??
-
-    dn_dNdz = dn_dNdX * dX_dz
-    return dn_dNdz
 
 def civ_dndNdX_pl_sch(N_star):
     # attaching an exponential cutoff to D'Odorico et al. (2013) power law fit
@@ -183,7 +171,7 @@ def civ_dndNdX_pl_sch(N_star):
 
     return f_sch
 
-##### data observations #####
+######### data observations #########
 def cooksey2013_dndz():
     # Table 4 (CIV results summary)
     z_median = [1.96, 1.56, 1.66, 1.74, 1.82, 1.91, 2.02, 2.15, 2.36, 2.72, 3.26]
@@ -262,7 +250,7 @@ def fit_dodorico2013_schechter():
 
     # Schechter's fit
     norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
-    dn_dNdz_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV)
+    dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
     # PL + exp fit
     dn_dNdX_sch2 = civ_dndNdX_pl_sch(N_star)
@@ -283,6 +271,8 @@ def fit_dodorico2013_schechter():
     plt.show()
 
 def fit_cooksey(try_norm):
+    # in progress
+
     W = np.arange(0.03, 2.5, 0.01)
     z = 3.25
     dn_dzdW, dn_dXdW = civ_dndzdW(W, z, type='Cooksey')
@@ -296,7 +286,7 @@ def fit_cooksey(try_norm):
     ####
     logN_CIV = np.arange(12.4, 15.2, 0.1)
     norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
-    dn_dNdX_sch = civ_dndNdz_test(norm, alpha, N_star, 10 ** logN_CIV, z=z)
+    dn_dNdX_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV, z=z)
     plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
 
     plt.show()
