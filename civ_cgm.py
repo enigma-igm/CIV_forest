@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import integrate, special, interp1d
+from scipy import integrate, special
+from scipy.interpolate import interp1d
 from astropy.cosmology import Planck15
 import mpmath
 from astropy import constants as const
@@ -292,11 +293,13 @@ def fit_cooksey(try_norm):
 
     plt.show()
 
+#####################
 def metal_W2bN(W, metal_ion='C IV'):
     # see enigma.reion_forest.utils.mgii_W2bN
 
+    # hack for now
     cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 17.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
-                'W_min': 0.01, 'W_max': 10.0}
+                'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
@@ -307,7 +310,7 @@ def metal_W2bN(W, metal_ion='C IV'):
     W_min = cgm_dict['W_min']
     W_max = cgm_dict['W_max']
 
-    dvpix = 5.0
+    dvpix = 2.0
     vgrid_min = 0.0
     v_metal = reion_utils.vel_metal_doublet(metal_ion).value
     vgrid_max = 5.0*np.max(np.array([b_strong, v_metal]))
@@ -324,11 +327,14 @@ def metal_W2bN(W, metal_ion='C IV'):
     # logN_strong, over an interval of ~ 4*logN_trans about logN_strong
     sigmoid_arg = (logN_metal - logN_strong)/logN_trans
     b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
-    tau_weak, W_2796 = mgii_voigt(vel_grid, v_abs, b_val, logN_MgII)
-    if (W_2796.value.max() < W_max) or (W_2796.value.min() > W_min):
+
+    # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
+    # interpolate these relations to obtain N and b for the desired W
+    tau_weak, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+    if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
         raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
-    N_interp = interp1d(W_2796.value, logN_MgII, kind='cubic', bounds_error=True) # W-logN relation
-    b_interp = interp1d(W_2796.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
+    N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
+    b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
     logN_out = N_interp(W)
     b_out = b_interp(W)
     return logN_out, b_out
