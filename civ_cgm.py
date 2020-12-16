@@ -178,10 +178,9 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
     dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
     return dn_dNdX
 
-def civ_dndNdX_pl_sch(N_star):
+def civ_dndNdX_pl_sch(N_star, logN_CIV):
     # attaching an exponential cutoff to D'Odorico et al. (2013) power law fit
     B = 10 ** 10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1)
     alpha = 1.75
 
     f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
@@ -258,7 +257,8 @@ def fit_dodorico2013_schechter():
 
     # D'Odorico data and fit
     B = 10 ** 10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    logN_CIV = np.arange(12.4, 15.2, 0.1) # range from D'Odorico
+    #logN_CIV = np.arange(12.4, 16.2, 0.1)
     alpha = 1.75
     f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
     data_logN_CIV, data_logf = dodorico2013_cddf()
@@ -267,13 +267,13 @@ def fit_dodorico2013_schechter():
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Schechter's fit
-    #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
-    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    norm, alpha, N_star = 1e-15, -0.9, 10 ** 16.0
+    norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
+    #norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
     dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
     # PL + exp fit
-    dn_dNdX_sch2 = civ_dndNdX_pl_sch(N_star)
+    dn_dNdX_sch2 = civ_dndNdX_pl_sch(N_star, logN_CIV)
     dn_dNdz_sch2 = dX_dz * dn_dNdX_sch2
 
     # plotting
@@ -287,8 +287,8 @@ def fit_dodorico2013_schechter():
     plt.legend(fontsize=11, loc=3)
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
-    plt.xlim([12.4, 15.2])
-    plt.ylim([-17.4, -11.2])
+    #plt.xlim([12.4, 15.2])
+    #plt.ylim([-17.4, -11.2])
     plt.show()
 
 def fit_cooksey(try_norm):
@@ -316,11 +316,11 @@ def fit_cooksey(try_norm):
     plt.show()
 
 ##########
-def metal_W2bN(W, metal_ion='C IV', plot=False):
+def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
     # hack for now
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 11.0, 'logN_metal_max': 17.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
+    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
                 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
@@ -336,10 +336,10 @@ def metal_W2bN(W, metal_ion='C IV', plot=False):
     vgrid_min = 0.0
     v_metal = reion_utils.vel_metal_doublet(metal_ion).value
     vgrid_max = 5.0*np.max(np.array([b_strong, v_metal]))
-    vmid = vgrid_min + (vgrid_max - vgrid_min)/2.0 # midpoint velocity values on grid
-    vel_grid = np.arange(vgrid_min, vgrid_max, dvpix)
+    vmid = vgrid_min + (vgrid_max - vgrid_min)/2.0 # location of absorbers on vel_grid
+    vel_grid = np.arange(vgrid_min, vgrid_max, dvpix) # vel grid to place absorbers
+    print("vgrid_min", vgrid_min, "vgrid_max", vgrid_max)
 
-    # start here
     nabs = W.shape[0]
     nN = 101
     logN_metal = logN_metal_min + (logN_metal_max - logN_metal_min)*np.arange(nN)/(nN - 1) # grid of logN_metal values
@@ -347,25 +347,42 @@ def metal_W2bN(W, metal_ion='C IV', plot=False):
 
     # sigmoid logistic function allows for smooth transition between b_weak and b_strong at the activiation locatino
     # logN_strong, over an interval of ~ 4*logN_trans about logN_strong
-    sigmoid_arg = (logN_metal - logN_strong)/logN_trans
-    b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
+    if b_in == None:
+        sigmoid_arg = (logN_metal - logN_strong)/logN_trans
+        b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
+    else:
+        b_val = np.ones(nN) * b_in
 
     # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
     # interpolate these relations to obtain N and b for the desired W
     tau_weak, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+
     if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
         raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
+
     N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
     b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
     logN_out = N_interp(W)
     b_out = b_interp(W)
 
     if plot:
+        plt.axhline(np.log10(0.6), ls='--')
         plt.plot(logN_out, np.log10(W), 'k')
         plt.xlabel('log(N)', fontsize=13)
-        plt.ylabel('log(W)', fontsize=13)
+        plt.ylabel(r'log($W_{blue}$)', fontsize=13)
         plt.title('b_weak=%0.1f, b_strong=%0.1f, logN_strong=%0.1f' % (b_weak, b_strong, logN_strong), fontsize=13)
         plt.grid()
         plt.show()
 
     return logN_out, b_out
+
+def multiple_cog(W, b_list):
+    for b in b_list:
+        logN_out, _ = metal_W2bN(W, b_in=b)
+        plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
+
+    plt.xlabel('log(N)', fontsize=13)
+    plt.ylabel(r'log($W_{blue}$)', fontsize=13)
+    plt.grid()
+    plt.legend()
+    plt.show()
