@@ -8,6 +8,7 @@ from astropy import constants as const
 from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
 
+########## Schechter functions for dn/dN/dz (or dn/dN/dX) and dn/dz
 def civ_dndNdz_sch(n_star, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
@@ -78,6 +79,7 @@ def civ_dndz_schechter2(normalization, alpha, N_star, N_min, N_max):
     dn_dz = (normalization * N_star) * I
     return dn_dz
 
+########## convenience functions
 def convert_dXdz(omega_m, omega_lambda, z):
     #omega_m = Planck15.Om0
     #omega_lambda = 1 - omega_m
@@ -85,11 +87,6 @@ def convert_dXdz(omega_m, omega_lambda, z):
     return dX_dz
 
 def convert_W2N_civ(W):
-    # N in 1/cm2, W in Angstrom
-    N = 1e14 * (W/0.6)
-    return N
-
-def convert_W2N_civ_old(W):
 
     # all in SI units
     ec = const.e.value
@@ -104,7 +101,7 @@ def convert_W2N_civ_old(W):
     # W ~ 0.6A should be logN ~ 14 (Cooksey+2010), but not getting this...
     return N
 
-##### EW distribution function from Cooksey et al. (2010) #####
+########## fits for dn/dz/dW from Cooksey et al. (2013)
 def civ_dndzdW(W, z, type, k=None, alpha=None):
     # dN, where N = number, not column density
     # W = np.arange(0.03, 2.5, 0.01)
@@ -136,9 +133,10 @@ def civ_dndzdW(W, z, type, k=None, alpha=None):
 
     return dn_dzdW, dn_dXdW
 
-# want to match to Simcoe et al. (2011) or Songaila (2001) dN/dz (which one?) by adjusting alpha and k
 def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
 
+    # in progress: integral of dn/dz/dW above
+    # want to match to Simcoe et al. (2011) or Songaila (2001) dN/dz (which one?) by adjusting alpha and k
     W = np.linspace(W_min, W_max, nW)
     dN_dXdW = k * np.exp(alpha * W)
     dN_dX = integrate.simps(dN_dXdW, W) # integrate dN_dXdW over dW to get dN_dX
@@ -150,8 +148,8 @@ def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
     dN_dz = dN_dX * dX_dz
 
     return dN_dX, dN_dz
-###############################################################
 
+########## power law fits for dn/dN/dX
 def civ_dndNdX_pl(B, alpha, N_CIV):
     # alpha = 1.71 or 1.8 from D'Odorico et al. (2010)
     # alpha = 1.75 for D'Odorico et al. (2013), Figure 18, 4.35 < z < 5.3
@@ -173,9 +171,9 @@ def civ_dndNdX_pl_sch(N_star):
 
     return f_sch
 
-######### data observations #########
+########## data
 def cooksey2013_dndz():
-    # Table 4 (CIV results summary)
+    # Table 4 (CIV results summary) of Cooksey et al. (2013)
     z_median = [1.96, 1.56, 1.66, 1.74, 1.82, 1.91, 2.02, 2.15, 2.36, 2.72, 3.26]
     z_min = [1.47, 1.47, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97]
     z_max = [4.54, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97, 4.54]
@@ -199,11 +197,8 @@ def cooksey2013_dndz():
     plt.tight_layout()
     plt.show()
 
-# option 1: by-eye estimate the data points for f(N), then convert data points to dX --> dz
-# option 2: get dn/dN and provided you have dX (or dz), then just divide to get dn/dN/dZ
-# option 3: make use of omega_civ
 def dodorico2013_cddf():
-    # D'Odorico et al. (2013)
+    # D'Odorico et al. (2013), Figure 18
     # data points for CDDF not provided, so estimating the points by eye from Figure 18
     # for 4.35 < z < 5.3
 
@@ -215,6 +210,7 @@ def dodorico2013_cddf():
 
 def reproduce_dodorico2013_fig18():
     # to check if my by-eye estimate of the data points looks ok
+
     B = 10**10.3
     logN_CIV = np.arange(12.4, 15.2, 0.1)
     alpha = 1.75
@@ -233,9 +229,7 @@ def reproduce_dodorico2013_fig18():
     plt.show()
 
 def fit_dodorico2013_schechter():
-    B = 10 ** 10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1)
-    alpha = 1.75
+    # comparing Schechter function fits to D'Odorico data points
 
     # convert dX to dz using cosmology from D'Odorico et al. (2013)
     omega_m = 0.26
@@ -244,10 +238,13 @@ def fit_dodorico2013_schechter():
     dX_dz = convert_dXdz(omega_m, omega_lambda, z)
 
     # D'Odorico data and fit
+    B = 10 ** 10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    alpha = 1.75
     f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
     data_logN_CIV, data_logf = dodorico2013_cddf()
 
-    f_dz = f*dX_dz
+    f_dz = f*dX_dz # converting data points from dX to dz
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Schechter's fit
@@ -274,13 +271,13 @@ def fit_dodorico2013_schechter():
 
 def fit_cooksey(try_norm):
     # in progress
+    # try_norm = 0.926
 
     W = np.arange(0.03, 2.5, 0.01)
+    logN_out, b_out = metal_W2bN(W)
     z = 3.25
-    dn_dzdW, dn_dXdW = civ_dndzdW(W, z, type='Cooksey')
-
-    converted_N = convert_W2N_civ(W)
-    plt.plot(np.log10(converted_N), np.log10(try_norm*dn_dXdW))
+    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
+    dn_dzdW_logN, _ = civ_dndzdW(logN_out, z, type='Cooksey')
 
     ####
     data_logN_CIV, data_logf = dodorico2013_cddf()
@@ -290,10 +287,11 @@ def fit_cooksey(try_norm):
     norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
     dn_dNdX_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV, z=z)
     plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-
+    ####
+    plt.plot(logN_out, try_norm*np.log10(dn_dzdW_logN), '--', label='Cooksey')
     plt.show()
 
-#####################
+########## 
 def metal_W2bN(W, metal_ion='C IV'):
     # see enigma.reion_forest.utils.mgii_W2bN
 
