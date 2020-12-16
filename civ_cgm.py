@@ -81,6 +81,7 @@ def civ_dndz_schechter2(normalization, alpha, N_star, N_min, N_max):
 
 ########## convenience functions
 def convert_dXdz(omega_m, omega_lambda, z):
+
     #omega_m = Planck15.Om0
     #omega_lambda = 1 - omega_m
     dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)
@@ -88,18 +89,36 @@ def convert_dXdz(omega_m, omega_lambda, z):
 
 def convert_W2N_civ(W):
 
+    # needs to be checked for correctness
     # all in SI units
-    ec = const.e.value
-    me = const.m_e.value
-    c = const.c.value
+    ec = const.e.esu
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
     f = 0.1899  # oscillator strength for CIV 1548
-    wrest = 1.548204e-07 * u.m # rest wavelength of CIV 1548 in SI
+    wrest = (1.548204e-07 * u.m).to('cm') # rest wavelength of CIV 1548 in SI
 
-    N = ((me*c**2)/(np.pi*ec**2))* (W * u.m)/(wrest*f) # 1/m2
-    N /= (u.m * u.m)
+    f = 0.6155
+    wrest = (2796 * u.Angstrom).to('cm')
+
+    N = ((me*c**2)/(np.pi*ec**2))* (W * u.cm)/(wrest*f) # 1/m2
+    #N /= (u.m * u.m)
 
     # W ~ 0.6A should be logN ~ 14 (Cooksey+2010), but not getting this...
     return N
+
+def convert_N2W_mgii(N):
+    # logN = 13 ~ W = 0.43
+    # problem: output is dimensionless...?!
+
+    N /= (u.cm * u.cm)
+    ec = (const.e.esu.value) * (u.cm)**(3/2) * (u.g)**(1/2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.6155
+    wrest = (2796 * u.Angstrom).to('cm')
+
+    W = ((np.pi*ec**2)/(me*c**2)) * f * wrest * N
+    return W
 
 ########## fits for dn/dz/dW from Cooksey et al. (2013)
 def civ_dndzdW(W, z, type, k=None, alpha=None):
@@ -248,7 +267,9 @@ def fit_dodorico2013_schechter():
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Schechter's fit
-    norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
+    #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
+    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    norm, alpha, N_star = 1e-15, -0.9, 10 ** 16.0
     dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
     # PL + exp fit
@@ -261,48 +282,51 @@ def fit_dodorico2013_schechter():
     plt.plot(logN_CIV, np.log10(f_dz), ':', label=r"D'Odorico fit: f(N) = B N$^{-\alpha'}$")
     plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
     plt.plot(logN_CIV, np.log10(dn_dNdz_sch2), '--', label=r"PL + Exp fit: B N$^{-\alpha'}$ $e^{-N/N*}$")
+    plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
 
-    plt.legend(fontsize=11)
+    plt.legend(fontsize=11, loc=3)
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
     plt.xlim([12.4, 15.2])
-    #plt.ylim([-17.4, -11.2])
+    plt.ylim([-17.4, -11.2])
     plt.show()
 
 def fit_cooksey(try_norm):
     # in progress
     # try_norm = 0.926
 
-    W = np.arange(0.03, 2.5, 0.01)
-    logN_out, b_out = metal_W2bN(W)
-    z = 3.25
-    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
-    dn_dzdW_logN, _ = civ_dndzdW(logN_out, z, type='Cooksey')
+    W = np.arange(0.03, 2.5, 0.01) # range from Figure 6 (see also Figure 10)
+    logN_out, b_out = metal_W2bN(W) # converting W to N and b
+    z = 3.25 # <z> of data points for z = [2.97, 4.54] from Table 4
 
-    ####
+    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey') # fits provided by paper
+    dn_dzdW_logN, _ = civ_dndzdW(logN_out, z, type='Cooksey') # replacing W with logN in fits (legit...?!)
+
+    ## comparing with d'odorico points and Schechter fit
     data_logN_CIV, data_logf = dodorico2013_cddf()
     plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
-    ####
+
     logN_CIV = np.arange(12.4, 15.2, 0.1)
     norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
     dn_dNdX_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV, z=z)
     plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-    ####
+
+    ## plotting "converted" Cooksey's fit, normalized by some arbitrary factor
     plt.plot(logN_out, try_norm*np.log10(dn_dzdW_logN), '--', label='Cooksey')
     plt.show()
 
-########## 
-def metal_W2bN(W, metal_ion='C IV'):
+##########
+def metal_W2bN(W, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
     # hack for now
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 17.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
+    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 11.0, 'logN_metal_max': 17.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
                 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
-    logN_metal_min = cgm_dict['logN_metal_min']
-    logN_metal_max = cgm_dict['logN_metal_max']
+    logN_metal_min = cgm_dict['logN_metal_min'] # minimum N value to construct interpolation grid
+    logN_metal_max = cgm_dict['logN_metal_max'] # maximum N value to construct interpolation grid
     logN_strong = cgm_dict['logN_strong']
     logN_trans = cgm_dict['logN_trans']
     W_min = cgm_dict['W_min']
@@ -335,4 +359,13 @@ def metal_W2bN(W, metal_ion='C IV'):
     b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
     logN_out = N_interp(W)
     b_out = b_interp(W)
+
+    if plot:
+        plt.plot(logN_out, np.log10(W), 'k')
+        plt.xlabel('log(N)', fontsize=13)
+        plt.ylabel('log(W)', fontsize=13)
+        plt.title('b_weak=%0.1f, b_strong=%0.1f, logN_strong=%0.1f' % (b_weak, b_strong, logN_strong), fontsize=13)
+        plt.grid()
+        plt.show()
+
     return logN_out, b_out
