@@ -27,7 +27,7 @@ def lnlike_1d(theta, lnlike_fine, logZ_fine, linearZprior):
 def interp_lnlike_1d(logZ_fine, logZ_coarse, lnlike_coarse):
 
     # Interpolate the lnL onto the fine grid to speed up the MCMC
-    lnlike_interp_func = interp1d(logZ_coarse, lnlike_coarse)
+    lnlike_interp_func = interp1d(logZ_coarse, lnlike_coarse) # TODO: set interpolation order
     lnlike_fine = lnlike_interp_func(logZ_fine)
 
     return lnlike_fine
@@ -101,7 +101,7 @@ def infer(logZ_fine, logZ_coarse, lnlike_coarse):
 import scipy
 def plot_prob(lnlike, logZ):
     like_ratio = np.exp(lnlike - lnlike.max()) # linear; L/L_max
-    norm = scipy.integrate.trapz(like_ratio)
+    norm = scipy.integrate.trapz(like_ratio, dx=logZ[1]-logZ[0])
     print(norm)
 
     plt.figure()
@@ -110,7 +110,7 @@ def plot_prob(lnlike, logZ):
     plt.ylabel(r'$L/L_{max}$', fontsize=13)
 
     plt.figure()
-    plt.plot(logZ, lnlike)
+    plt.plot(logZ, lnlike, 'k.-')
     plt.xlabel('logZ', fontsize=13)
     plt.ylabel('lnL', fontsize=13)
 

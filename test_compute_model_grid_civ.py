@@ -1,4 +1,4 @@
-## 11/17/2020: To be deprecated, just for testing purpose. 
+## 11/17/2020: To be deprecated, just for testing purpose.
 
 import numpy as np
 from astropy.table import Table
