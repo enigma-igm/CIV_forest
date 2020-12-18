@@ -117,7 +117,8 @@ def convert_N2W_mgii(N):
     f = 0.6155
     wrest = (2796 * u.Angstrom).to('cm')
 
-    W = ((np.pi*ec**2)/(me*c**2)) * f * wrest * N
+    W = ((np.pi*ec**2)/(me*c**2)) * f * wrest * N # dimensionless W
+    W *= wrest # W_lambda
     return W
 
 ########## fits for dn/dz/dW from Cooksey et al. (2013)
@@ -315,7 +316,7 @@ def fit_cooksey(try_norm):
     plt.plot(logN_out, try_norm*np.log10(dn_dzdW_logN), '--', label='Cooksey')
     plt.show()
 
-##########
+########## converting W to N
 def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
@@ -355,7 +356,8 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
 
     # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
     # interpolate these relations to obtain N and b for the desired W
-    tau_weak, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+    tau_tot, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+    #return vel_grid, tau_tot, W_blue
 
     if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
         raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
@@ -381,8 +383,30 @@ def multiple_cog(W, b_list):
         logN_out, _ = metal_W2bN(W, b_in=b)
         plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
 
+    plt.axhline(np.log10(0.6))
     plt.xlabel('log(N)', fontsize=13)
     plt.ylabel(r'log($W_{blue}$)', fontsize=13)
     plt.grid()
     plt.legend()
     plt.show()
+
+def reproduce_cooksey_w():
+    # Cooksey+ (2013) claims W_1548 = 0.6A is saturated, which is logN ~ 14
+    # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
+    # this gives b ~ 66 km/s and logN ~ 14.17
+
+    wrest_civ  = 1548 * u.Angstrom
+    W_lambda_saturate = 0.6 * u.Angstrom
+    tau_saturate = 1.0
+
+    c = const.c.to('km/s')
+    b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
+
+    # getting N now
+    ec = const.e.esu # cgs
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+    N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2)
+    return N
