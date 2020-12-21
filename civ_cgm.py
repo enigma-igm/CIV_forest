@@ -321,7 +321,7 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
     # hack for now
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 16.0, 'logN_trans': 0.25, \
+    cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 14.5, 'logN_trans': 0.25, \
                 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
@@ -411,34 +411,57 @@ def reproduce_cooksey_w():
     c = const.c.to('cm/s')
     f = 0.1899  # oscillator strength for CIV 1548
     N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2)
-    return N
 
-def dwdn_cooksey(b_in):
+    return N, b_linear_out
+
+def dwdn_cooksey(b_in, plot=False):
 
     W = np.arange(0.03, 2.5, 0.01)
+    W = np.arange(0.1, 3.1, 0.01)
     logN_out, b_out = metal_W2bN(W, b_in=b_in)
-    dw_dn= np.gradient(W, 10 ** logN_out, edge_order=2)
+    
+    if b_in == None:
+        dw_db = np.gradient(W, b_out, edge_order=2)
+        db_dn = np.gradient(b_out, 10**logN_out, edge_order=2)
+        dw_dn = dw_db * db_dn
+        dw_dn2 = np.gradient(W, 10 ** logN_out, edge_order=2) # same as dw_dn ...
+    else:
+        dw_dn = np.gradient(W, 10**logN_out, edge_order=2)
 
     # more or less equivalent to results obtained below
     #W_border = np.array((W - 0.01 / 2).tolist() + [W[-1] + 0.01/2])
     #logN_out_border, b_out_border = metal_W2bN(W_border, b_in=b_in)
     #dw_dn2 = np.diff(W_border) / np.diff(10 ** logN_out_border)
 
-    z = 3.25
+    z = 3.25 # redshift used in Cooksey's fit
     dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
     dn_dzdN = dn_dzdW * dw_dn
 
-    plt.subplot(131)
-    plt.plot(logN_out, np.log10(W))
-    plt.subplot(132)
-    plt.plot(logN_out, dw_dn)
-    plt.subplot(133)
-    plt.plot(logN_out, np.log10(dn_dzdN))
-    plt.show()
+    if plot:
+        plt.figure(figsize=(12,5))
+        plt.subplot(131)
+        plt.plot(logN_out, np.log10(W))
+        plt.xlabel('log N(CIV)', fontsize=13)
+        plt.ylabel('log (W)', fontsize=13)
+
+        plt.subplot(132)
+        plt.plot(logN_out, b_out)
+        plt.xlabel('log N(CIV)', fontsize=13)
+        plt.ylabel('b (km/s)', fontsize=13)
+
+        plt.subplot(133)
+        plt.plot(logN_out, dw_dn)
+        plt.xlabel('log N(CIV)', fontsize=13)
+        plt.ylabel('dW/dN', fontsize=13)
+
+        plt.tight_layout()
+        #plt.subplot(133)
+        #plt.plot(logN_out, np.log10(dn_dzdN))
+        plt.show()
 
     return W, dw_dn, logN_out, dn_dzdN
 
-def fit_data_schechter():
+def fit_data_schechter(cooksey_b_in):
     # comparing Schechter function fits to D'Odorico data points
 
     # convert dX to dz using cosmology from D'Odorico et al. (2013)
@@ -458,7 +481,7 @@ def fit_data_schechter():
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Cooksey fit
-    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_cooksey(50.)
+    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_cooksey(b_in=cooksey_b_in)
 
     # Schechter's fit
     norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
@@ -470,7 +493,8 @@ def fit_data_schechter():
     plt.figure(figsize=(8,6))
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
     plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-    plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey')
+    plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey fit')
+    #plt.plot(logN_out, 0.93*np.log10(dn_dzdN_cook), '--', label='Cooksey fit (x arbitrary norm)')
     plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
 
     plt.legend(fontsize=11, loc=3)
