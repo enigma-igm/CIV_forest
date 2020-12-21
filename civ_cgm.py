@@ -419,7 +419,7 @@ def dwdn_cooksey(b_in, plot=False):
     W = np.arange(0.03, 2.5, 0.01)
     W = np.arange(0.1, 3.1, 0.01)
     logN_out, b_out = metal_W2bN(W, b_in=b_in)
-    
+
     if b_in == None:
         dw_db = np.gradient(W, b_out, edge_order=2)
         db_dn = np.gradient(b_out, 10**logN_out, edge_order=2)
@@ -484,17 +484,20 @@ def fit_data_schechter(cooksey_b_in):
     W, dw_dn, logN_out, dn_dzdN_cook = dwdn_cooksey(b_in=cooksey_b_in)
 
     # Schechter's fit
-    norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
+    #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
     #norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
     #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
+
+    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    logN_CIV = np.arange(12.4, 16.0, 0.1)
     dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
     # plotting
     plt.figure(figsize=(8,6))
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
     plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-    plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey fit')
-    #plt.plot(logN_out, 0.93*np.log10(dn_dzdN_cook), '--', label='Cooksey fit (x arbitrary norm)')
+    #plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey fit')
+    plt.plot(logN_out, 0.93*np.log10(dn_dzdN_cook), '--', label='Cooksey fit (x arbitrary norm)')
     plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
 
     plt.legend(fontsize=11, loc=3)
