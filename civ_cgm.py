@@ -379,11 +379,13 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     return logN_out, b_out
 
 def multiple_cog(W, b_list):
+    # plotting multiple COG at various b-values
+
     for b in b_list:
         logN_out, _ = metal_W2bN(W, b_in=b)
         plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
 
-    plt.axhline(np.log10(0.6))
+    plt.axhline(np.log10(0.6), c='r', ls='--')
     plt.xlabel('log(N)', fontsize=13)
     plt.ylabel(r'log($W_{blue}$)', fontsize=13)
     plt.grid()
@@ -410,3 +412,70 @@ def reproduce_cooksey_w():
     f = 0.1899  # oscillator strength for CIV 1548
     N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2)
     return N
+
+def dwdn_cooksey(b_in):
+
+    W = np.arange(0.03, 2.5, 0.01)
+    logN_out, b_out = metal_W2bN(W, b_in=b_in)
+    dw_dn= np.gradient(W, 10 ** logN_out, edge_order=2)
+
+    # more or less equivalent to results obtained below
+    #W_border = np.array((W - 0.01 / 2).tolist() + [W[-1] + 0.01/2])
+    #logN_out_border, b_out_border = metal_W2bN(W_border, b_in=b_in)
+    #dw_dn2 = np.diff(W_border) / np.diff(10 ** logN_out_border)
+
+    z = 3.25
+    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
+    dn_dzdN = dn_dzdW * dw_dn
+
+    plt.subplot(131)
+    plt.plot(logN_out, np.log10(W))
+    plt.subplot(132)
+    plt.plot(logN_out, dw_dn)
+    plt.subplot(133)
+    plt.plot(logN_out, np.log10(dn_dzdN))
+    plt.show()
+
+    return W, dw_dn, logN_out, dn_dzdN
+
+def fit_data_schechter():
+    # comparing Schechter function fits to D'Odorico data points
+
+    # convert dX to dz using cosmology from D'Odorico et al. (2013)
+    omega_m = 0.26
+    omega_lambda = 1 - omega_m
+    z = 4.8
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
+
+    # D'Odorico data and fit
+    B = 10 ** 10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1) # range from D'Odorico
+    alpha = 1.75
+    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+
+    f_dz = f*dX_dz # converting data points from dX to dz
+    data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
+
+    # Cooksey fit
+    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_cooksey(50.)
+
+    # Schechter's fit
+    norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
+    #norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
+    dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
+
+    # plotting
+    plt.figure(figsize=(8,6))
+    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
+    plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
+    plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey')
+    plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
+
+    plt.legend(fontsize=11, loc=3)
+    plt.xlabel('log N(CIV)', fontsize=13)
+    plt.ylabel('log (dn/dN/dz)', fontsize=13)
+    #plt.xlim([12.4, 15.2])
+    #plt.ylim([-17.4, -11.2])
+    plt.show()
