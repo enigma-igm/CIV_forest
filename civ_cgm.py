@@ -1,3 +1,25 @@
+'''
+Functions here:
+    - civ_dndNdz_sch
+    - civ_dndNdz_sch2
+    - civ_dndz_schechter
+    - civ_dndz_schechter2
+    - convert_dXdz
+    - civ_dndzdW
+    - civ_dndz_cooksey
+    - civ_dndNdX_pl
+    - civ_dndNdX_pl_sch
+    - cooksey2013_dndz
+    - dodorico2013_cddf
+    - reproduce_dodorico2013_fig18
+    - fit_dodorico2013_schechter
+    - metal_W2bN
+    - plot_multiple_cog
+    - reproduce_cooksey_w
+    - dwdn_cooksey
+    - fit_alldata_schechter
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate, special
@@ -87,39 +109,6 @@ def convert_dXdz(omega_m, omega_lambda, z):
     dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)
     return dX_dz
 
-def convert_W2N_civ(W):
-
-    # needs to be checked for correctness
-    # all in SI units
-    ec = const.e.esu
-    me = const.m_e.to('g')
-    c = const.c.to('cm/s')
-    f = 0.1899  # oscillator strength for CIV 1548
-    wrest = (1.548204e-07 * u.m).to('cm') # rest wavelength of CIV 1548 in SI
-
-    f = 0.6155
-    wrest = (2796 * u.Angstrom).to('cm')
-
-    N = ((me*c**2)/(np.pi*ec**2))* (W * u.cm)/(wrest*f) # 1/m2
-    #N /= (u.m * u.m)
-
-    # W ~ 0.6A should be logN ~ 14 (Cooksey+2010), but not getting this...
-    return N
-
-def convert_N2W_mgii(N):
-    # logN = 13 ~ W = 0.43
-    # problem: output is dimensionless...?!
-
-    N /= (u.cm * u.cm)
-    ec = (const.e.esu.value) * (u.cm)**(3/2) * (u.g)**(1/2) / u.s
-    me = const.m_e.to('g')
-    c = const.c.to('cm/s')
-    f = 0.6155
-    wrest = (2796 * u.Angstrom).to('cm')
-
-    W = ((np.pi*ec**2)/(me*c**2)) * f * wrest * N # dimensionless W
-    W *= wrest # W_lambda
-    return W
 
 ########## fits for dn/dz/dW from Cooksey et al. (2013)
 def civ_dndzdW(W, z, type, k=None, alpha=None):
@@ -153,7 +142,7 @@ def civ_dndzdW(W, z, type, k=None, alpha=None):
 
     return dn_dzdW, dn_dXdW
 
-def civ_dndz_exp(k, alpha, z, W_min, W_max, nW):
+def civ_dndz_cooksey(k, alpha, z, W_min, W_max, nW):
 
     # in progress: integral of dn/dz/dW above
     # want to match to Simcoe et al. (2011) or Songaila (2001) dN/dz (which one?) by adjusting alpha and k
@@ -292,30 +281,6 @@ def fit_dodorico2013_schechter():
     #plt.ylim([-17.4, -11.2])
     plt.show()
 
-def fit_cooksey(try_norm):
-    # in progress
-    # try_norm = 0.926
-
-    W = np.arange(0.03, 2.5, 0.01) # range from Figure 6 (see also Figure 10)
-    logN_out, b_out = metal_W2bN(W) # converting W to N and b
-    z = 3.25 # <z> of data points for z = [2.97, 4.54] from Table 4
-
-    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey') # fits provided by paper
-    dn_dzdW_logN, _ = civ_dndzdW(logN_out, z, type='Cooksey') # replacing W with logN in fits (legit...?!)
-
-    ## comparing with d'odorico points and Schechter fit
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-    plt.plot(data_logN_CIV, data_logf, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
-
-    logN_CIV = np.arange(12.4, 15.2, 0.1)
-    norm, alpha, N_star, z = 1e-13, -0.80, 10 ** 14.0, 4.8
-    dn_dNdX_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV, z=z)
-    plt.plot(logN_CIV, np.log10(dn_dNdX_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-
-    ## plotting "converted" Cooksey's fit, normalized by some arbitrary factor
-    plt.plot(logN_out, try_norm*np.log10(dn_dzdW_logN), '--', label='Cooksey')
-    plt.show()
-
 ########## converting W to N
 def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
@@ -323,6 +288,9 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # hack for now
     cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 14.5, 'logN_trans': 0.25, \
                 'W_min': W.min(), 'W_max': W.max()}
+
+    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
+                'logN_trans': 0.4, 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
@@ -378,7 +346,7 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
 
     return logN_out, b_out
 
-def multiple_cog(W, b_list):
+def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
 
     for b in b_list:
@@ -457,11 +425,16 @@ def dwdn_cooksey(b_in, plot=False):
         plt.tight_layout()
         #plt.subplot(133)
         #plt.plot(logN_out, np.log10(dn_dzdN))
+
+        plt.figure()
+        #plt.plot(np.log10(W), np.log10(dn_dzdW))
+        plt.plot(logN_out, np.log10(dn_dzdN))
+
         plt.show()
 
     return W, dw_dn, logN_out, dn_dzdN
 
-def fit_data_schechter(cooksey_b_in):
+def fit_alldata_schechter(cooksey_b_in):
     # comparing Schechter function fits to D'Odorico data points
 
     # convert dX to dz using cosmology from D'Odorico et al. (2013)
