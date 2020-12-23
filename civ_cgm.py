@@ -16,7 +16,7 @@ Functions here:
     - metal_W2bN
     - plot_multiple_cog
     - reproduce_cooksey_w
-    - dwdn_cooksey
+    - dwdn_numerical
     - fit_alldata_schechter
 '''
 
@@ -286,11 +286,11 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
     # hack for now
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 14.5, 'logN_trans': 0.25, \
-                'W_min': W.min(), 'W_max': W.max()}
+    cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 14.5, \
+                'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
 
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
-                'logN_trans': 0.4, 'W_min': W.min(), 'W_max': W.max()}
+    #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
+    #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
@@ -328,6 +328,7 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     #return vel_grid, tau_tot, W_blue
 
     if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
+        print(W_blue.min(), W_blue.max())
         raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
 
     N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
@@ -382,16 +383,30 @@ def reproduce_cooksey_w():
 
     return N, b_linear_out
 
-def dwdn_cooksey(b_in, plot=False):
+def dwdn_theory():
 
-    W = np.arange(0.03, 2.5, 0.01)
-    W = np.arange(0.1, 3.1, 0.01)
+    #w_lambda = N * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_civ ** 2)
+    wrest_civ = 1548 * u.Angstrom
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+
+    dW_dN = f * np.pi * (ec ** 2) / (me * c ** 2) * wrest_civ.to('cm') # W is dimensionless (W = Wlambda / lambda)
+    dWlambda_dN = dW_dN * wrest_civ # units are Angstrom * cm2
+
+    return dWlambda_dN
+
+def dwdn_numerical(b_in, plot=False):
+
+    W = np.arange(0.01, 5.0, 0.01) # extended range
+    #W = np.arange(0.1, 3.1, 0.01)
     logN_out, b_out = metal_W2bN(W, b_in=b_in)
 
     if b_in == None:
         dw_db = np.gradient(W, b_out, edge_order=2)
-        db_dn = np.gradient(b_out, 10**logN_out, edge_order=2)
-        dw_dn = dw_db * db_dn
+        db_dn = np.gradient(b_out, 10**logN_out)
+        dw_dn = dw_db * db_dn # in units of Angstrom cm^2
         dw_dn2 = np.gradient(W, 10 ** logN_out, edge_order=2) # same as dw_dn ...
     else:
         dw_dn = np.gradient(W, 10**logN_out, edge_order=2)
@@ -405,31 +420,39 @@ def dwdn_cooksey(b_in, plot=False):
     dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
     dn_dzdN = dn_dzdW * dw_dn
 
+    dwdn_linear = dwdn_theory().value
+    dn_dzdN_linear = dn_dzdW * dwdn_linear
+
     if plot:
         plt.figure(figsize=(12,5))
         plt.subplot(131)
         plt.plot(logN_out, np.log10(W))
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('log (W)', fontsize=13)
+        plt.axhline(np.log10(0.6), c='r', ls='--', label='0.6 A')
+        plt.legend()
+        plt.grid()
 
         plt.subplot(132)
         plt.plot(logN_out, b_out)
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('b (km/s)', fontsize=13)
+        plt.grid()
 
         plt.subplot(133)
+
         plt.plot(logN_out, dw_dn)
+        plt.axhline(dwdn_linear, color='r', ls='--', label='theory dW/dN')
+        plt.legend()
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('dW/dN', fontsize=13)
+        plt.grid()
 
         plt.tight_layout()
-        #plt.subplot(133)
-        #plt.plot(logN_out, np.log10(dn_dzdN))
 
-        plt.figure()
+        #plt.figure()
         #plt.plot(np.log10(W), np.log10(dn_dzdW))
-        plt.plot(logN_out, np.log10(dn_dzdN))
-
+        #plt.plot(logN_out, np.log10(dn_dzdN))
         plt.show()
 
     return W, dw_dn, logN_out, dn_dzdN
@@ -454,7 +477,7 @@ def fit_alldata_schechter(cooksey_b_in):
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Cooksey fit
-    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_cooksey(b_in=cooksey_b_in)
+    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_numerical(b_in=cooksey_b_in)
 
     # Schechter's fit
     #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
@@ -462,6 +485,7 @@ def fit_alldata_schechter(cooksey_b_in):
     #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
 
     norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    #norm, alpha, N_star = 1e-14, -0.40, 10 ** 15.0
     logN_CIV = np.arange(12.4, 16.0, 0.1)
     dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
@@ -478,4 +502,35 @@ def fit_alldata_schechter(cooksey_b_in):
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
     #plt.xlim([12.4, 15.2])
     #plt.ylim([-17.4, -11.2])
+    plt.show()
+
+def temp():
+    W, dw_dn, logN_out, dn_dzdN = dwdn_numerical(None)
+    dn_dzdW_cook = dn_dzdN / dw_dn
+
+    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    dn_dzdN_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_out)
+    dn_dzdW_sch = dn_dzdN_sch / dw_dn
+
+    plt.plot(W, dn_dzdW_cook, label='Cooksey')
+    plt.plot(W, dn_dzdW_sch, label='Schechter')
+    plt.legend()
+    plt.show()
+
+def temp2(W, dw_dn, logN_out, dn_dzdN):
+
+    dn_dzdW = dn_dzdN / dw_dn
+
+    plt.subplot(141)
+    plt.plot(logN_out, np.log10(W))
+    plt.grid()
+    plt.subplot(142)
+    plt.plot(logN_out, np.log10(dw_dn))
+    plt.grid()
+    plt.subplot(143)
+    plt.plot(np.log10(W), np.log10(dn_dzdN))
+    plt.grid()
+    plt.subplot(144)
+    plt.plot(logN_out, np.log10(dn_dzdN))
+    plt.grid()
     plt.show()
