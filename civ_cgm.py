@@ -282,15 +282,15 @@ def fit_dodorico2013_schechter():
     plt.show()
 
 ########## converting W to N
-def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
+def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
-    # hack for now
-    cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 14.5, \
-                'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
+    if cgm_dict == None:
+        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, \
+                    'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
 
-    #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
-    #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
+        #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
+        #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
@@ -325,7 +325,6 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
     # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
     # interpolate these relations to obtain N and b for the desired W
     tau_tot, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
-    #return vel_grid, tau_tot, W_blue
 
     if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
         print(W_blue.min(), W_blue.max())
@@ -346,6 +345,57 @@ def metal_W2bN(W, b_in=None, metal_ion='C IV', plot=False):
         plt.show()
 
     return logN_out, b_out
+
+def metal_W2bN2(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
+    # see enigma.reion_forest.utils.mgii_W2bN
+
+    if cgm_dict == None:
+        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, \
+                    'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
+
+        #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
+        #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
+
+    b_weak = cgm_dict['b_weak']
+    b_strong = cgm_dict['b_strong']
+    logN_metal_min = cgm_dict['logN_metal_min'] # minimum N value to construct interpolation grid
+    logN_metal_max = cgm_dict['logN_metal_max'] # maximum N value to construct interpolation grid
+    logN_strong = cgm_dict['logN_strong']
+    logN_trans = cgm_dict['logN_trans']
+    W_min = cgm_dict['W_min']
+    W_max = cgm_dict['W_max']
+
+    dvpix = 2.0
+    vgrid_min = 0.0
+    v_metal = reion_utils.vel_metal_doublet(metal_ion).value
+    vgrid_max = 5.0*np.max(np.array([b_strong, v_metal]))
+    vmid = vgrid_min + (vgrid_max - vgrid_min)/2.0 # location of absorbers on vel_grid
+    vel_grid = np.arange(vgrid_min, vgrid_max, dvpix) # vel grid to place absorbers
+    print("vgrid_min", vgrid_min, "vgrid_max", vgrid_max)
+
+    nabs = W.shape[0]
+    nN = 101
+    logN_metal = logN_metal_min + (logN_metal_max - logN_metal_min)*np.arange(nN)/(nN - 1) # grid of logN_metal values
+    v_abs = np.full(nN, vmid) # Just center these for determining the EW logN_MgII relation
+
+    # sigmoid logistic function allows for smooth transition between b_weak and b_strong at the activiation locatino
+    # logN_strong, over an interval of ~ 4*logN_trans about logN_strong
+    if b_in == None:
+        sigmoid_arg = (logN_metal - logN_strong)/logN_trans
+        b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
+    else:
+        b_val = np.ones(nN) * b_in
+
+    # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
+    # interpolate these relations to obtain N and b for the desired W
+    tau_tot, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+
+    if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
+        print(W_blue.min(), W_blue.max())
+        raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
+
+    return W_blue, logN_metal
+
 
 def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
@@ -397,24 +447,25 @@ def dwdn_theory():
 
     return dWlambda_dN
 
-def dwdn_numerical(b_in, plot=False):
+def dwdn_numerical(cgm_dict, b_in, plot=False):
 
     W = np.arange(0.01, 5.0, 0.01) # extended range
     #W = np.arange(0.1, 3.1, 0.01)
-    logN_out, b_out = metal_W2bN(W, b_in=b_in)
+    logN_out, b_out = metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
         dw_db = np.gradient(W, b_out, edge_order=2)
         db_dn = np.gradient(b_out, 10**logN_out)
         dw_dn = dw_db * db_dn # in units of Angstrom cm^2
-        dw_dn2 = np.gradient(W, 10 ** logN_out, edge_order=2) # same as dw_dn ...
+        dw_dn2 = np.gradient(W, 10**logN_out, edge_order=2) # same as dw_dn ...
     else:
         dw_dn = np.gradient(W, 10**logN_out, edge_order=2)
 
-    # more or less equivalent to results obtained below
+    # equivalent to results obtained below
     #W_border = np.array((W - 0.01 / 2).tolist() + [W[-1] + 0.01/2])
     #logN_out_border, b_out_border = metal_W2bN(W_border, b_in=b_in)
     #dw_dn2 = np.diff(W_border) / np.diff(10 ** logN_out_border)
+    #dw_dn = dw_dn2
 
     z = 3.25 # redshift used in Cooksey's fit
     dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
@@ -440,7 +491,6 @@ def dwdn_numerical(b_in, plot=False):
         plt.grid()
 
         plt.subplot(133)
-
         plt.plot(logN_out, dw_dn)
         plt.axhline(dwdn_linear, color='r', ls='--', label='theory dW/dN')
         plt.legend()
@@ -450,9 +500,10 @@ def dwdn_numerical(b_in, plot=False):
 
         plt.tight_layout()
 
-        #plt.figure()
+        plt.figure()
         #plt.plot(np.log10(W), np.log10(dn_dzdW))
         #plt.plot(logN_out, np.log10(dn_dzdN))
+        plt.plot(logN_out, np.log10(dn_dzdW))
         plt.show()
 
     return W, dw_dn, logN_out, dn_dzdN
@@ -477,7 +528,7 @@ def fit_alldata_schechter(cooksey_b_in):
     data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
 
     # Cooksey fit
-    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_numerical(b_in=cooksey_b_in)
+    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_numerical(None, cooksey_b_in)
 
     # Schechter's fit
     #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
@@ -504,17 +555,43 @@ def fit_alldata_schechter(cooksey_b_in):
     #plt.ylim([-17.4, -11.2])
     plt.show()
 
+########## temporary functions
 def temp():
-    W, dw_dn, logN_out, dn_dzdN = dwdn_numerical(None)
+
+    # cooksey
+    W, dw_dn, logN_out, dn_dzdN = dwdn_numerical(None, None)
     dn_dzdW_cook = dn_dzdN / dw_dn
 
+    # schechter
     norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
     dn_dzdN_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_out)
     dn_dzdW_sch = dn_dzdN_sch / dw_dn
 
-    plt.plot(W, dn_dzdW_cook, label='Cooksey')
-    plt.plot(W, dn_dzdW_sch, label='Schechter')
+    # d'odorico
+    omega_m = 0.26
+    omega_lambda = 1 - omega_m
+    z = 4.8
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
+
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+    data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # dn/dN/dz
+    data_f_dz = 10**data_logf_dz
+
+    W_blue, logN_metal = metal_W2bN2(W)
+    W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
+    W_out = W_interp(data_logN_CIV)
+    dw_dn2 = np.gradient(W_out, 10 ** data_logN_CIV, edge_order=2)
+    dn_dzdW_do = data_f_dz/dw_dn2
+
+    plt.plot(np.log10(W), np.log10(10.0*dn_dzdW_cook), 'k', label='Cooksey fit (x arbitrary norm)')
+    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), 'r', label='Schechter fit') # np.log10(0.1*dn_dzdW_sch)
+    plt.plot(np.log10(W_out), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data")
+
+    #plt.plot(np.log10(W[40:100]), np.log10(dn_dzdW_sch[40:100]), 'r.', label='Schechter')
     plt.legend()
+    plt.ylim([-10, 5])
+    plt.xlabel('log(W)', fontsize=13)
+    plt.ylabel('log (dn/dW/dz)', fontsize=13)
     plt.show()
 
 def temp2(W, dw_dn, logN_out, dn_dzdN):
@@ -534,3 +611,37 @@ def temp2(W, dw_dn, logN_out, dn_dzdN):
     plt.plot(logN_out, np.log10(dn_dzdN))
     plt.grid()
     plt.show()
+
+def temp3(W, logN_out):
+    dN = 10 ** logN_out[50] - 10 ** logN_out[0]
+    dW = W[50] - W[0]
+    dwdn_linear = dW/dN # W proportional to N
+
+    dN = 10 ** logN_out[300] - 10 ** logN_out[180]
+    dW = W[300] - W[180]
+    dwdn_inflect = dW/dN
+
+    dN = logN_out[-1] - logN_out[320]
+    dW = W[-1] - W[320]
+    dwdn_flat = dW/dN # W proportional to log(N)
+
+    print(dwdn_linear, dwdn_inflect, dwdn_flat)
+
+    logN_linear = np.arange(13, 14.5, 0.05)
+    logN_inflect = np.arange(15, 16.1, 0.05)
+    logN_flat = np.arange(16, 18.0, 0.05)
+
+    W_linear_pred = dwdn_linear * 10**(logN_linear)
+    W_inflect_pred = dwdn_inflect * 10**(logN_inflect)
+    W_flat_pred = dwdn_flat * logN_flat
+
+
+    plt.plot(logN_out, np.log10(W), 'r')
+
+    plt.plot(logN_linear, np.log10(W_linear_pred))
+
+    plt.plot(logN_inflect, np.log10(W_inflect_pred))
+
+    plt.plot(logN_flat, np.log10(W_flat_pred))
+    plt.show()
+
