@@ -251,53 +251,8 @@ def reproduce_dodorico2013_fig18():
     plt.ylim([-17.4, -11.2])
     plt.show()
 
-def fit_dodorico2013_schechter():
-    # comparing Schechter function fits to D'Odorico data points
-
-    # convert dX to dz using cosmology from D'Odorico et al. (2013)
-    omega_m = 0.26
-    omega_lambda = 1 - omega_m
-    z = 4.8
-    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
-
-    # D'Odorico data and fit
-    B = 10 ** 10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1) # range from D'Odorico
-    #logN_CIV = np.arange(12.4, 16.2, 0.1)
-    alpha = 1.75
-    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-
-    f_dz = f*dX_dz # converting data points from dX to dz
-    data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
-
-    # Schechter's fit
-    norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
-    #norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
-    dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
-
-    # PL + exp fit
-    dn_dNdX_sch2 = civ_dndNdX_pl_sch(N_star, logN_CIV)
-    dn_dNdz_sch2 = dX_dz * dn_dNdX_sch2
-
-    # plotting
-    plt.figure(figsize=(8,6))
-    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
-    plt.plot(logN_CIV, np.log10(f_dz), ':', label=r"D'Odorico fit: f(N) = B N$^{-\alpha'}$")
-    plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-    plt.plot(logN_CIV, np.log10(dn_dNdz_sch2), '--', label=r"PL + Exp fit: B N$^{-\alpha'}$ $e^{-N/N*}$")
-    plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
-
-    plt.legend(fontsize=11, loc=3)
-    plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log (dn/dN/dz)', fontsize=13)
-    #plt.xlim([12.4, 15.2])
-    #plt.ylim([-17.4, -11.2])
-    plt.show()
-
 ########## converting W to N
-def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
+def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', return_wtau=False, plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
 
     if cgm_dict == None:
@@ -345,71 +300,24 @@ def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
         print(W_blue.min(), W_blue.max())
         raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
 
-    N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
-    b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
-    logN_out = N_interp(W)
-    b_out = b_interp(W)
-
-    if plot:
-        plt.axhline(np.log10(0.6), ls='--')
-        plt.plot(logN_out, np.log10(W), 'k')
-        plt.xlabel('log(N)', fontsize=13)
-        plt.ylabel(r'log($W_{blue}$)', fontsize=13)
-        plt.title('b_weak=%0.1f, b_strong=%0.1f, logN_strong=%0.1f' % (b_weak, b_strong, logN_strong), fontsize=13)
-        plt.grid()
-        plt.show()
-
-    return logN_out, b_out
-
-def metal_W2bN2(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
-    # see enigma.reion_forest.utils.mgii_W2bN
-
-    if cgm_dict == None:
-        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, \
-                    'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
-
-        #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
-        #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
-
-    b_weak = cgm_dict['b_weak']
-    b_strong = cgm_dict['b_strong']
-    logN_metal_min = cgm_dict['logN_metal_min'] # minimum N value to construct interpolation grid
-    logN_metal_max = cgm_dict['logN_metal_max'] # maximum N value to construct interpolation grid
-    logN_strong = cgm_dict['logN_strong']
-    logN_trans = cgm_dict['logN_trans']
-    W_min = cgm_dict['W_min']
-    W_max = cgm_dict['W_max']
-
-    dvpix = 2.0
-    vgrid_min = 0.0
-    v_metal = reion_utils.vel_metal_doublet(metal_ion).value
-    vgrid_max = 5.0*np.max(np.array([b_strong, v_metal]))
-    vmid = vgrid_min + (vgrid_max - vgrid_min)/2.0 # location of absorbers on vel_grid
-    vel_grid = np.arange(vgrid_min, vgrid_max, dvpix) # vel grid to place absorbers
-    print("vgrid_min", vgrid_min, "vgrid_max", vgrid_max)
-
-    nabs = W.shape[0]
-    nN = 101
-    logN_metal = logN_metal_min + (logN_metal_max - logN_metal_min)*np.arange(nN)/(nN - 1) # grid of logN_metal values
-    v_abs = np.full(nN, vmid) # Just center these for determining the EW logN_MgII relation
-
-    # sigmoid logistic function allows for smooth transition between b_weak and b_strong at the activiation locatino
-    # logN_strong, over an interval of ~ 4*logN_trans about logN_strong
-    if b_in == None:
-        sigmoid_arg = (logN_metal - logN_strong)/logN_trans
-        b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
+    if return_wtau:
+        return W_blue, logN_metal
     else:
-        b_val = np.ones(nN) * b_in
+        N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
+        b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
+        logN_out = N_interp(W)
+        b_out = b_interp(W)
 
-    # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
-    # interpolate these relations to obtain N and b for the desired W
-    tau_tot, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
+        if plot:
+            plt.axhline(np.log10(0.6), ls='--')
+            plt.plot(logN_out, np.log10(W), 'k')
+            plt.xlabel('log(N)', fontsize=13)
+            plt.ylabel(r'log($W_{blue}$)', fontsize=13)
+            plt.title('b_weak=%0.1f, b_strong=%0.1f, logN_strong=%0.1f' % (b_weak, b_strong, logN_strong), fontsize=13)
+            plt.grid()
+            plt.show()
 
-    if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
-        print(W_blue.min(), W_blue.max())
-        raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
-
-    return W_blue, logN_metal
+        return logN_out, b_out
 
 def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
@@ -480,12 +388,14 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
     #dw_dn2 = np.diff(W_border) / np.diff(10 ** logN_out_border)
     #dw_dn = dw_dn2
 
+    """
     z = 3.25 # redshift used in Cooksey's fit
     dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
     dn_dzdN = dn_dzdW * dw_dn
+    """
 
     dwdn_linear = dwdn_theory().value
-    dn_dzdN_linear = dn_dzdW * dwdn_linear
+    #dn_dzdN_linear = dn_dzdW * dwdn_linear
 
     if plot:
         plt.figure(figsize=(12,5))
@@ -512,61 +422,9 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.grid()
 
         plt.tight_layout()
-
-        plt.figure()
-        #plt.plot(np.log10(W), np.log10(dn_dzdW))
-        #plt.plot(logN_out, np.log10(dn_dzdN))
-        plt.plot(logN_out, np.log10(dn_dzdW))
         plt.show()
 
-    return W, dw_dn, logN_out, dn_dzdN
-
-def fit_alldata_schechter(cooksey_b_in):
-    # comparing Schechter function fits to D'Odorico data points
-
-    # convert dX to dz using cosmology from D'Odorico et al. (2013)
-    omega_m = 0.26
-    omega_lambda = 1 - omega_m
-    z = 4.8
-    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
-
-    # D'Odorico data and fit
-    B = 10 ** 10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1) # range from D'Odorico
-    alpha = 1.75
-    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-
-    f_dz = f*dX_dz # converting data points from dX to dz
-    data_logf_dz = np.log10(dX_dz*10**(data_logf)) # dn/dN/dz
-
-    # Cooksey fit
-    W, dw_dn, logN_out, dn_dzdN_cook = dwdn_numerical(None, cooksey_b_in)
-
-    # Schechter's fit
-    #norm, alpha, N_star = 1e-13, -0.80, 10 ** 14.0
-    #norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
-
-    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    #norm, alpha, N_star = 1e-14, -0.10, 10 ** 17.0
-    logN_CIV = np.arange(12.4, 18.0, 0.1)
-    dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
-
-    # plotting
-    plt.figure(figsize=(8,6))
-    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label='4.35 < z < 5.3', ms=8, mew=2)
-    plt.plot(logN_CIV, np.log10(dn_dNdz_sch), '--', label=r"Schechter fit: $A_{norm}$ $(N/N*)^{\alpha}$ $e^{-N/N*}$")
-    #plt.plot(logN_out, np.log10(dn_dzdN_cook), '--', label='Cooksey fit')
-    plt.plot(logN_out, 0.93*np.log10(dn_dzdN_cook), '--', label='Cooksey fit (x arbitrary norm)')
-    plt.title(r'log(norm)=$%0.01f$ , $\alpha=%0.01f$, log($N*$)=$%0.01f$' % (np.log10(norm), alpha, np.log10(N_star)))
-
-    plt.legend(fontsize=11, loc=3)
-    plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log (dn/dN/dz)', fontsize=13)
-    #plt.xlim([12.4, 15.2])
-    #plt.ylim([-17.4, -11.2])
-    plt.show()
+    return W, dw_dn, logN_out
 
 def fit_alldata_dW():
 
@@ -582,7 +440,7 @@ def fit_alldata_dW():
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
     data_f_dz = 10 ** data_logf_dz
 
-    W_blue, logN_metal = metal_W2bN2(W)
+    W_blue, logN_metal = metal_W2bN(W, return_wtau=True)
     W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
     W_out_data = W_interp(data_logN_CIV)
     dw_dn2 = np.gradient(W_out_data, 10 ** data_logN_CIV, edge_order=2)
@@ -636,7 +494,7 @@ def fit_alldata_dN():
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
 
     # dw/dN for converting Schechter and Cooksey
-    _, dw_dn, logN_out, _ = dwdn_numerical(None, None) # using default cgm_dict and sigmoid function for b-value
+    _, dw_dn, logN_out = dwdn_numerical(None, None) # using default cgm_dict and sigmoid function for b-value
 
     # Cooksey's fit
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
@@ -659,44 +517,3 @@ def fit_alldata_dN():
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
     plt.show()
-
-########## temporary functions
-def temp2():
-
-    # cooksey
-    W, dw_dn, logN_out, dn_dzdN = dwdn_numerical(None, None)
-    dn_dzdW_cook = dn_dzdN / dw_dn
-
-    # schechter
-    norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    norm, alpha, N_star = 1e-14, -0.10, 10 ** 17.0
-    dn_dzdN_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_out)
-    dn_dzdW_sch = dn_dzdN_sch / dw_dn
-
-    # d'odorico
-    omega_m = 0.26
-    omega_lambda = 1 - omega_m
-    z = 4.8
-    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
-
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-    data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # dn/dN/dz
-    data_f_dz = 10**data_logf_dz
-
-    W_blue, logN_metal = metal_W2bN2(W)
-    W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
-    W_out = W_interp(data_logN_CIV)
-    dw_dn2 = np.gradient(W_out, 10 ** data_logN_CIV, edge_order=2)
-    dn_dzdW_do = data_f_dz/dw_dn2
-
-    plt.plot(np.log10(W), np.log10(10.0*dn_dzdW_cook), 'k', label='Cooksey fit (x arbitrary norm)')
-    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), 'r', label='Schechter fit') # np.log10(0.1*dn_dzdW_sch)
-    plt.plot(np.log10(W_out), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data")
-
-    #plt.plot(np.log10(W[40:100]), np.log10(dn_dzdW_sch[40:100]), 'r.', label='Schechter')
-    plt.legend()
-    plt.ylim([-10, 5])
-    plt.xlabel('log(W)', fontsize=13)
-    plt.ylabel('log (dn/dW/dz)', fontsize=13)
-    plt.show()
-
