@@ -12,12 +12,13 @@ Functions here:
     - cooksey2013_dndz
     - dodorico2013_cddf
     - reproduce_dodorico2013_fig18
-    - fit_dodorico2013_schechter
     - metal_W2bN
     - plot_multiple_cog
     - reproduce_cooksey_w
     - dwdn_numerical
-    - fit_alldata_schechter
+    - dwdn_theory
+    - fit_alldata_dW
+    - fit_alldata_dN
 '''
 
 import numpy as np
@@ -194,63 +195,6 @@ def civ_dndNdX_pl_sch(N_star, logN_CIV):
 
     return f_sch
 
-########## data
-def cooksey2013_dndz():
-    # Table 4 (CIV results summary) of Cooksey et al. (2013)
-    z_median = [1.96, 1.56, 1.66, 1.74, 1.82, 1.91, 2.02, 2.15, 2.36, 2.72, 3.26]
-    z_min = [1.47, 1.47, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97]
-    z_max = [4.54, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97, 4.54]
-    z_err_lo = np.array(z_median) - np.array(z_min)
-    z_err_hi = np.array(z_max) - np.array(z_median)
-
-    dndz = [0.92, 0.95, 1.00, 1.08, 1.09, 1.12, 1.04, 1.04, 0.96, 0.83, 0.59]
-    dndz_err_hi = [0.02, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.02]
-    dndz_err_lo = [0.01, 0.03, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.02]
-
-    # first point in the array is the largest bin that includes all subsequent smaller bins
-    plt.errorbar(z_median[1:], dndz[1:], xerr=(z_err_lo[1:], z_err_hi[1:]), yerr=(dndz_err_lo[1:], dndz_err_hi[1:]), fmt='o')
-
-    #plt.plot(z_median[0], dndz[0], 'r*')
-    #plt.hlines(dndz[0], dndz_err_lo[0] - dndz[0], dndz_err_hi[0] + dndz[0], color='r')
-    #plt.vlines(z_median[0], z_median[0] - z_err_lo[0], z_median[0] + z_err_hi[0], color='r')
-
-    plt.yscale('log')
-    plt.xlabel('z', fontsize=13)
-    plt.ylabel('dn/dz', fontsize=13)
-    plt.tight_layout()
-    plt.show()
-
-def dodorico2013_cddf():
-    # D'Odorico et al. (2013), Figure 18
-    # data points for CDDF not provided, so estimating the points by eye from Figure 18
-    # for 4.35 < z < 5.3
-
-    logN_CIV = np.array([12.82, 13.45, 13.64, 14.04])
-    logf = np.array([-12.98, -12.97, -13.59, -14.39]) # f = dn/dN/dX
-
-    # note: returning the log10 values
-    return logN_CIV, logf
-
-def reproduce_dodorico2013_fig18():
-    # to check if my by-eye estimate of the data points looks ok
-
-    B = 10**10.3
-    logN_CIV = np.arange(12.4, 15.2, 0.1)
-    alpha = 1.75
-
-    f = civ_dndNdX_pl(B, alpha, 10**logN_CIV)
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-
-    plt.plot(data_logN_CIV, data_logf, 'kx')
-    plt.plot(logN_CIV, np.log10(f), ':', label=r'f(N) = B N$^{-\alpha}$')
-
-    plt.legend(fontsize=13)
-    plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log f', fontsize=13)
-    plt.xlim([12.4, 15.2])
-    plt.ylim([-17.4, -11.2])
-    plt.show()
-
 ########## converting W to N
 def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', return_wtau=False, plot=False):
     # see enigma.reion_forest.utils.mgii_W2bN
@@ -333,28 +277,6 @@ def plot_multiple_cog(W, b_list):
     plt.legend()
     plt.show()
 
-def reproduce_cooksey_w():
-    # Cooksey+ (2013) claims W_1548 = 0.6A is saturated, which is logN ~ 14
-    # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
-    # this gives b ~ 66 km/s and logN ~ 14.17
-
-    wrest_civ  = 1548 * u.Angstrom
-    W_lambda_saturate = 0.6 * u.Angstrom
-    tau_saturate = 1.0
-
-    c = const.c.to('km/s')
-    b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
-
-    # getting N now
-    ec = const.e.esu # cgs
-    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
-    me = const.m_e.to('g')
-    c = const.c.to('cm/s')
-    f = 0.1899  # oscillator strength for CIV 1548
-    N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2)
-
-    return N, b_linear_out
-
 def dwdn_theory():
 
     #w_lambda = N * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_civ ** 2)
@@ -426,6 +348,86 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
 
     return W, dw_dn, logN_out
 
+########## data ##########
+def cooksey2013_dndz():
+    # Table 4 (CIV results summary) of Cooksey et al. (2013)
+    z_median = [1.96, 1.56, 1.66, 1.74, 1.82, 1.91, 2.02, 2.15, 2.36, 2.72, 3.26]
+    z_min = [1.47, 1.47, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97]
+    z_max = [4.54, 1.61, 1.70, 1.78, 1.87, 1.96, 2.08, 2.24, 2.51, 2.97, 4.54]
+    z_err_lo = np.array(z_median) - np.array(z_min)
+    z_err_hi = np.array(z_max) - np.array(z_median)
+
+    dndz = [0.92, 0.95, 1.00, 1.08, 1.09, 1.12, 1.04, 1.04, 0.96, 0.83, 0.59]
+    dndz_err_hi = [0.02, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.02]
+    dndz_err_lo = [0.01, 0.03, 0.03, 0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.02]
+
+    # first point in the array is the largest bin that includes all subsequent smaller bins
+    plt.errorbar(z_median[1:], dndz[1:], xerr=(z_err_lo[1:], z_err_hi[1:]), yerr=(dndz_err_lo[1:], dndz_err_hi[1:]), fmt='o')
+
+    #plt.plot(z_median[0], dndz[0], 'r*')
+    #plt.hlines(dndz[0], dndz_err_lo[0] - dndz[0], dndz_err_hi[0] + dndz[0], color='r')
+    #plt.vlines(z_median[0], z_median[0] - z_err_lo[0], z_median[0] + z_err_hi[0], color='r')
+
+    plt.yscale('log')
+    plt.xlabel('z', fontsize=13)
+    plt.ylabel('dn/dz', fontsize=13)
+    plt.tight_layout()
+    plt.show()
+
+def dodorico2013_cddf():
+    # D'Odorico et al. (2013), Figure 18
+    # data points for CDDF not provided, so estimating the points by eye from Figure 18
+    # for 4.35 < z < 5.3
+
+    logN_CIV = np.array([12.82, 13.45, 13.64, 14.04])
+    logf = np.array([-12.98, -12.97, -13.59, -14.39]) # f = dn/dN/dX
+
+    # note: returning the log10 values
+    return logN_CIV, logf
+
+def reproduce_dodorico2013_fig18():
+    # to check if my by-eye estimate of the data points looks ok
+
+    B = 10**10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1)
+    alpha = 1.75
+
+    f = civ_dndNdX_pl(B, alpha, 10**logN_CIV)
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+
+    plt.plot(data_logN_CIV, data_logf, 'kx')
+    plt.plot(logN_CIV, np.log10(f), ':', label=r'f(N) = B N$^{-\alpha}$')
+
+    plt.legend(fontsize=13)
+    plt.xlabel('log N(CIV)', fontsize=13)
+    plt.ylabel('log f', fontsize=13)
+    plt.xlim([12.4, 15.2])
+    plt.ylim([-17.4, -11.2])
+    plt.show()
+
+def reproduce_cooksey_w():
+    # Cooksey+ (2013) claims W_1548 = 0.6A is saturated, which is logN ~ 14
+    # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
+    # this gives b ~ 66 km/s and logN ~ 14.17
+
+    wrest_civ  = 1548 * u.Angstrom
+    W_lambda_saturate = 0.6 * u.Angstrom
+    tau_saturate = 1.0
+
+    c = const.c.to('km/s')
+    b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
+
+    # getting N now
+    ec = const.e.esu # cgs
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+    N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2)
+
+    return N, b_linear_out
+
+########## fitting data with Schechter function ##########
 def fit_alldata_dW():
 
     W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
