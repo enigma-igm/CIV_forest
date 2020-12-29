@@ -50,9 +50,10 @@ def civ_dndNdz_sch(n_star, alpha, N_star, N, z=None):
 def civ_dndNdz_sch2(normalization, alpha, N_star, N, z=None):
 
     # Schechter function for CIV column density (N) distribution.
-    # same as above, but replacing absorbing 'n_star' into 'normalization'
+    # same as above, but replacing absorbing 'n_star/N_star' into 'normalization'
 
     dn_dNdz = normalization * np.power(N / N_star, alpha) * np.exp(-N/ N_star)
+
     if z != None:
         omega_m = Planck15.Om0
         omega_lambda = 1 - omega_m
@@ -100,6 +101,20 @@ def civ_dndz_schechter2(normalization, alpha, N_star, N_min, N_max):
 
     dn_dz = (normalization * N_star) * I
     return dn_dz
+
+def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
+
+    # Eqn (15) from Joe's paper, where for Mg II forest, (alpha, W_star, N_star) = -0.8, 1.0 A, 2.34
+    dn_dzdW = (n_star / W_star) * np.power(W / W_star, alpha) * np.exp(-W/ W_star)
+
+    if z != None:
+        omega_m = Planck15.Om0
+        omega_lambda = 1 - omega_m
+        dz_dX = 1/(((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5))
+        dn_dWdX = dn_dzdW * dz_dX
+        return dn_dWdX
+    else:
+        return dn_dzdW
 
 ########## convenience functions
 def convert_dXdz(omega_m, omega_lambda, z):
@@ -396,7 +411,6 @@ def metal_W2bN2(W, cgm_dict=None, b_in=None, metal_ion='C IV', plot=False):
 
     return W_blue, logN_metal
 
-
 def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
 
@@ -450,7 +464,6 @@ def dwdn_theory():
 def dwdn_numerical(cgm_dict, b_in, plot=False):
 
     W = np.arange(0.01, 5.0, 0.01) # extended range
-    #W = np.arange(0.1, 3.1, 0.01)
     logN_out, b_out = metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
@@ -536,8 +549,8 @@ def fit_alldata_schechter(cooksey_b_in):
     #norm, alpha, N_star = 1e-15, -0.90, 10 ** 16.0
 
     norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
-    #norm, alpha, N_star = 1e-14, -0.40, 10 ** 15.0
-    logN_CIV = np.arange(12.4, 16.0, 0.1)
+    #norm, alpha, N_star = 1e-14, -0.10, 10 ** 17.0
+    logN_CIV = np.arange(12.4, 18.0, 0.1)
     dn_dNdz_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_CIV)
 
     # plotting
@@ -555,8 +568,100 @@ def fit_alldata_schechter(cooksey_b_in):
     #plt.ylim([-17.4, -11.2])
     plt.show()
 
+def fit_alldata_dW():
+
+    W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
+
+    # D'Odorico data, converted to dW
+    omega_m = 0.26
+    omega_lambda = 1 - omega_m
+    z = 4.8
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
+
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+    data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
+    data_f_dz = 10 ** data_logf_dz
+
+    W_blue, logN_metal = metal_W2bN2(W)
+    W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
+    W_out_data = W_interp(data_logN_CIV)
+    dw_dn2 = np.gradient(W_out_data, 10 ** data_logN_CIV, edge_order=2)
+    dn_dzdW_do = data_f_dz / dw_dn2
+    dn_dXdW_do = (10** data_logf) / dw_dn2
+
+    # D'Odorico fit
+    B = 10 ** 10.3
+    logN_CIV = np.arange(12.4, 15.2, 0.1)  # range from D'Odorico
+    alpha = 1.75
+    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
+    f_dz = f * dX_dz  # converting data points from dX to dz
+
+    W_out_fit = W_interp(logN_CIV)
+    dw_dn3 = np.gradient(W_out_fit, 10 ** logN_CIV, edge_order=2)
+    f_dW = f/dw_dn3
+    f_dzdW = f_dz/dw_dn3
+
+    # Cooksey's fit
+    dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
+
+    # Schechter's fit
+    W_star, n_star, alpha = 0.4, 15.0, -0.5 # this fits DO data well
+    W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
+    dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
+
+    ##### plotting #####
+    plt.figure(figsize=(8,6))
+    #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
+    plt.plot(np.log10(W), np.log10(13.0 * dn_dzdW_cook), '-', label='Cooksey fit (x arbitrary norm)')
+    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', lw=2.5, label="Schechter fit")
+    plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+
+    plt.legend(fontsize=11, loc=3)
+    plt.xlabel('log W', fontsize=13)
+    plt.ylabel('log (dn/dW/dz)', fontsize=13)
+    plt.show()
+
+def fit_alldata_dN():
+
+    W = np.arange(0.01, 5.0, 0.01) # range for Cooksey and Schechter
+
+    # D'Odorico data
+    omega_m = 0.26
+    omega_lambda = 1 - omega_m
+    z = 4.8
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
+
+    data_logN_CIV, data_logf = dodorico2013_cddf()
+    data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
+
+    # dw/dN for converting Schechter and Cooksey
+    _, dw_dn, logN_out, _ = dwdn_numerical(None, None) # using default cgm_dict and sigmoid function for b-value
+
+    # Cooksey's fit
+    dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
+    dn_dzdN_cook = dn_dzdW_cook * dw_dn
+
+    # Schechter's fit
+    W_star, n_star, alpha = 0.4, 15.0, -0.5 # this fits DO data well
+    W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
+    dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
+    dn_dzdN_sch = dn_dzdW_sch * dw_dn
+
+    ##### plotting #####
+    plt.figure(figsize=(8,6))
+    plt.plot(logN_out, np.log10(13.0 * dn_dzdN_cook), '-', label='Cooksey fit (x arbitrary norm)')
+    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label="Schechter fit")
+    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+
+    plt.legend(fontsize=11, loc=3)
+    plt.xlabel('log N(CIV)', fontsize=13)
+    plt.ylabel('log (dn/dN/dz)', fontsize=13)
+    plt.show()
+
 ########## temporary functions
-def temp():
+def temp2():
 
     # cooksey
     W, dw_dn, logN_out, dn_dzdN = dwdn_numerical(None, None)
@@ -564,6 +669,7 @@ def temp():
 
     # schechter
     norm, alpha, N_star = 1e-14, -0.80, 10 ** 15.0
+    norm, alpha, N_star = 1e-14, -0.10, 10 ** 17.0
     dn_dzdN_sch = civ_dndNdz_sch2(norm, alpha, N_star, 10 ** logN_out)
     dn_dzdW_sch = dn_dzdN_sch / dw_dn
 
@@ -592,56 +698,5 @@ def temp():
     plt.ylim([-10, 5])
     plt.xlabel('log(W)', fontsize=13)
     plt.ylabel('log (dn/dW/dz)', fontsize=13)
-    plt.show()
-
-def temp2(W, dw_dn, logN_out, dn_dzdN):
-
-    dn_dzdW = dn_dzdN / dw_dn
-
-    plt.subplot(141)
-    plt.plot(logN_out, np.log10(W))
-    plt.grid()
-    plt.subplot(142)
-    plt.plot(logN_out, np.log10(dw_dn))
-    plt.grid()
-    plt.subplot(143)
-    plt.plot(np.log10(W), np.log10(dn_dzdN))
-    plt.grid()
-    plt.subplot(144)
-    plt.plot(logN_out, np.log10(dn_dzdN))
-    plt.grid()
-    plt.show()
-
-def temp3(W, logN_out):
-    dN = 10 ** logN_out[50] - 10 ** logN_out[0]
-    dW = W[50] - W[0]
-    dwdn_linear = dW/dN # W proportional to N
-
-    dN = 10 ** logN_out[300] - 10 ** logN_out[180]
-    dW = W[300] - W[180]
-    dwdn_inflect = dW/dN
-
-    dN = logN_out[-1] - logN_out[320]
-    dW = W[-1] - W[320]
-    dwdn_flat = dW/dN # W proportional to log(N)
-
-    print(dwdn_linear, dwdn_inflect, dwdn_flat)
-
-    logN_linear = np.arange(13, 14.5, 0.05)
-    logN_inflect = np.arange(15, 16.1, 0.05)
-    logN_flat = np.arange(16, 18.0, 0.05)
-
-    W_linear_pred = dwdn_linear * 10**(logN_linear)
-    W_inflect_pred = dwdn_inflect * 10**(logN_inflect)
-    W_flat_pred = dwdn_flat * logN_flat
-
-
-    plt.plot(logN_out, np.log10(W), 'r')
-
-    plt.plot(logN_linear, np.log10(W_linear_pred))
-
-    plt.plot(logN_inflect, np.log10(W_inflect_pred))
-
-    plt.plot(logN_flat, np.log10(W_flat_pred))
     plt.show()
 
