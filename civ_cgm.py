@@ -465,7 +465,8 @@ def fit_alldata_dW():
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
 
     # Schechter's fit
-    W_star, n_star, alpha = 0.4, 15.0, -0.5 # this fits DO data well
+    W_star, n_star, alpha = 0.4, 15.0, -0.5 # these fit DO data well
+    W_star, n_star, alpha = 0.4, 2.5, -0.02 # these fit Cooksey fit well
     W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
     dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
     dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
@@ -503,7 +504,8 @@ def fit_alldata_dN():
     dn_dzdN_cook = dn_dzdW_cook * dw_dn
 
     # Schechter's fit
-    W_star, n_star, alpha = 0.4, 15.0, -0.5 # this fits DO data well
+    W_star, n_star, alpha = 0.4, 15.0, -0.5  # these fit DO data well
+    W_star, n_star, alpha = 0.4, 2.5, -0.02  # these fit Cooksey fit well
     W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
     dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
     dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
