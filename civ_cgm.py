@@ -1,14 +1,10 @@
 '''
 Functions here:
-    - civ_dndNdz_sch
-    - civ_dndNdz_sch2
-    - civ_dndz_schechter
-    - civ_dndz_schechter2
+    - civ_dndzdW_sch
     - convert_dXdz
     - civ_dndzdW
     - civ_dndz_cooksey
     - civ_dndNdX_pl
-    - civ_dndNdX_pl_sch
     - cooksey2013_dndz
     - dodorico2013_cddf
     - reproduce_dodorico2013_fig18
@@ -31,83 +27,13 @@ from astropy import constants as const
 from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
 
-########## Schechter functions for dn/dN/dz (or dn/dN/dX) and dn/dz
-def civ_dndNdz_sch(n_star, alpha, N_star, N, z=None):
-
-    # Schechter function for CIV column density (N) distribution.
-    # note: small n refers to number
-
-    dn_dNdz = (n_star / N_star) * np.power(N / N_star, alpha) * np.exp(-N/ N_star)
-
-    if z != None:
-        omega_m = Planck15.Om0
-        omega_lambda = 1 - omega_m
-        dz_dX = 1/(((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5))
-        dn_dNdX = dn_dNdz * dz_dX
-        return dn_dNdX
-    else:
-        return dn_dNdz
-
-def civ_dndNdz_sch2(normalization, alpha, N_star, N, z=None):
-
-    # Schechter function for CIV column density (N) distribution.
-    # same as above, but replacing absorbing 'n_star/N_star' into 'normalization'
-
-    dn_dNdz = normalization * np.power(N / N_star, alpha) * np.exp(-N/ N_star)
-
-    if z != None:
-        omega_m = Planck15.Om0
-        omega_lambda = 1 - omega_m
-        dz_dX = 1/(((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5))
-        print("dz_dX", dz_dX)
-        dn_dNdX = dn_dNdz * dz_dX
-        return dn_dNdX
-    else:
-        return dn_dNdz
-
-def civ_dndz_schechter(n_star, alpha, N_star, N_min, N_max):
-    """
-    Compute Schechter integral over [N_min, N_max] interval using the incomplete gamma functions.
-    """
-
-    z = alpha + 1 # slope
-    upper = N_max / N_star
-    lower = N_min / N_star
-    # \Gamma(z, l, u) = \int_lower^upper x^(z-1) exp(-x) dx, where x = W/W_star
-    if isinstance(N_max,float):
-        I = float(mpmath.gammainc(z, lower, upper))
-    elif isinstance(N_max,np.ndarray):
-        I = np.zeros_like(N_max)
-        for indx in range(N_max.size):
-            I[indx] = float(mpmath.gammainc(z, lower, upper[indx]))
-
-    dn_dz = n_star * I
-    return dn_dz
-
-def civ_dndz_schechter2(normalization, alpha, N_star, N_min, N_max):
-    """
-    Compute Schechter integral over [N_min, N_max] interval using the incomplete gamma functions.
-    """
-
-    z = alpha + 1 # slope
-    upper = N_max / N_star
-    lower = N_min / N_star
-    # \Gamma(z, l, u) = \int_lower^upper x^(z-1) exp(-x) dx, where x = W/W_star
-    if isinstance(N_max,float):
-        I = float(mpmath.gammainc(z, lower, upper))
-    elif isinstance(N_max,np.ndarray):
-        I = np.zeros_like(N_max)
-        for indx in range(N_max.size):
-            I[indx] = float(mpmath.gammainc(z, lower, upper[indx]))
-
-    dn_dz = (normalization * N_star) * I
-    return dn_dz
-
+########## Schechter function
 def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
 
     # Eqn (15) from Joe's paper, where for Mg II forest, (alpha, W_star, N_star) = -0.8, 1.0 A, 2.34
     dn_dzdW = (n_star / W_star) * np.power(W / W_star, alpha) * np.exp(-W/ W_star)
 
+    # if z is provided, return dn/dX/dW instead
     if z != None:
         omega_m = Planck15.Om0
         omega_lambda = 1 - omega_m
@@ -117,7 +43,7 @@ def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
     else:
         return dn_dzdW
 
-########## convenience functions
+########## convenience function
 def convert_dXdz(omega_m, omega_lambda, z):
 
     #omega_m = Planck15.Om0
@@ -125,9 +51,9 @@ def convert_dXdz(omega_m, omega_lambda, z):
     dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5)
     return dX_dz
 
-
-########## fits for dn/dz/dW from Cooksey et al. (2013)
+########## fits from literature
 def civ_dndzdW(W, z, type, k=None, alpha=None):
+    # dn/dz/dW from Cooksey et al. (2013)
     # dN, where N = number, not column density
     # W = np.arange(0.03, 2.5, 0.01)
 
@@ -174,8 +100,8 @@ def civ_dndz_cooksey(k, alpha, z, W_min, W_max, nW):
 
     return dN_dX, dN_dz
 
-########## power law fits for dn/dN/dX
 def civ_dndNdX_pl(B, alpha, N_CIV):
+    # power law fit for dn/dN/dX from D'Odorico et al. (2013)
     # alpha = 1.71 or 1.8 from D'Odorico et al. (2010)
     # alpha = 1.75 for D'Odorico et al. (2013), Figure 18, 4.35 < z < 5.3
     # what are obs values for B?
@@ -184,27 +110,20 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
     dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
     return dn_dNdX
 
-def civ_dndNdX_pl_sch(N_star, logN_CIV):
-    # attaching an exponential cutoff to D'Odorico et al. (2013) power law fit
-    B = 10 ** 10.3
-    alpha = 1.75
-
-    f = civ_dndNdX_pl(B, alpha, 10 ** logN_CIV)
-    N_Nstar = (10**logN_CIV)/N_star
-    f_sch = f * np.exp(-N_Nstar)
-
-    return f_sch
-
 ########## converting W to N
 def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', return_wtau=False, plot=False):
-    # see enigma.reion_forest.utils.mgii_W2bN
+    """
+    Modified from enigma.reion_forest.utils.mgii_W2bN
+
+    Params:
+        W: list of equivalent widths in Angstrom
+        cgm_dict: Python dictionary. If not provided, use default model below.
+        b_in: b-value in km/s. If not provided, then model it using sigmoid function.
+                 If provided, then assume constant b-value.
+    """
 
     if cgm_dict == None:
-        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, \
-                    'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
-
-        #cgm_dict = {'b_weak': 20.0, 'b_strong': 200.0, 'logN_metal_min': 10.0, 'logN_metal_max': 20.0, 'logN_strong': 15.5,
-        #           'logN_trans': 0.35, 'W_min': W.min(), 'W_max': W.max()}
+        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, 'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
 
     b_weak = cgm_dict['b_weak']
     b_strong = cgm_dict['b_strong']
@@ -278,6 +197,7 @@ def plot_multiple_cog(W, b_list):
     plt.show()
 
 def dwdn_theory():
+    # calculate theoretical value of dW/dN on the linear part of the COG
 
     #w_lambda = N * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_civ ** 2)
     wrest_civ = 1548 * u.Angstrom
@@ -292,8 +212,9 @@ def dwdn_theory():
     return dWlambda_dN
 
 def dwdn_numerical(cgm_dict, b_in, plot=False):
+    # compute dW/dN numerically
 
-    W = np.arange(0.01, 5.0, 0.01) # extended range
+    W = np.arange(0.01, 5.0, 0.01)
     logN_out, b_out = metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
@@ -309,15 +230,6 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
     #logN_out_border, b_out_border = metal_W2bN(W_border, b_in=b_in)
     #dw_dn2 = np.diff(W_border) / np.diff(10 ** logN_out_border)
     #dw_dn = dw_dn2
-
-    """
-    z = 3.25 # redshift used in Cooksey's fit
-    dn_dzdW, _ = civ_dndzdW(W, z, type='Cooksey')
-    dn_dzdN = dn_dzdW * dw_dn
-    """
-
-    dwdn_linear = dwdn_theory().value
-    #dn_dzdN_linear = dn_dzdW * dwdn_linear
 
     if plot:
         plt.figure(figsize=(12,5))
@@ -336,6 +248,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.grid()
 
         plt.subplot(133)
+        dwdn_linear = dwdn_theory().value
         plt.plot(logN_out, dw_dn)
         plt.axhline(dwdn_linear, color='r', ls='--', label='theory dW/dN')
         plt.legend()
@@ -429,6 +342,7 @@ def reproduce_cooksey_w():
 
 ########## fitting data with Schechter function ##########
 def fit_alldata_dW():
+    # do fitting in terms of W
 
     W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
 
@@ -449,7 +363,7 @@ def fit_alldata_dW():
     dn_dzdW_do = data_f_dz / dw_dn2
     dn_dXdW_do = (10** data_logf) / dw_dn2
 
-    # D'Odorico fit
+    # D'Odorico fit parameters
     B = 10 ** 10.3
     logN_CIV = np.arange(12.4, 15.2, 0.1)  # range from D'Odorico
     alpha = 1.75
@@ -461,7 +375,7 @@ def fit_alldata_dW():
     f_dW = f/dw_dn3
     f_dzdW = f_dz/dw_dn3
 
-    # Cooksey's fit
+    # Cooksey's fit at z=3.25
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
 
     # Schechter's fit
@@ -484,6 +398,7 @@ def fit_alldata_dW():
     plt.show()
 
 def fit_alldata_dN():
+    # do the fitting in terms of N
 
     W = np.arange(0.01, 5.0, 0.01) # range for Cooksey and Schechter
 
