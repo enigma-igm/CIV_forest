@@ -389,7 +389,7 @@ def fit_alldata_dW():
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
     plt.plot(np.log10(W), np.log10(13.0 * dn_dzdW_cook), '-', label='Cooksey fit (x arbitrary norm)')
-    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', lw=2.5, label="Schechter fit")
+    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
     plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
 
     plt.legend(fontsize=11, loc=3)
@@ -429,7 +429,7 @@ def fit_alldata_dN():
     ##### plotting #####
     plt.figure(figsize=(8,6))
     plt.plot(logN_out, np.log10(13.0 * dn_dzdN_cook), '-', label='Cooksey fit (x arbitrary norm)')
-    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label="Schechter fit")
+    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
 
     plt.legend(fontsize=11, loc=3)
