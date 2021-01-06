@@ -43,6 +43,28 @@ def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
     else:
         return dn_dzdW
 
+def civ_dndz_sch(n_star, alpha, W_star, W_min, W_max):
+    """
+    Compute Schechter integral (civ_dndzdW_sch above) over [W_min, W_max] interval using the incomplete gamma functions.
+    """
+
+    W_max = float(W_max) # ensuring W_max is float
+
+    z = alpha + 1 # changing variable and integrating as a function of z
+    upper = W_max / W_star
+    lower = W_min / W_star
+
+    # \Gamma(z, l, u) = \int_lower^upper x^(z-1) exp(-x) dx, where x = W/W_star
+    if isinstance(W_max,float):
+        I = float(mpmath.gammainc(z, lower, upper))
+    elif isinstance(W_max,np.ndarray):
+        I = np.zeros_like(W_max)
+        for indx in range(W_max.size):
+            I[indx] = float(mpmath.gammainc(z, lower, upper[indx]))
+
+    dn_dz = n_star * I
+    return dn_dz
+
 ########## convenience function
 def convert_dXdz(omega_m, omega_lambda, z):
 
@@ -388,7 +410,7 @@ def fit_alldata_dW():
     ##### plotting #####
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
-    plt.plot(np.log10(W), np.log10(13.0 * dn_dzdW_cook), '-', label='Cooksey fit (x arbitrary norm)')
+    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-', label='Cooksey fit (x arbitrary norm, 11.0)')
     plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
     plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
 
@@ -428,7 +450,8 @@ def fit_alldata_dN():
 
     ##### plotting #####
     plt.figure(figsize=(8,6))
-    plt.plot(logN_out, np.log10(13.0 * dn_dzdN_cook), '-', label='Cooksey fit (x arbitrary norm)')
+    # arbitrary norm 11.0 agrees better with the Schechter function dn_dz
+    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label='Cooksey fit (x arbitrary norm, 11.0)')
     plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
 
@@ -436,3 +459,15 @@ def fit_alldata_dN():
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
     plt.show()
+
+########## putting cgm absorbers in spectra ##########
+def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, W_min=0.01, W_max=5.0, b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
+
+    # parameters of frequency distribution obtained from fitting Schechter function to data (fit_alldata_dW and fit_alldata_dN)
+    cgm_dict = dict(n_star=n_star, alpha=alpha, W_star=W_star, W_min=W_min, W_max=W_max, b_weak=b_weak, b_strong=b_strong, \
+                    logN_metal_min=logN_metal_min, logN_metal_max=logN_metal_max, logN_strong=logN_strong, logN_trans=logN_trans)
+
+    return cgm_dict
+
+
+
