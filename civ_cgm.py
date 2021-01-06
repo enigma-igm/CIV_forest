@@ -8,7 +8,6 @@ Functions here:
     - cooksey2013_dndz
     - dodorico2013_cddf
     - reproduce_dodorico2013_fig18
-    - metal_W2bN
     - plot_multiple_cog
     - reproduce_cooksey_w
     - dwdn_numerical
@@ -47,8 +46,6 @@ def civ_dndz_sch(n_star, alpha, W_star, W_min, W_max):
     """
     Compute Schechter integral (civ_dndzdW_sch above) over [W_min, W_max] interval using the incomplete gamma functions.
     """
-
-    W_max = float(W_max) # ensuring W_max is float
 
     z = alpha + 1 # changing variable and integrating as a function of z
     upper = W_max / W_star
@@ -132,83 +129,12 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
     dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
     return dn_dNdX
 
-########## converting W to N
-def metal_W2bN(W, cgm_dict=None, b_in=None, metal_ion='C IV', return_wtau=False, plot=False):
-    """
-    Modified from enigma.reion_forest.utils.mgii_W2bN
-
-    Params:
-        W: list of equivalent widths in Angstrom
-        cgm_dict: Python dictionary. If not provided, use default model below.
-        b_in: b-value in km/s. If not provided, then model it using sigmoid function.
-                 If provided, then assume constant b-value.
-    """
-
-    if cgm_dict == None:
-        cgm_dict = {'b_weak': 20.0, 'b_strong': 150.0, 'logN_metal_min': 10.0, 'logN_metal_max': 22.0, 'logN_strong': 14.5, 'logN_trans': 0.25, 'W_min': W.min(), 'W_max': W.max()}
-
-    b_weak = cgm_dict['b_weak']
-    b_strong = cgm_dict['b_strong']
-    logN_metal_min = cgm_dict['logN_metal_min'] # minimum N value to construct interpolation grid
-    logN_metal_max = cgm_dict['logN_metal_max'] # maximum N value to construct interpolation grid
-    logN_strong = cgm_dict['logN_strong']
-    logN_trans = cgm_dict['logN_trans']
-    W_min = cgm_dict['W_min']
-    W_max = cgm_dict['W_max']
-
-    dvpix = 2.0
-    vgrid_min = 0.0
-    v_metal = reion_utils.vel_metal_doublet(metal_ion).value
-    vgrid_max = 5.0*np.max(np.array([b_strong, v_metal]))
-    vmid = vgrid_min + (vgrid_max - vgrid_min)/2.0 # location of absorbers on vel_grid
-    vel_grid = np.arange(vgrid_min, vgrid_max, dvpix) # vel grid to place absorbers
-    print("vgrid_min", vgrid_min, "vgrid_max", vgrid_max)
-
-    nabs = W.shape[0]
-    nN = 101
-    logN_metal = logN_metal_min + (logN_metal_max - logN_metal_min)*np.arange(nN)/(nN - 1) # grid of logN_metal values
-    v_abs = np.full(nN, vmid) # Just center these for determining the EW logN_MgII relation
-
-    # sigmoid logistic function allows for smooth transition between b_weak and b_strong at the activiation locatino
-    # logN_strong, over an interval of ~ 4*logN_trans about logN_strong
-    if b_in == None:
-        sigmoid_arg = (logN_metal - logN_strong)/logN_trans
-        b_val = b_weak + (b_strong - b_weak)*special.expit(sigmoid_arg)
-    else:
-        b_val = np.ones(nN) * b_in
-
-    # calculate W numerically from a grid of N and b values, which allows you to construct a W-logN and W-b relations
-    # interpolate these relations to obtain N and b for the desired W
-    tau_tot, W_blue = reion_utils.metal_voigt(vel_grid, v_abs, b_val, logN_metal, metal_ion=metal_ion)
-
-    if (W_blue.value.max() < W_max) or (W_blue.value.min() > W_min):
-        print(W_blue.min(), W_blue.max())
-        raise ValueError('The N and b you are using cannot describe the full range of W requested. Revisit cgm_dict params')
-
-    if return_wtau:
-        return W_blue, logN_metal
-    else:
-        N_interp = interp1d(W_blue.value, logN_metal, kind='cubic', bounds_error=True) # W-logN relation
-        b_interp = interp1d(W_blue.value, b_val, kind='cubic', bounds_error=True) # W-b value relation
-        logN_out = N_interp(W)
-        b_out = b_interp(W)
-
-        if plot:
-            plt.axhline(np.log10(0.6), ls='--')
-            plt.plot(logN_out, np.log10(W), 'k')
-            plt.xlabel('log(N)', fontsize=13)
-            plt.ylabel(r'log($W_{blue}$)', fontsize=13)
-            plt.title('b_weak=%0.1f, b_strong=%0.1f, logN_strong=%0.1f' % (b_weak, b_strong, logN_strong), fontsize=13)
-            plt.grid()
-            plt.show()
-
-        return logN_out, b_out
-
+##########
 def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
 
     for b in b_list:
-        logN_out, _ = metal_W2bN(W, b_in=b)
+        logN_out, _ = reion_utils.metal_W2bN(W, b_in=b)
         plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
 
     plt.axhline(np.log10(0.6), c='r', ls='--')
@@ -237,7 +163,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
     # compute dW/dN numerically
 
     W = np.arange(0.01, 5.0, 0.01)
-    logN_out, b_out = metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
+    logN_out, b_out = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
         dw_db = np.gradient(W, b_out, edge_order=2)
@@ -378,7 +304,7 @@ def fit_alldata_dW():
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
     data_f_dz = 10 ** data_logf_dz
 
-    W_blue, logN_metal = metal_W2bN(W, return_wtau=True)
+    W_blue, logN_metal = reion_utils.metal_W2bN(W, return_wtau=True)
     W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
     W_out_data = W_interp(data_logN_CIV)
     dw_dn2 = np.gradient(W_out_data, 10 ** data_logN_CIV, edge_order=2)
