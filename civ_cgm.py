@@ -129,7 +129,7 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
     dn_dNdX = B*N_CIV**(-alpha) # power law form for column density distribution function (CDDF)
     return dn_dNdX
 
-##########
+########## COG and dW/dN
 def plot_multiple_cog(W, b_list):
     # plotting multiple COG at various b-values
 
@@ -386,14 +386,17 @@ def fit_alldata_dN():
     plt.ylabel('log (dn/dN/dz)', fontsize=13)
     plt.show()
 
-########## putting cgm absorbers in spectra ##########
-def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, W_min=0.01, W_max=5.0, b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
+########## cgm model dictionary ##########
+def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
+                        W_min=0.01, W_max=5.0, b_weak=20.0, b_strong=150.0, \
+                        logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
 
     # parameters of frequency distribution obtained from fitting Schechter function to data (fit_alldata_dW and fit_alldata_dN)
     cgm_dict = dict(n_star=n_star, alpha=alpha, W_star=W_star, W_min=W_min, W_max=W_max, b_weak=b_weak, b_strong=b_strong, \
                     logN_metal_min=logN_metal_min, logN_metal_max=logN_metal_max, logN_strong=logN_strong, logN_trans=logN_trans)
 
     return cgm_dict
+
 
 
 
