@@ -130,16 +130,16 @@ def civ_dndNdX_pl(B, alpha, N_CIV):
     return dn_dNdX
 
 ########## COG and dW/dN
-def plot_multiple_cog(W, b_list):
+def plot_multiple_cog(W, b_list, cgm_dict):
     # plotting multiple COG at various b-values
 
     for b in b_list:
-        logN_out, _ = reion_utils.metal_W2bN(W, b_in=b)
+        logN_out, _ = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, b_in=b)
         plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
 
     plt.axhline(np.log10(0.6), c='r', ls='--')
-    plt.xlabel('log(N)', fontsize=13)
-    plt.ylabel(r'log($W_{blue}$)', fontsize=13)
+    plt.xlabel(r'log($N_{CIV}$)', fontsize=13)
+    plt.ylabel(r'log($W_{1548 \AA}$)', fontsize=13)
     plt.grid()
     plt.legend()
     plt.show()
@@ -162,7 +162,13 @@ def dwdn_theory():
 def dwdn_numerical(cgm_dict, b_in, plot=False):
     # compute dW/dN numerically
 
-    W = np.arange(0.01, 5.0, 0.01)
+    #W = np.arange(0.01, 5.0, 0.01)
+    #W = np.arange(0.001, 10.0, 0.01)
+
+    W_min = cgm_dict['W_min']
+    W_max = cgm_dict['W_max']
+    W = np.arange(W_min, W_max, 0.01)
+
     logN_out, b_out = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
@@ -289,10 +295,15 @@ def reproduce_cooksey_w():
     return N, b_linear_out
 
 ########## fitting data with Schechter function ##########
-def fit_alldata_dW():
+def fit_alldata_dW(cgm_dict):
     # do fitting in terms of W
 
-    W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
+    #W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
+    #W = np.arange(0.001, 10.0, 0.01)
+
+    W_min = cgm_dict['W_min']
+    W_max = cgm_dict['W_max']
+    W = np.arange(W_min, W_max, 0.01)
 
     # D'Odorico data, converted to dW
     omega_m = 0.26
@@ -304,7 +315,7 @@ def fit_alldata_dW():
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
     data_f_dz = 10 ** data_logf_dz
 
-    W_blue, logN_metal = reion_utils.metal_W2bN(W, return_wtau=True)
+    W_blue, logN_metal = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, return_wtau=True)
     W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
     W_out_data = W_interp(data_logN_CIV)
     dw_dn2 = np.gradient(W_out_data, 10 ** data_logN_CIV, edge_order=2)
@@ -345,10 +356,15 @@ def fit_alldata_dW():
     plt.ylabel('log (dn/dW/dz)', fontsize=13)
     plt.show()
 
-def fit_alldata_dN():
+def fit_alldata_dN(cgm_dict):
     # do the fitting in terms of N
 
-    W = np.arange(0.01, 5.0, 0.01) # range for Cooksey and Schechter
+    #W = np.arange(0.01, 5.0, 0.01) # range for Cooksey and Schechter
+    #W = np.arange(0.001, 10.0, 0.01)
+
+    W_min = cgm_dict['W_min']
+    W_max = cgm_dict['W_max']
+    W = np.arange(W_min, W_max, 0.01)
 
     # D'Odorico data
     omega_m = 0.26
@@ -360,7 +376,7 @@ def fit_alldata_dN():
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
 
     # dw/dN for converting Schechter and Cooksey
-    _, dw_dn, logN_out = dwdn_numerical(None, None) # using default cgm_dict and sigmoid function for b-value
+    _, dw_dn, logN_out = dwdn_numerical(cgm_dict, None) # using input cgm_dict and sigmoid function for b-value
 
     # Cooksey's fit
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
