@@ -149,10 +149,12 @@ def dwdn_theory():
 
     #w_lambda = N * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_civ ** 2)
     wrest_civ = 1548 * u.Angstrom
+    #wrest_civ = 2796 * u.Angstrom # Mg II
     ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
     me = const.m_e.to('g')
     c = const.c.to('cm/s')
     f = 0.1899  # oscillator strength for CIV 1548
+    #f = 0.6155 # Mg II
 
     dW_dN = f * np.pi * (ec ** 2) / (me * c ** 2) * wrest_civ.to('cm') # W is dimensionless (W = Wlambda / lambda)
     dWlambda_dN = dW_dN * wrest_civ # units are Angstrom * cm2
@@ -191,14 +193,16 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.plot(logN_out, np.log10(W))
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('log (W)', fontsize=13)
-        plt.axhline(np.log10(0.6), c='r', ls='--', label='0.6 A')
+        plt.axhline(np.log10(0.6), c='r', ls='--', label='0.6 A (saturation limit)')
         plt.legend()
         plt.grid()
 
         plt.subplot(122)
         plt.plot(logN_out, b_out)
+        plt.axhline(66, c='r', ls='--', label='Assuming W=0.6 A saturation, \n then logN~14.2 and b~66 kms/s')
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('b (km/s)', fontsize=13)
+        plt.legend()
         plt.grid()
 
         """
@@ -411,6 +415,8 @@ def fit_alldata_dN(cgm_dict):
 def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
                         W_min=0.001, W_max=5.0, b_weak=10.0, b_strong=150.0, \
                         logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
+
+    # another good model: b_strong=200.0, logN_trans=0.4, everything else default
 
     # parameters of frequency distribution obtained from fitting Schechter function to data (fit_alldata_dW and fit_alldata_dN)
     cgm_dict = dict(n_star=n_star, alpha=alpha, W_star=W_star, W_min=W_min, W_max=W_max, b_weak=b_weak, b_strong=b_strong, \
