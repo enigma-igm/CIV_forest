@@ -22,8 +22,8 @@ z = par['z'][0]
 # snr, fwhm = 100, 10
 
 # CGM model
-cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, W_min=0.01, W_max=5.0, \
-                                       b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25)
+cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, W_min=0.001, W_max=5.0, \
+                                       b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35)
 
 metal_dndz_func = civ_cgm.civ_dndz_sch
 
@@ -111,24 +111,30 @@ def plot_pdf(v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, f
     plt.show()
 
 def compare_wrange():
-    cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.01, W_max=5.0, \
-                                           b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
-                                           logN_strong=14.5, logN_trans=0.25)
+    cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
+                                           b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                           logN_strong=14.5, logN_trans=0.35)
 
-    # Wmin, Wmax = 0.01, 0.1
-    cgm_dict_sub1 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.01, W_max=0.1, \
-                                                b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
-                                                logN_strong=14.5, logN_trans=0.25)
+    Wmin, Wmax = 0.001, 0.01
+    cgm_dict_sub1 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                                b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                                logN_strong=14.5, logN_trans=0.35)
 
-    # Wmin, Wmax = 0.1, 0.5
-    cgm_dict_sub2 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.1, W_max=0.5, \
-                                                b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
-                                                logN_strong=14.5, logN_trans=0.25)
+    Wmin, Wmax = 0.01, 0.1
+    cgm_dict_sub2 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                                b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                                logN_strong=14.5, logN_trans=0.35)
 
-    # Wmin, Wmax = 0.5, 5.0
-    cgm_dict_sub3 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.5, W_max=5.0, \
-                                                b_weak=20.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
-                                                logN_strong=14.5, logN_trans=0.25)
+    Wmin, Wmax = 0.1, 0.5
+    cgm_dict_sub3 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                                b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                                logN_strong=14.5, logN_trans=0.35)
+
+
+    Wmin, Wmax = 0.5, 5.0
+    cgm_dict_sub4 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                                b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                                logN_strong=14.5, logN_trans=0.35)
 
     v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, \
     v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand = init(cgm_dict)
@@ -145,6 +151,10 @@ def compare_wrange():
     v_hires_sub3, flux_tot_hires_sub3, flux_igm_hires_sub3, flux_cgm_hires_sub3, cgm_tup_sub3, rand_sub3 = \
         init(cgm_dict_sub3)
 
+    v_lores_sub4, flux_tot_lores_sub4, flux_igm_lores_sub4, flux_cgm_lores_sub4, \
+    v_hires_sub4, flux_tot_hires_sub4, flux_igm_hires_sub4, flux_cgm_hires_sub4, cgm_tup_sub4, rand_sub4 = \
+        init(cgm_dict_sub4)
+
     noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores.shape)
 
     nbins = 101
@@ -159,6 +169,7 @@ def compare_wrange():
     _, pdf_cgm_sub1 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub1, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_sub2 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub2, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_sub3 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub3, oneminf_min, oneminf_max, nbins)
+    _, pdf_cgm_sub4 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub4, oneminf_min, oneminf_max, nbins)
 
     strong_lines = LineList('Strong', verbose=False)
     wave_1548 = strong_lines['CIV 1548']['wrest']
@@ -169,9 +180,10 @@ def compare_wrange():
     plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM')
     plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM')
     plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise')
-    plt.plot(flux_bins, pdf_cgm_sub1, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.01, W_{max} = 0.1)$')
-    plt.plot(flux_bins, pdf_cgm_sub2, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.1, W_{max} = 0.5)$')
-    plt.plot(flux_bins, pdf_cgm_sub3, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.5, W_{max} = 5.0)$')
+    plt.plot(flux_bins, pdf_cgm_sub1, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.001, W_{max} = 0.01)$')
+    plt.plot(flux_bins, pdf_cgm_sub2, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.01, W_{max} = 0.1)$')
+    plt.plot(flux_bins, pdf_cgm_sub3, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.1, W_{max} = 0.5)$')
+    plt.plot(flux_bins, pdf_cgm_sub4, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.5, W_{max} = 5.0)$')
 
     plt.xscale('log')
     plt.yscale('log')

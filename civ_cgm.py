@@ -187,7 +187,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
 
     if plot:
         plt.figure(figsize=(12,5))
-        plt.subplot(131)
+        plt.subplot(121)
         plt.plot(logN_out, np.log10(W))
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('log (W)', fontsize=13)
@@ -195,12 +195,13 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.legend()
         plt.grid()
 
-        plt.subplot(132)
+        plt.subplot(122)
         plt.plot(logN_out, b_out)
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('b (km/s)', fontsize=13)
         plt.grid()
 
+        """
         plt.subplot(133)
         dwdn_linear = dwdn_theory().value
         plt.plot(logN_out, dw_dn)
@@ -209,7 +210,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('dW/dN', fontsize=13)
         plt.grid()
-
+        """
         plt.tight_layout()
         plt.show()
 
@@ -338,9 +339,11 @@ def fit_alldata_dW(cgm_dict):
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
 
     # Schechter's fit
-    W_star, n_star, alpha = 0.4, 15.0, -0.5 # these fit DO data well
-    W_star, n_star, alpha = 0.4, 2.5, -0.02 # these fit Cooksey fit well
-    W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    #W_star, n_star, alpha = 0.4, 15.0, -0.5 # these fit DO data well
+    #W_star, n_star, alpha = 0.4, 2.5, -0.02 # these fit Cooksey fit well
+    #W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    W_star, n_star, alpha = cgm_dict['W_star'], cgm_dict['n_star'], cgm_dict['alpha']
+
     dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
     dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
 
@@ -383,9 +386,11 @@ def fit_alldata_dN(cgm_dict):
     dn_dzdN_cook = dn_dzdW_cook * dw_dn
 
     # Schechter's fit
-    W_star, n_star, alpha = 0.4, 15.0, -0.5  # these fit DO data well
-    W_star, n_star, alpha = 0.4, 2.5, -0.02  # these fit Cooksey fit well
-    W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    #W_star, n_star, alpha = 0.4, 15.0, -0.5  # these fit DO data well
+    #W_star, n_star, alpha = 0.4, 2.5, -0.02  # these fit Cooksey fit well
+    #W_star, n_star, alpha = 0.45, 28.0, -0.2 # trying to fit both DO (small W) and Cooksey (large W)
+    W_star, n_star, alpha = cgm_dict['W_star'], cgm_dict['n_star'], cgm_dict['alpha']
+
     dn_dzdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha)
     dn_dXdW_sch = civ_dndzdW_sch(W, W_star, n_star, alpha, z=4.5)
     dn_dzdN_sch = dn_dzdW_sch * dw_dn
@@ -404,7 +409,7 @@ def fit_alldata_dN(cgm_dict):
 
 ########## cgm model dictionary ##########
 def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
-                        W_min=0.01, W_max=5.0, b_weak=20.0, b_strong=150.0, \
+                        W_min=0.001, W_max=5.0, b_weak=10.0, b_strong=150.0, \
                         logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
 
     # parameters of frequency distribution obtained from fitting Schechter function to data (fit_alldata_dW and fit_alldata_dN)
