@@ -36,7 +36,7 @@ if compute_corr:
 
     start = time.time()
     vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=snr, sampling=sampling)
-    mcf.write_corr(vel_mid, xi_tot, npix_tot, corr_outfile)
+    mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile)
     end = time.time()
 
     print("Done computing 2PCF in %0.2f min" % ((end-start)/60.))

@@ -6,14 +6,16 @@ from astropy.io import fits
 from astropy.table import hstack, vstack
 from enigma.reion_forest.compute_model_grid_civ import read_model_grid
 
-def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, cgm_dict=None):
+def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, \
+                   cgm_dict=None, metal_dndz_func=None, cgm_seed=None):
 
     # similar as enigma.reion_forest.fig_corrfunc.py
     # if sampling not provided, then default to sampling=3
 
     vel_lores, (flux_lores_tot, flux_lores_igm, flux_lores_cgm), \
     vel_hires, (flux_hires_tot, flux_hires_igm, flux_hires_cgm), \
-    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(params, skewers, logZ, fwhm, metal_ion, sampling=sampling, cgm_dict=cgm_dict)
+    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(params, skewers, logZ, fwhm, metal_ion, sampling=sampling, \
+                                                                         cgm_dict=cgm_dict, metal_dndz_func=metal_dndz_func, seed=cgm_seed)
 
     # Add noise if snr is provided
     if snr != None:
@@ -76,6 +78,7 @@ def plot_corr_matrix(params, covar):
 
 def plot_all_corrmatrix(modelfile, outfig, type, cf_overplot=False):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+    # type is either "cov" or "corrfunc"
 
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
 
@@ -104,7 +107,7 @@ def plot_all_corrmatrix(modelfile, outfig, type, cf_overplot=False):
             #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
 
     elif type == 'corrfunc':
-        xi_model_array = xi_model_array[0]
+        xi_model_array = xi_model_array[0] # plotting the mean of all mocks
         vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
         #factor = [1e8, 1e7, 1e6, 1e5, 1e4, 1e3, 1e2, 1, 1]
 
