@@ -110,29 +110,28 @@ def plot_pdf(v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, f
     plt.tight_layout()
     plt.show()
 
-def compare_wrange():
-    cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
+def compare_wrange(alpha=-0.20):
+    cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                            logN_strong=14.5, logN_trans=0.35)
 
     Wmin, Wmax = 0.001, 0.01
-    cgm_dict_sub1 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+    cgm_dict_sub1 = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
                                                 b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                                 logN_strong=14.5, logN_trans=0.35)
 
     Wmin, Wmax = 0.01, 0.1
-    cgm_dict_sub2 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+    cgm_dict_sub2 = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
                                                 b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                                 logN_strong=14.5, logN_trans=0.35)
 
     Wmin, Wmax = 0.1, 0.5
-    cgm_dict_sub3 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+    cgm_dict_sub3 = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
                                                 b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                                 logN_strong=14.5, logN_trans=0.35)
 
-
     Wmin, Wmax = 0.5, 5.0
-    cgm_dict_sub4 = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+    cgm_dict_sub4 = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
                                                 b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                                 logN_strong=14.5, logN_trans=0.35)
 
@@ -243,6 +242,74 @@ def compare_logZ():
     plt.plot(flux_bins, pdf_igm2, drawstyle='steps-mid', label='IGM, logZ = %0.1f' % logZ2)
     plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM')
     plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise')
+
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('1-F', fontsize=13)
+    plt.ylabel('PDF', fontsize=13)
+    plt.ylim([ymin, ymax])
+    plt.legend(fontsize=13)
+
+    atwin = plt.twiny()
+    atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}  (\mathrm{{\AA}})$', fontsize=13)  # , labelpad=8)
+    atwin.xaxis.tick_top()
+    atwin.set_xscale('log')
+    atwin.axis([Wmin, Wmax, ymin, ymax])
+    atwin.tick_params(top=True)
+
+    plt.suptitle('SNR = %d, fwhm = %d km/s' % (snr, fwhm), fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+def compare_alpha(Wmin=0.001, Wmax=5.0):
+
+    alpha1 = -0.20
+    cgm_dict1 = civ_cgm.init_metal_cgm_dict(alpha=alpha1, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                                b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                                logN_strong=14.5, logN_trans=0.35)
+
+    alpha2 = -0.35
+    cgm_dict2 = civ_cgm.init_metal_cgm_dict(alpha=alpha2, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                            logN_strong=14.5, logN_trans=0.35)
+
+    alpha3 = -0.50
+    cgm_dict3 = civ_cgm.init_metal_cgm_dict(alpha=alpha3, W_star=0.45, n_star=28.0, W_min=Wmin, W_max=Wmax, \
+                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                            logN_strong=14.5, logN_trans=0.35)
+
+
+    v_lores_1, flux_tot_lores_1, flux_igm_lores_1, flux_cgm_lores_1, \
+    v_hires_1, flux_tot_hires_1, flux_igm_hires_1, flux_cgm_hires_1, cgm_tup_1, rand_1 = init(cgm_dict1)
+
+    v_lores_2, flux_tot_lores_2, flux_igm_lores_2, flux_cgm_lores_2, \
+    v_hires_2, flux_tot_hires_2, flux_igm_hires_2, flux_cgm_hires_2, cgm_tup_2, rand_2 = init(cgm_dict2)
+
+    v_lores_3, flux_tot_lores_3, flux_igm_lores_3, flux_cgm_lores_3, \
+    v_hires_3, flux_tot_hires_3, flux_igm_hires_3, flux_cgm_hires_3, cgm_tup_3, rand_3 = init(cgm_dict3)
+
+    noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores_1.shape)
+
+    nbins = 101
+    oneminf_max = 1.0
+    oneminf_min = 1e-5
+
+    # no noise
+    flux_bins, pdf_igm = reion_utils.pdf_calc(1.0 - flux_igm_lores_1, oneminf_min, oneminf_max, nbins)
+    _, pdf_cgm1 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_1, oneminf_min, oneminf_max, nbins)
+    _, pdf_cgm2 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_2, oneminf_min, oneminf_max, nbins)
+    _, pdf_cgm3 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_3, oneminf_min, oneminf_max, nbins)
+
+    strong_lines = LineList('Strong', verbose=False)
+    wave_1548 = strong_lines['CIV 1548']['wrest']
+    Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
+    Wmin, Wmax = Wfactor * oneminf_min, Wfactor * oneminf_max
+    ymin, ymax = 1e-3, 3.0
+
+    plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM')
+    plt.plot(flux_bins, pdf_cgm1, drawstyle='steps-mid', label=r'CGM ($W_{min}=%f, W_{max}=%f, \alpha=%0.2f$)' % (Wmin, Wmax, alpha1))
+    plt.plot(flux_bins, pdf_cgm2, drawstyle='steps-mid', label=r'CGM ($W_{min}=%f, W_{max}=%f, \alpha=%0.2f$)' % (Wmin, Wmax, alpha2))
+    plt.plot(flux_bins, pdf_cgm3, drawstyle='steps-mid', label=r'CGM ($W_{min}=%f, W_{max}=%f, \alpha=%0.2f$)' % (Wmin, Wmax, alpha3))
 
     plt.xscale('log')
     plt.yscale('log')
