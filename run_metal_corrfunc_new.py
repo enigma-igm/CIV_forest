@@ -24,13 +24,13 @@ cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.35, W_star = 0.45, n_star = 28.0
                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35)
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_seed = 102938  # same seed as civ_cgm_pdf.py
-flux_cutoff = 0.08 # mask where pixels with 1 - F > cutoff will be masked
+flux_decr_cutoff = 0.08 # mask where pixels with 1 - F > cutoff will be masked
 
 # input and output files
 tau_metal_file = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # 10,000 skewers total
 #tau_metal_file = 'nyx_sim_data/subset100/subset100_civ_forest.fits'
 
-suffix = 'fcut_{:3.2f}_fwhm_{:5.3f}_samp_{:5.3f}_SNR_{:5.3f}_npath_{:d}.fits'.format(flux_cutoff, fwhm, sampling, snr, npath)
+suffix = 'fcut_{:3.2f}_fwhm_{:5.3f}_samp_{:5.3f}_SNR_{:5.3f}_npath_{:d}.fits'.format(flux_decr_cutoff, fwhm, sampling, snr, npath)
 corr_outfile_igm = 'nyx_sim_data/corrfunc_igm_' + suffix
 corr_outfile_igm_cgm = 'nyx_sim_data/corrfunc_tot_' + suffix
 corr_outfile_igm_cgm_mask = 'nyx_sim_data/corrfunc_totmask_' + suffix
@@ -75,7 +75,7 @@ if compute_corr:
     print("Done computing 2PCF in %0.2f min" % ((end-start)/60.))
 
     # IGM + CGM + flux cutoff
-    mask_want = (1 - flux_lores_tot) < flux_cutoff
+    mask_want = (1 - flux_lores_tot) < flux_decr_cutoff
 
     vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot[mask_want], vmin_corr, vmax_corr, dv_corr)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_cgm_mask)
@@ -108,7 +108,7 @@ else:
     vel_doublet = reion_utils.vel_metal_doublet(metal_ion, returnVerbose=False)
     plt.axvline(vel_doublet.value, color='green', linestyle=':', linewidth=1.2, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
     plt.title('%d skewers, fwhm=%d km/s, SNR=%s, sampling=%d, logZ = %0.1f' % (len(xi_tot_igm), fwhm, str(snr), sampling, logZ) + \
-              '\n' + 'vmin = %0.1f, vmax=%0.1f, dv=%0.1f, flux_cut=%0.2f' % (vmin_corr, vmax_corr, dv_corr, flux_cutoff), fontsize=15)
+              '\n' + r'vmin = %0.1f, vmax=%0.1f, dv=%0.1f, (1-F)$_{cut}$=%0.2f' % (vmin_corr, vmax_corr, dv_corr, flux_decr_cutoff), fontsize=15)
 
     plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
     plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)

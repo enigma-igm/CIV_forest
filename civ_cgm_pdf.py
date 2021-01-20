@@ -334,7 +334,7 @@ def compare_alpha(Wmin=0.001, Wmax=5.0):
     plt.tight_layout()
     plt.show()
 
-def plot_skewers(vel, flux_tot, flux_igm, flux_cgm, i):
+def plot_skewers(vel, flux_tot, flux_igm, flux_cgm, i, flux_decr_cutoff=None):
 
     plt.subplot(311)
     plt.plot(vel, flux_tot[i])
@@ -346,13 +346,16 @@ def plot_skewers(vel, flux_tot, flux_igm, flux_cgm, i):
 
     plt.subplot(313)
     plt.plot(vel, flux_cgm[i])
+    if flux_decr_cutoff != None:
+        fcut = 1 - flux_decr_cutoff
+        plt.axhline(fcut, color='r', ls='--')
     plt.xlabel('velocity (km/s)', fontsize=13)
     plt.ylabel('F_CGM', fontsize=13)
 
     plt.show()
 
-def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_cutoff):
-    # masking all fluxes with 1-F > flux_cutoff
+def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_decr_cutoff):
+    # masking all fluxes with 1-F > flux_decr_cutoff
 
     noise = rand.normal(0.0, 1.0/snr, flux_cgm_lores.shape)
     flux_noise_igm_lores = flux_igm_lores + noise
@@ -371,7 +374,7 @@ def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_cutoff):
     _, pdf_noise = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
 
     # with noise and flux cutoff
-    mask_want = (1 - flux_noise_tot_lores) < flux_cutoff # checked
+    mask_want = (1 - flux_noise_tot_lores) < flux_decr_cutoff # checked
     _, pdf_tot_noise_mask = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores[mask_want], oneminf_min, oneminf_max, nbins)
 
     strong_lines = LineList('Strong', verbose=False)
@@ -385,7 +388,7 @@ def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_cutoff):
     plt.plot(flux_bins, pdf_cgm_noise, drawstyle='steps-mid', alpha=0.5, label='CGM + noise')
     plt.plot(flux_bins, pdf_tot_noise, drawstyle='steps-mid', alpha=0.5, label='IGM + CGM + noise')
     plt.plot(flux_bins, pdf_tot_noise_mask, lw=2.5, drawstyle='steps-mid', label='IGM + CGM + noise + mask')
-    plt.axvline(flux_cutoff, color='k', ls='--')
+    plt.axvline(flux_decr_cutoff, color='k', ls='--')
 
     plt.xscale('log')
     plt.yscale('log')
