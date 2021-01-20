@@ -20,8 +20,8 @@ seed = 1199 # only used if npath < len(skewers)
 rand = np.random.RandomState(seed)
 
 # input and output files
-tau_metal_file = 'nyx_sim_data/subset100_civ_forest.fits' # 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits'
-corr_outfile = 'nyx_sim_data/subset100_civ_forest_corrfunc_dv5_npath9.fits' # saving output correlation function
+tau_metal_file = 'nyx_sim_data/subset100/subset100_civ_forest.fits' # 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits'
+corr_outfile = 'nyx_sim_data/subset100/subset100_civ_forest_corrfunc_dv5_npath9.fits' # saving output correlation function
 compute_corr = False
 
 if compute_corr:
@@ -42,7 +42,7 @@ if compute_corr:
     print("Done computing 2PCF in %0.2f min" % ((end-start)/60.))
 
 else:
-    noiseless_corr = Table.read('nyx_sim_data/subset100_civ_forest_corrfunc_dv3p3_npath9.fits')
+    noiseless_corr = Table.read('nyx_sim_data/subset100/subset100_civ_forest_corrfunc_dv3p3_npath9.fits')
     vel_mid_noiseless = noiseless_corr['vel_mid'][0]
     xi_tot_noiseless = noiseless_corr['xi_tot']
     xi_mean_tot_noiseless = np.mean(xi_tot_noiseless, axis=0)
