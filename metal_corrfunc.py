@@ -35,6 +35,20 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
 
     return vel_mid, xi_mean_tot, xi_tot, npix_tot
 
+def compute_xi_all2(vel, flux_tot, vmin_corr, vmax_corr, dv_corr):
+
+    # Compute mean flux and delta_flux
+    mean_flux_tot = np.mean(flux_tot)
+    delta_f_tot = (flux_tot - mean_flux_tot)/mean_flux_tot
+    print('mean flux:', mean_flux_tot)
+    print('mean delta_flux:', np.mean(delta_f_tot))
+
+    # xi_tot is an array of 2PCF of each skewer
+    (vel_mid, xi_tot, npix_tot, xi_zero_lag_tot) = reion_utils.compute_xi(delta_f_tot, vel, vmin_corr, vmax_corr, dv_corr)
+    xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF from all the skewers, i.e the final quoted 2PCF
+
+    return vel_mid, xi_mean_tot, xi_tot, npix_tot
+
 def write_corrfunc(vel_mid, xi_tot, npix_tot, outfile):
 
     # hack because shape(vel_mid) != shape(xi_tot

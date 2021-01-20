@@ -6,6 +6,7 @@ from linetools.lists.linelist import LineList
 from astropy import constants as const
 from astropy import units as u
 import civ_cgm
+import time
 
 data_path = '/Users/suksientie/research/CIV_forest/nyx_sim_data/'
 skewerfile = data_path + 'rand_skewers_z45_ovt_tau_xciv_flux.fits'
@@ -22,7 +23,7 @@ z = par['z'][0]
 # snr, fwhm = 100, 10
 
 # CGM model
-cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, W_min=0.001, W_max=5.0, \
+cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.35, W_star = 0.45, n_star = 28.0, W_min=0.001, W_max=5.0, \
                                        b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35)
 
 metal_dndz_func = civ_cgm.civ_dndz_sch
@@ -32,11 +33,15 @@ seed = 102938
 rand = np.random.RandomState(seed)
 
 def init(in_cgm_dict=cgm_dict, logZ=logZ):
+    start = time.time()
     # Generating the forest with CGM absorbers
     v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), \
     v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, sampling=sampling, \
                                                                          cgm_dict=in_cgm_dict, metal_dndz_func=metal_dndz_func, seed=seed)
+
+    end = time.time()
+    print("computing time: %0.2f min" % ((end-start)/60.))
 
     return v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand
 
@@ -326,5 +331,57 @@ def compare_alpha(Wmin=0.001, Wmax=5.0):
     atwin.tick_params(top=True)
 
     plt.suptitle('SNR = %d, fwhm = %d km/s' % (snr, fwhm), fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_cutoff):
+
+    noise = rand.normal(0.0, 1.0/snr, flux_cgm_lores.shape)
+    flux_noise_igm_lores = flux_igm_lores + noise
+    flux_noise_cgm_lores = flux_cgm_lores + noise
+    flux_noise_tot_lores = flux_tot_lores + noise
+
+    npix = flux_igm_lores.size
+    nbins = 101
+    oneminf_max = 1.0
+    oneminf_min = 1e-5
+
+    # with noise
+    flux_bins, pdf_igm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_igm_lores, oneminf_min, oneminf_max, nbins)
+    _, pdf_cgm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_cgm_lores, oneminf_min, oneminf_max, nbins)
+    _, pdf_tot_noise, = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores, oneminf_min, oneminf_max, nbins)
+    _, pdf_noise = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
+
+    # with noise and flux cutoff
+    mask_want = (1 - flux_noise_tot_lores) < flux_cutoff
+    _, pdf_tot_noise_mask, = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores[mask_want], oneminf_min, oneminf_max, nbins)
+
+    strong_lines = LineList('Strong', verbose=False)
+    wave_1548 = strong_lines['CIV 1548']['wrest']
+    Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
+    Wmin, Wmax = Wfactor * oneminf_min, Wfactor * oneminf_max
+    ymin, ymax = 1e-3, 3.0
+
+    plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', alpha=0.5, label='noise')
+    plt.plot(flux_bins, pdf_igm_noise, drawstyle='steps-mid', alpha=0.5, label='IGM + noise')
+    plt.plot(flux_bins, pdf_cgm_noise, drawstyle='steps-mid', alpha=0.5, label='CGM + noise')
+    plt.plot(flux_bins, pdf_tot_noise, drawstyle='steps-mid', alpha=0.5, label='IGM + CGM + noise')
+    plt.plot(flux_bins, pdf_tot_noise_mask, lw=2.5, drawstyle='steps-mid', label='IGM + CGM + noise + mask')
+    plt.axvline(flux_cutoff, color='k', ls='--')
+
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('1-F', fontsize=13)
+    plt.ylabel('PDF', fontsize=13)
+    plt.ylim([ymin, ymax])
+    plt.legend(fontsize=13)
+    atwin = plt.twiny()
+    atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}  (\mathrm{{\AA}})$', fontsize=13)  # , labelpad=8)
+    atwin.xaxis.tick_top()
+    atwin.set_xscale('log')
+    atwin.axis([Wmin, Wmax, ymin, ymax])
+    atwin.tick_params(top=True)
+
+    plt.title('logZ = %0.1f, SNR = %d, fwhm = %d km/s' % (logZ, snr, fwhm), fontsize=16)
     plt.tight_layout()
     plt.show()
