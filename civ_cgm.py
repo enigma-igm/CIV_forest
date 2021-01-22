@@ -25,6 +25,7 @@ import mpmath
 from astropy import constants as const
 from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter, AutoMinorLocator)
 
 ########## Schechter function
 def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
@@ -299,6 +300,24 @@ def reproduce_cooksey_w():
 
     return N, b_linear_out
 
+def simcoe2011_cddf(plot=False):
+    # https://ui.adsabs.harvard.edu/abs/2011ApJ...738..159S/abstract
+    # Eye-ball data from Figure 24
+    logN_CIV = np.array([11.76, 12.08, 12.38, 12.69, 12.99, 13.27, 13.59, 13.88, 14.18])
+    logf = np.array([-11.35, -11.35, -11.4, -12.05, -12.24, -12.65, -12.95, -13.75, -14.05]) # f = dn/dN/dX
+
+    if plot:
+        plt.plot(logN_CIV, logf, '+', ms=10)
+        plt.xlim([11, 15])
+        plt.ylim([-17, -10])
+        plt.axes().xaxis.set_minor_locator(AutoMinorLocator(5))
+        plt.axes().yaxis.set_minor_locator(AutoMinorLocator(10))
+        plt.xlabel('log N(CIV)', fontsize=13)
+        plt.ylabel('log(f)', fontsize=13)
+        plt.show()
+
+    return logN_CIV, logf
+
 ########## fitting data with Schechter function ##########
 def fit_alldata_dW(cgm_dict):
     # do fitting in terms of W
@@ -339,6 +358,21 @@ def fit_alldata_dW(cgm_dict):
     f_dW = f/dw_dn3
     f_dzdW = f_dz/dw_dn3
 
+    # Simcoe data, converted to dW
+    omega_m = 0.3
+    omega_lambda = 1 - omega_m
+    z = 4.25
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z)
+
+    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+    simcoe_logf_dz = np.log10(dX_dz * 10 ** (simcoe_logf))  # f = dn/dN/dz
+    simcoe_f_dz = 10 ** simcoe_logf_dz
+
+    W_out_simcoe = W_interp(simcoe_logN_CIV)
+    dw_dn2 = np.gradient(W_out_simcoe, 10 ** simcoe_logN_CIV, edge_order=2)
+    dn_dzdW_simcoe = simcoe_f_dz / dw_dn2
+    dn_dXdW_simcoe = (10 ** simcoe_logf) / dw_dn2
+
     # Cooksey's fit at z=3.25
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
 
@@ -354,9 +388,10 @@ def fit_alldata_dW(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
-    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-', label='Cooksey fit (x arbitrary norm, 11.0)')
     plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
+    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-' , label='Cooksey fit x arbitrary norm (11.0), 1.5 < z < 4.55')
     plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+    plt.plot(np.log10(W_out_simcoe), np.log10(dn_dzdW_simcoe), 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
 
     plt.legend(fontsize=11, loc=3)
     plt.xlabel('log W', fontsize=13)
@@ -374,13 +409,22 @@ def fit_alldata_dN(cgm_dict):
     W = np.arange(W_min, W_max, 0.01)
 
     # D'Odorico data
-    omega_m = 0.26
+    omega_m = 0.26 # D'Odorico's cosmology
     omega_lambda = 1 - omega_m
     z = 4.8
     dX_dz = convert_dXdz(omega_m, omega_lambda, z)
 
     data_logN_CIV, data_logf = dodorico2013_cddf()
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
+
+    # Simcoe data
+    omega_m = 0.3 # Simcoe's cosmology
+    omega_lambda = 1 - omega_m
+    z = 4.25
+    dX_dz = convert_dXdz(omega_m, omega_lambda, z) # dX/dz
+
+    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+    simcoe_logf_dz = np.log10(dX_dz * 10 ** (simcoe_logf))  # f = dn/dN/dz
 
     # dw/dN for converting Schechter and Cooksey
     _, dw_dn, logN_out = dwdn_numerical(cgm_dict, None) # using input cgm_dict and sigmoid function for b-value
@@ -402,9 +446,10 @@ def fit_alldata_dN(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     # arbitrary norm 11.0 agrees better with the Schechter function dn_dz
-    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label='Cooksey fit (x arbitrary norm, 11.0)')
-    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
+    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label='Cooksey fit x arbitrary norm (11.0), 1.5 < z < 4.55')
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+    plt.plot(simcoe_logN_CIV, simcoe_logf_dz, 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
 
     plt.legend(fontsize=11, loc=3)
     plt.xlabel('log N(CIV)', fontsize=13)
@@ -414,7 +459,7 @@ def fit_alldata_dN(cgm_dict):
 ########## cgm model dictionary ##########
 def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
                         W_min=0.001, W_max=5.0, b_weak=10.0, b_strong=150.0, \
-                        logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.25):
+                        logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35):
 
     # another good model: b_strong=200.0, logN_trans=0.4, everything else default
 
