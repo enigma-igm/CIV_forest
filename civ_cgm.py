@@ -318,6 +318,21 @@ def simcoe2011_cddf(plot=False):
 
     return logN_CIV, logf
 
+def plot_alldata():
+    do_logN_CIV, do_logf = dodorico2013_cddf()
+    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+
+    plt.plot(do_logN_CIV, do_logf, 'kx', mew=2, ms=8, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    plt.plot(simcoe_logN_CIV, simcoe_logf, 'b+', mew=2, ms=10, label="Simcoe MIKE data (z=4.25)")
+    plt.axvline(12.0, color='b', ls='--', alpha=0.7, label='Simcoe rough detection limit')
+    plt.axvline(13.3, color='k', ls='--', alpha=0.7, label="D'Odorico 85% complete")
+    plt.xlim([11, 15])
+    plt.ylim([-17, -10])
+    plt.xlabel('log N(CIV)', fontsize=13)
+    plt.ylabel('log(f=dn/dN/dX)', fontsize=13)
+    plt.legend(loc=3)
+    plt.show()
+
 ########## fitting data with Schechter function ##########
 def fit_alldata_dW(cgm_dict):
     # do fitting in terms of W
@@ -388,9 +403,9 @@ def fit_alldata_dW(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
-    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$" % (W_star, n_star, alpha))
-    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-' , label='Cooksey fit x arbitrary norm (11.0), 1.5 < z < 4.55')
-    plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-' , label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
+    plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
     plt.plot(np.log10(W_out_simcoe), np.log10(dn_dzdW_simcoe), 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
 
     plt.legend(fontsize=11, loc=3)
@@ -447,9 +462,11 @@ def fit_alldata_dN(cgm_dict):
     plt.figure(figsize=(8,6))
     # arbitrary norm 11.0 agrees better with the Schechter function dn_dz
     plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
-    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label='Cooksey fit x arbitrary norm (11.0), 1.5 < z < 4.55')
-    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label="D'Odorico data (4.35 < z < 5.3)", ms=8, mew=2)
+    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
+    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
     plt.plot(simcoe_logN_CIV, simcoe_logf_dz, 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
+    #plt.axvline(12.0, color='b', ls=':', alpha=0.7, label='Simcoe rough detection limit')
+    #plt.axvline(13.3, color='k', ls=':', alpha=0.7, label="D'Odorico 85% complete")
 
     plt.legend(fontsize=11, loc=3)
     plt.xlabel('log N(CIV)', fontsize=13)
