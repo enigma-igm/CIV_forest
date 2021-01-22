@@ -54,8 +54,8 @@ def convert_to_energy(value, type):
     return energy_ryd
 
 def get_npath(z, delta_z, nqsos):
-    vmin = 1.7433470381205325 # vel_lores.min()
-    vmax = 12931.743347038268 # vel_lores.max()
+    vmin = 1.7433470381205325 # vel_lores.min() for z=4.5 Nyx sim
+    vmax = 12931.743347038268 # vel_lores.max() for z-4.5 Nyx sim
     vside = vmax - vmin
     zmin = z - delta_z
     zeff = (z + zmin)/2.
@@ -91,4 +91,18 @@ def get_nqsos(z, delta_z, npath):
     print(dz_side)
     print(nqsos)
 
+def civ_pathlength(z, l_rest_min, l_rest_max):
 
+    # limits from Blomqvist et al. (2018) are 1420 < l_rest < 1520
+    # range is bracketed by the emission peaks of the SiIV doublet (with wavelengths 1394 A and 1403 A)
+
+    l_civ = 1549.
+    l_obs_min = l_rest_min * (1 + z)
+    l_obs_max = l_rest_max * (1 + z)
+    print(l_obs_min, l_obs_max)
+
+    zmin = l_obs_min / l_civ - 1
+    zmax = l_obs_max / l_civ - 1
+    dz = zmax - zmin
+
+    return zmin, zmax, dz
