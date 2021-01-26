@@ -89,7 +89,7 @@ def get_nqsos(z, delta_z, npath):
     #dz_tot = dz_side * npath
     print(dv_path)
     print(dz_side)
-    print(nqsos)
+    print("Nqso:", nqsos) # Nqso ~ 20 for delta_z=1.0 and npath=100
 
 def civ_pathlength(z, l_rest_min, l_rest_max):
 

@@ -14,6 +14,7 @@ sampling = 3 # for creating the metal forest
 vmin_corr = fwhm
 vmax_corr = 2000
 dv_corr = 5 # has to be >= than fwhm/sampling
+dv_corr_tot = 10 # for IGM + CGM
 snr = 100 # or None for noiseless data
 npath = 100 # number of skewers
 seed = 1199876 # only used if npath < len(skewers)
@@ -24,7 +25,7 @@ cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.35, W_star = 0.45, n_star = 28.0
                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35)
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_seed = 102938  # same seed as civ_cgm_pdf.py
-flux_decr_cutoff = 0.08 # mask where pixels with 1 - F > cutoff will be masked
+flux_decr_cutoff = 0.10 # mask where pixels with 1 - F > cutoff will be masked
 
 # input and output files
 tau_metal_file = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # 10,000 skewers total
@@ -32,7 +33,8 @@ tau_metal_file = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # 10,000
 
 suffix = 'fcut_{:3.2f}_fwhm_{:5.3f}_samp_{:5.3f}_SNR_{:5.3f}_npath_{:d}.fits'.format(flux_decr_cutoff, fwhm, sampling, snr, npath)
 corr_outfile_igm = 'nyx_sim_data/corrfunc_igm_' + suffix
-corr_outfile_igm_cgm = 'nyx_sim_data/corrfunc_tot_' + suffix
+corr_outfile_igm_mask = 'nyx_sim_data/corrfunc_igmmask_' + suffix
+corr_outfile_igm_cgm = 'nyx_sim_data/corrfunc2_tot_' + suffix
 corr_outfile_igm_cgm_mask = 'nyx_sim_data/corrfunc_totmask_' + suffix
 
 params = Table.read(tau_metal_file, hdu=1)
@@ -67,16 +69,24 @@ if compute_corr:
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end - start) / 60.))
 
+    # IGM + flux cutoff
+    start = time.time()
+    mask_want = (1 - flux_lores_igm) < flux_decr_cutoff
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_igm[mask_want], vmin_corr, vmax_corr, dv_corr)
+    mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_mask)
+    end = time.time()
+    print("Done computing 2PCF in %0.2f min" % ((end - start) / 60.))
+
     # IGM + CGM (no flux mask)
     start = time.time()
-    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot, vmin_corr, vmax_corr, dv_corr)
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot, vmin_corr, vmax_corr, dv_corr_tot)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_cgm)
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end-start)/60.))
 
     # IGM + CGM + flux cutoff
+    start = time.time()
     mask_want = (1 - flux_lores_tot) < flux_decr_cutoff
-
     vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot[mask_want], vmin_corr, vmax_corr, dv_corr)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_cgm_mask)
     end = time.time()
@@ -87,6 +97,11 @@ else:
     vel_mid_igm = outcorr_igm['vel_mid'][0]
     xi_tot_igm = outcorr_igm['xi_tot'] # 2PCF for each skewer
     xi_mean_tot_igm = np.mean(xi_tot_igm, axis=0) # 2PCF averaging over all skewers
+
+    outcorr_igm_mask = Table.read(corr_outfile_igm_mask)
+    vel_mid_igm_mask = outcorr_igm_mask['vel_mid'][0]
+    xi_tot_igm_mask = outcorr_igm_mask['xi_tot']
+    xi_mean_tot_igm_mask = np.mean(xi_tot_igm_mask, axis=0)
 
     outcorr_igm_cgm = Table.read(corr_outfile_igm_cgm)
     vel_mid_igm_cgm = outcorr_igm_cgm['vel_mid'][0]
@@ -103,6 +118,7 @@ else:
     plt.plot(vel_mid_igm_cgm, xi_mean_tot_igm_cgm/scaling_factor, linewidth=2.0, linestyle='-', color='b', label='(IGM + CGM)/%d' % scaling_factor)
     plt.plot(vel_mid_mask, xi_mean_tot_mask, linewidth=2.0, linestyle='-', color='r', label='IGM + CGM + mask')
     plt.plot(vel_mid_igm, xi_mean_tot_igm, linewidth=2.0, linestyle='-', color='k', label='IGM')
+    plt.plot(vel_mid_igm_mask, xi_mean_tot_igm_mask, linewidth=2.0, linestyle='-', color='k', alpha=0.5, label='IGM + mask')
 
     # labeling double and observational setup
     vel_doublet = reion_utils.vel_metal_doublet(metal_ion, returnVerbose=False)

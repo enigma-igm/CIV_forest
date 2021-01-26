@@ -90,7 +90,7 @@ def plot_corr_matrix(params, covar):
 
     plt.show()
 
-def plot_all_corrmatrix(modelfile, outfig, type, cf_overplot=False):
+def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
     # type is either "cov" or "corrfunc"
 
