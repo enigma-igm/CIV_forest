@@ -194,7 +194,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.plot(logN_out, np.log10(W))
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('log (W)', fontsize=13)
-        plt.axhline(np.log10(0.6), c='r', ls='--', label='0.6 A (saturation limit)')
+        plt.axhline(np.log10(0.6), c='r', ls='--', label='Cooksey+(2013) saturation \n limit: 0.6 A')
         plt.legend()
         plt.grid()
 
@@ -478,7 +478,9 @@ def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
                         W_min=0.001, W_max=5.0, b_weak=10.0, b_strong=150.0, \
                         logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35):
 
-    # another good model: b_strong=200.0, logN_trans=0.4, everything else default
+    # the default setting is too shallow to fit Simcoe (2011) z=4.25 points
+    # better model: alpha=-0.5, rest default
+    # using alpha=-0.5, b_strong=200.0, logN_trans=0.4, everything else default gives slightly smoother dW/dN
 
     # parameters of frequency distribution obtained from fitting Schechter function to data (fit_alldata_dW and fit_alldata_dN)
     cgm_dict = dict(n_star=n_star, alpha=alpha, W_star=W_star, W_min=W_min, W_max=W_max, b_weak=b_weak, b_strong=b_strong, \
