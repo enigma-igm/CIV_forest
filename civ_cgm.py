@@ -175,10 +175,10 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
     logN_out, b_out = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, b_in=b_in)
 
     if b_in == None:
-        dw_db = np.gradient(W, b_out, edge_order=2)
-        db_dn = np.gradient(b_out, 10**logN_out)
-        dw_dn = dw_db * db_dn # in units of Angstrom cm^2
-        dw_dn2 = np.gradient(W, 10**logN_out, edge_order=2) # same as dw_dn ...
+        #dw_db = np.gradient(W, b_out, edge_order=2)
+        #db_dn = np.gradient(b_out, 10**logN_out, edge_order=2) # default edge_order=1
+        #dw_dn_new = dw_db * db_dn # in units of Angstrom cm^2
+        dw_dn = np.gradient(W, 10**logN_out, edge_order=2) # almost the same as dw_dn_new
     else:
         dw_dn = np.gradient(W, 10**logN_out, edge_order=2)
 
@@ -190,7 +190,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
 
     if plot:
         plt.figure(figsize=(12,5))
-        plt.subplot(121)
+        plt.subplot(131)
         plt.plot(logN_out, np.log10(W))
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('log (W)', fontsize=13)
@@ -198,7 +198,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.legend()
         plt.grid()
 
-        plt.subplot(122)
+        plt.subplot(132)
         plt.plot(logN_out, b_out)
         plt.axhline(66, c='r', ls='--', label='Assuming W=0.6 A saturation, \n then logN~14.2 and b~66 kms/s')
         plt.xlabel('log N(CIV)', fontsize=13)
@@ -206,7 +206,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.legend()
         plt.grid()
 
-        """
+
         plt.subplot(133)
         dwdn_linear = dwdn_theory().value
         plt.plot(logN_out, dw_dn)
@@ -215,7 +215,7 @@ def dwdn_numerical(cgm_dict, b_in, plot=False):
         plt.xlabel('log N(CIV)', fontsize=13)
         plt.ylabel('dW/dN', fontsize=13)
         plt.grid()
-        """
+
         plt.tight_layout()
         plt.show()
 
@@ -403,7 +403,7 @@ def fit_alldata_dW(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
-    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
     plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-' , label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
     plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
     plt.plot(np.log10(W_out_simcoe), np.log10(dn_dzdW_simcoe), 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
@@ -461,7 +461,7 @@ def fit_alldata_dN(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     # arbitrary norm 11.0 agrees better with the Schechter function dn_dz
-    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, N*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
     plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
     plt.plot(data_logN_CIV, data_logf_dz, 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
     plt.plot(simcoe_logN_CIV, simcoe_logf_dz, 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
