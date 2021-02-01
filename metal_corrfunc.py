@@ -184,3 +184,95 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     #plt.yscale('log')
     plt.legend()
     plt.show()
+
+#####################
+from enigma.reion_forest.utils import find_closest
+from enigma.reion_forest import inference
+from enigma.reion_forest.inference import lnprior_1d, lnlike_1d, interp_lnlike_1d, lnprob_1d
+from scipy import integrate
+from scipy.special import logsumexp
+
+def init_inference_1d_civ(logZ_guess):
+
+    seed = 125913
+    rand = np.random.RandomState(seed)
+
+    # Read in the model grid
+    path = '/Users/suksientie/Research/CIV_forest/nyx_sim_data/'
+    modelfile = path + 'igm_cluster/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    logZ_coarse = params['logZ'].flatten()
+    vel_corr = params['vel_mid'].flatten()
+    vel_min = params['vmin_corr'][0]
+    vel_max = params['vmax_corr'][0]
+    nlogZ = params['nlogZ'][0]
+
+    nmock = xi_mock_array.shape[2]  # np.shape(xi_mock_array) = nhi, nlogZ, nmock, ncorr
+    imock = rand.choice(np.arange(nmock), size=1)
+    #logZ_guess = -4.33  # the desired value, to be interpolated to the nearest grid value
+    linearZprior = False
+
+    # find the closest model values to guesses
+    ixhi = 0  # xhi = find_closest(xhi_coarse, xhi_guess)
+    iZ = find_closest(logZ_coarse, logZ_guess)
+    # xhi_data = xhi_coarse[ixhi]
+    logZ_data = logZ_coarse[iZ]
+    xi_data = xi_mock_array[ixhi, iZ, imock, :].flatten()
+    xi_mask = np.ones_like(xi_data, dtype=bool)  # in case you want to mask any xi value, otherwise all True
+
+    # Interpolate logZ grid into finer grid
+    nlogZ = logZ_coarse.size
+    nlogZ_fine = 1001
+    logZ_fine_min = logZ_coarse.min()
+    logZ_fine_max = logZ_coarse.max()
+    dlogZ_fine = (logZ_fine_max - logZ_fine_min) / (nlogZ_fine - 1)
+    logZ_fine = logZ_fine_min + np.arange(nlogZ_fine) * dlogZ_fine
+
+    ixhi = 0
+    lnlike_coarse = np.zeros(nlogZ)
+    for iZ, logZ in enumerate(logZ_coarse):
+        lnlike_coarse[iZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ixhi, iZ, :], lndet_array[ixhi, iZ], \
+                                                  icovar_array[ixhi, iZ, :, :])
+
+    lnlike_fine = interp_lnlike_1d(logZ_fine, logZ_coarse, lnlike_coarse)
+    xi_model_fine = inference.interp_model_1d(logZ_fine, logZ_coarse, xi_model_array)
+
+    return lnlike_fine, logZ_fine, dlogZ_fine
+
+def normlike(lnlike_fine, logZ_fine, dlogZ_fine):
+
+    lnlike_fine_new = lnlike_fine - lnlike_fine.max()
+
+    # normalize using trapz
+    norm = integrate.trapz(np.exp(lnlike_fine_new), logZ_fine)  # summing L
+    plogZ = np.exp(lnlike_fine_new) / norm # P = np.exp(lnL - lnL.max())
+
+    # normalize using logsumexp = np.log(np.sum(np.exp(input)))
+    ln_norm = logsumexp(lnlike_fine_new) + np.log(dlogZ_fine) # np.log(dlogZ_fine)
+    plogZ2 = np.exp(lnlike_fine_new - ln_norm)
+
+    #print(integrate.trapz(plogZ, logZ_fine))
+    #print(integrate.trapz(plogZ2, logZ_fine))
+
+    #plt.subplot(121)
+    #plt.plot(logZ_fine, plogZ)
+    #plt.subplot(122)
+    #plt.plot(logZ_fine, plogZ2)
+    #plt.show()
+    return plogZ
+
+def test_norm(logZ_guess_list):
+
+    plogZ_ls = []
+    for i in range(len(logZ_guess_list)):
+        lnlike_fine, logZ_fine, dlogZ_fine = init_inference_1d_civ(logZ_guess_list[i])
+        plogZ = normlike(lnlike_fine, logZ_fine, dlogZ_fine)
+        plogZ_ls.append(plogZ)
+        plt.plot(logZ_fine, plogZ, '.-', ms=4)
+        #plt.plot(logZ_fine, lnlike_fine, '.-', ms=4)
+
+    plt.xlabel('logZ', fontsize=15)
+    plt.ylabel('P(logZ)', fontsize=15)
+
+    return logZ_guess_list, plogZ_ls
