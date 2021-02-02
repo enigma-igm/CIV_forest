@@ -67,8 +67,8 @@ def write_corrfunc(vel_mid, xi_tot, npix_tot, outfile):
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
 
-def plot_corr_matrix(params, covar):
-    # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+def plot_corrmatrix(params, covar):
+    # plotting the correlation matrix, for outputs of enigma.reion_forest.compute_model_grid_civ.py
 
     nqsos = params['nqsos'][0]
     delta_z = params['delta_z'][0]
@@ -90,6 +90,18 @@ def plot_corr_matrix(params, covar):
 
     plt.show()
 
+def plot_corrfunc(params, xi_model, label=None):
+
+    vel_mid = params['vel_mid'][0]
+    vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
+
+    plt.plot(vel_mid, xi_model, linewidth=2.0, linestyle='-', label=label)
+    plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.6) #label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+    plt.legend(fontsize=15)
+    plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
+    plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
+
+
 def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
     # type is either "cov" or "corrfunc"
@@ -106,9 +118,12 @@ def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
     logZ_vec = params['logZ'][0]
     vel_mid = params['vel_mid'][0]
 
+    # getting rid of redundant axis
+    covar_array = covar_array[0]
+    xi_model_array = xi_model_array[0]
+
     plt.figure(figsize=(12,10))
     if type == 'cov':
-        covar_array = covar_array[0]
         for i in range(len(covar_array)):
             covar = covar_array[i]
             corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
@@ -121,10 +136,10 @@ def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
             #plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
 
     elif type == 'corrfunc':
-        xi_model_array = xi_model_array[0] # plotting the mean of all mocks
         vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
         #factor = [1e8, 1e7, 1e6, 1e5, 1e4, 1e3, 1e2, 1, 1]
 
+        # plotting the mean of all mocks
         for i in range(len(xi_model_array)):
             if cf_overplot:
                 plt.plot(vel_mid, xi_model_array[i], linewidth=2.0, linestyle='-',
@@ -185,7 +200,7 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     plt.legend()
     plt.show()
 
-#####################
+##################### Inferencing section #####################
 from enigma.reion_forest.utils import find_closest
 from enigma.reion_forest import inference
 from enigma.reion_forest.inference import lnprior_1d, lnlike_1d, interp_lnlike_1d, lnprob_1d
@@ -240,7 +255,7 @@ def init_inference_1d_civ(logZ_guess):
 
     return lnlike_fine, logZ_fine, dlogZ_fine
 
-def normlike(lnlike_fine, logZ_fine, dlogZ_fine):
+def normalize_like(lnlike_fine, logZ_fine, dlogZ_fine):
 
     lnlike_fine_new = lnlike_fine - lnlike_fine.max()
 
@@ -262,17 +277,33 @@ def normlike(lnlike_fine, logZ_fine, dlogZ_fine):
     #plt.show()
     return plogZ
 
-def test_norm(logZ_guess_list):
+def calc_plogZ(logZ_guess_list):
 
     plogZ_ls = []
     for i in range(len(logZ_guess_list)):
         lnlike_fine, logZ_fine, dlogZ_fine = init_inference_1d_civ(logZ_guess_list[i])
-        plogZ = normlike(lnlike_fine, logZ_fine, dlogZ_fine)
+        plogZ = normalize_like(lnlike_fine, logZ_fine, dlogZ_fine)
         plogZ_ls.append(plogZ)
-        plt.plot(logZ_fine, plogZ, '.-', ms=4)
-        #plt.plot(logZ_fine, lnlike_fine, '.-', ms=4)
+        #plt.plot(logZ_fine, plogZ, '.-', ms=4)
 
-    plt.xlabel('logZ', fontsize=15)
-    plt.ylabel('P(logZ)', fontsize=15)
+    #plt.xlabel('logZ', fontsize=15)
+    #plt.ylabel('P(logZ)', fontsize=15)
 
-    return logZ_guess_list, plogZ_ls
+    return plogZ_ls, logZ_fine
+
+from random import choices
+from scipy.stats import norm
+
+def calc_prec(logZ_fine, plogZ, n_sample):
+    samples = choices(logZ_fine, plogZ, k=n_sample)
+    median = np.median(samples)
+
+    lower_bound = norm.cdf(-1.0) #(1 - 0.6827) / 2.
+    upper_bound = norm.cdf(1.0) #1.0 - lower_bound
+    lower = median - np.percentile(samples, 100*lower_bound)
+    upper = np.percentile(samples, 100 * upper_bound) - median
+
+    plt.plot(logZ_fine, plogZ)
+    plt.hist(samples, bins=40, density=True)
+    plt.title('Median=%0.3f, lower=%0.3f, upper=%0.3f' % (median, lower, upper), fontsize=15)
+    plt.show()
