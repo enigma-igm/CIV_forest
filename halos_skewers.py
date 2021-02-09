@@ -10,7 +10,7 @@ from scipy.spatial import distance # v14.0 syntax
 def init_all():
     halofile = 'nyx_sim_data/z45_halo_logMmin_8.fits'
     skewerfile = 'nyx_sim_data/rand_skewers_z45_ovt_tau.fits'
-    skewerfile = 'nyx_sim_data/subset100/subset100_rand_skewers_z45_ovt_tau_xciv.fits'
+    #skewerfile = 'nyx_sim_data/subset100/subset100_rand_skewers_z45_ovt_tau_xciv.fits'
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     halos = Table.read(halofile)
@@ -48,11 +48,13 @@ def plot_halos(halos, slice_thickness, Zc, logM_min=8.0):
     plt.axis('equal')
     plt.legend()
 
-###### testing ######
-def calc_distance_one_skewer(one_skewer, params, halos, Rmax):
+def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     # including periodic BC
 
     start = time.time()
+    mass_mask = np.log10(halos['MASS']) >= logM_min
+    halos = halos[mass_mask]
+
     Lbox = params['Lbox'][0]
     Ng = params['Ng'][0]
     cellsize = Lbox / Ng
@@ -84,7 +86,7 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax):
     #dx2dy2 = dx2dy2[mask_halo_2d]
 
     zpix_near_halo = []
-    for zpix in zskew:
+    for zpix in zskew: # looping through each pixel along the z-direction
         dz = zpix - zhalos[want_halos]
         mask_z = np.abs(dz) > (0.5 * Lbox)
         dz[mask_z] = Lbox - np.abs(dz[mask_z])
@@ -100,12 +102,12 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax):
 
     return zpix_near_halo
 
-def calc_distance_all_skewers(params, skewers, halos, Rmax):
+def calc_distance_all_skewers(params, skewers, halos, Rmax, logM_min):
     # 0.17 min (0.3 min) for 100 skewers at Rmax=0.2 Mpc (2.5 Mpc)
     start = time.time()
     all_iz_near_halo = []
     for iskew in skewers:
-        iz_near_halo = calc_distance_one_skewer(iskew, params, halos, Rmax)
+        iz_near_halo = calc_distance_one_skewer(iskew, params, halos, Rmax, logM_min)
         all_iz_near_halo.append(iz_near_halo)
     end = time.time()
     print((end - start) / 60.)
@@ -135,21 +137,26 @@ def plot_halos_with_skewers(params, skewers, halos, slice_thickness, Zc, logM_mi
         halos = halos[imass]
         print("after mass cut, N(halos): ", len(halos))
 
-    Zmin = Zc - slice_thickness
-    Zmax = Zc + slice_thickness
-    iz_halos = np.where((halos['ZHALO'] >= Zmin) & (halos['ZHALO'] < Zmax))[0]
-    iz_skewers = np.where((zskew >= Zmin) & (zskew < Zmax))[0]
+    Zmin = Zc - slice_thickness / 2.
+    Zmax = Zc + slice_thickness / 2.
+    halo_slice = (halos['ZHALO'] >= Zmin) * (halos['ZHALO'] < Zmax)
+    skewer_slice = (zskew >= Zmin) * (zskew < Zmax)
 
-    plt.plot(halos['XHALO'][iz_halos], halos['YHALO'][iz_halos], '.', ms=5, alpha=0.5, label=logM_min)
+    #Zmin = Zc - slice_thickness
+    #Zmax = Zc + slice_thickness
+    #iz_halos = np.where((halos['ZHALO'] >= Zmin) & (halos['ZHALO'] < Zmax))[0]
+    #iz_skewers = np.where((zskew >= Zmin) & (zskew < Zmax))[0]
 
+    plt.plot(halos['XHALO'][halo_slice], halos['YHALO'][halo_slice], '.', ms=5, alpha=0.5, label=logM_min)
     for iskew in skewers:
-        if np.sum(iskew['ZPIX_NEAR_HALO'][iz_skewers]):
+        if np.sum(iskew['ZPIX_NEAR_HALO'][skewer_slice]):
             plt.plot(iskew['XSKEW'], iskew['YSKEW'], 'y*', ms=5)
         #else:
             #plt.plot(iskew['XSKEW'], iskew['YSKEW'], 'r*', ms=5)
     plt.legend()
     plt.show()
 
+###### testing ######
 def make_3darr(params, skewers, halos):
 
     halos_xyz = [[halos['XHALO'][i], halos['YHALO'][i], halos['ZHALO'][i]] for i in range(len(halos))]
