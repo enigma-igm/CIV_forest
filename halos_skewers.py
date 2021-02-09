@@ -10,6 +10,7 @@ from scipy.spatial import distance # v14.0 syntax
 def init_all():
     halofile = 'nyx_sim_data/z45_halo_logMmin_8.fits'
     skewerfile = 'nyx_sim_data/rand_skewers_z45_ovt_tau.fits'
+    skewerfile = 'nyx_sim_data/subset100/subset100_rand_skewers_z45_ovt_tau_xciv.fits'
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     halos = Table.read(halofile)
@@ -95,12 +96,12 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax):
             zpix_near_halo.append(False)
 
     end = time.time()
-    print((end-start)/60.)
+    #print((end-start)/60.)
 
     return zpix_near_halo
 
 def calc_distance_all_skewers(params, skewers, halos, Rmax):
-    # 25 min for 10,000 skewers at Rmax=0.2 Mpc
+    # 0.17 min (0.3 min) for 100 skewers at Rmax=0.2 Mpc (2.5 Mpc)
     start = time.time()
     all_iz_near_halo = []
     for iskew in skewers:
