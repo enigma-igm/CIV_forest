@@ -53,7 +53,7 @@ def check_halo_xyz(halos, Lbox, Ng, lit_h):
     ixhalos = halos['IHALOX']
 
     Lbox = Lbox / lit_h # converting from Mpc/h to Mpc
-    xhalos_pred = (ixhalos + 0.5) * Lbox/Ng
+    xhalos_pred = (ixhalos + 0.)* Lbox/Ng
 
     return xhalos_pred, xhalos
 
