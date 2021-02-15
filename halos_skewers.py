@@ -49,10 +49,10 @@ def plot_halos(halos, slice_thickness, Zc, logM_min=8.0):
     plt.legend()
 
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
-    xhalos = halos['XHALO']
+    xhalos = halos['XHALO'] # likely in Mpc unit (rather than Mpc/h)
     ixhalos = halos['IHALOX']
 
-    Lbox = Lbox * lit_h # Mpc/h...??
+    Lbox = Lbox / lit_h # converting from Mpc/h to Mpc
     xhalos_pred = (ixhalos + 0.5) * Lbox/Ng
 
     return xhalos_pred, xhalos
