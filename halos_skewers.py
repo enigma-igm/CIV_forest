@@ -48,6 +48,15 @@ def plot_halos(halos, slice_thickness, Zc, logM_min=8.0):
     plt.axis('equal')
     plt.legend()
 
+def check_halo_xyz(halos, Lbox, Ng, lit_h):
+    xhalos = halos['XHALO']
+    ixhalos = halos['IHALOX']
+
+    Lbox = Lbox * lit_h # Mpc/h...??
+    xhalos_pred = (ixhalos + 0.5) * Lbox/Ng
+
+    return xhalos_pred, xhalos
+
 def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     # including periodic BC
 
