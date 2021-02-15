@@ -5,12 +5,12 @@ from astropy.io import fits
 from astropy.table import Table
 import halos_skewers
 
-outfile = 'nyx_sim_data/rand_skewers_z45_halomasks.fits'
-logM_grid, R_grid = halos_skewers.init_halo_grids()
+outfile = 'nyx_sim_data/rand_skewers_z45_halomask_test.fits'
+#logM_grid, R_grid = halos_skewers.init_halo_grids()
 par, ske, halos = halos_skewers.init_all()
 
-zpix_mask00 = halos_skewers.calc_distance_all_skewers(par, ske[0:100], halos, R_grid[0], logM_grid[0])
-zpix_mask01 = halos_skewers.calc_distance_all_skewers(par, ske[0:100], halos, R_grid[0], logM_grid[1])
+zpix_mask00 = halos_skewers.calc_distance_all_skewers(par, ske, halos, 1.375, 10)
+zpix_mask01 = halos_skewers.calc_distance_all_skewers(par, ske, halos, 0.34375, 9)
 
 table_mask = Table([zpix_mask00, zpix_mask01], names=('mask00', 'mask01'))
 

@@ -25,7 +25,7 @@ def init_halo_grids(logMmin=8.0, logMmax=11.0, dlogM=0.5, Rmin=0.20, Rmax=2.5, n
     # r_cmpc_booth = array([0.171875, 0.34375 , 0.6875  , 1.375   , 2.75    ])
 
     logM_grid = np.arange(logMmin, logMmax + dlogM, dlogM)
-    R_grid = np.linspace(Rmin, Rmax, nR) # cMpc
+    R_grid = np.linspace(Rmin, Rmax, nR) # cMpc physical
 
     return logM_grid, R_grid
 
@@ -49,8 +49,8 @@ def plot_halos(halos, slice_thickness, Zc, logM_min=8.0):
     plt.legend()
 
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
-    xhalos = halos['XHALO'] # likely in Mpc unit (rather than Mpc/h)
-    ixhalos = halos['IHALOX']
+    xhalos = halos['ZHALO'] # likely in Mpc unit (rather than Mpc/h)
+    ixhalos = halos['IHALOZ']
 
     Lbox = Lbox / lit_h # converting from Mpc/h to Mpc
     xhalos_pred = (ixhalos + 0.)* Lbox/Ng
@@ -64,14 +64,17 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     mass_mask = np.log10(halos['MASS']) >= logM_min
     halos = halos[mass_mask]
 
-    Lbox = params['Lbox'][0]
+    lit_h = params['lit_h'][0]
+    Lbox = params['Lbox'][0] / lit_h # Mpc unit
     Ng = params['Ng'][0]
-    cellsize = Lbox / Ng
+    cellsize = Lbox / Ng # Mpc unit
 
+    # Mpc units
     xskew = one_skewer['XSKEW']
     yskew = one_skewer['YSKEW']
     zskew = np.arange(Ng) * cellsize
 
+    # Mpc units
     xhalos = np.array(halos['XHALO'])
     yhalos = np.array(halos['YHALO'])
     zhalos = np.array(halos['ZHALO'])
