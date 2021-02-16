@@ -57,6 +57,29 @@ def check_halo_xyz(halos, Lbox, Ng, lit_h):
 
     return xhalos_pred, xhalos
 
+def check_skewers_xyz(param, skewers):
+    # skewers XYZ seem to be grid edges
+    xskew = skewers['XSKEW'] # likely in Mpc unit (rather than Mpc/h)
+    iskew = skewers['ISKEWX']
+
+    Lbox = param['Lbox'][0] / param['lit_h'][0] # converting from Mpc/h to Mpc
+    Ng = param['Ng'][0]
+    xskew_pred = iskew * Lbox/Ng
+
+    return xskew_pred, xskew
+
+def common_cell(halos, ske):
+    ix = [2121, 599, 600, 3150, 3441]
+    iy = [2838, 1164, 1063, 2125, 1498]
+
+    halo_ind = []
+    ske_ind = []
+    for i in range(len(ix)):
+        halo_ind.append(np.where((halos['IHALOX'] == ix[i]) & (halos['IHALOY'] == iy[i]))[0][0])
+        ske_ind.append(np.where((ske['ISKEWX'] == ix[i]) & (ske['ISKEWY'] == iy[i]))[0][0])
+
+    return halo_ind, ske_ind
+
 def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     # including periodic BC
 
