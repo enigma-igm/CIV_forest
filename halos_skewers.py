@@ -177,11 +177,6 @@ def plot_halos_with_skewers(params, skewers, halos, slice_thickness, Zc, logM_mi
     halo_slice = (halos['ZHALO'] >= Zmin) * (halos['ZHALO'] < Zmax)
     skewer_slice = (zskew >= Zmin) * (zskew < Zmax)
 
-    #Zmin = Zc - slice_thickness
-    #Zmax = Zc + slice_thickness
-    #iz_halos = np.where((halos['ZHALO'] >= Zmin) & (halos['ZHALO'] < Zmax))[0]
-    #iz_skewers = np.where((zskew >= Zmin) & (zskew < Zmax))[0]
-
     plt.plot(halos['XHALO'][halo_slice], halos['YHALO'][halo_slice], '.', ms=5, alpha=0.5, label=logM_min)
     for iskew in skewers:
         if np.sum(iskew['ZPIX_NEAR_HALO'][skewer_slice]):
@@ -190,6 +185,14 @@ def plot_halos_with_skewers(params, skewers, halos, slice_thickness, Zc, logM_mi
             #plt.plot(iskew['XSKEW'], iskew['YSKEW'], 'r*', ms=5)
     plt.legend()
     plt.show()
+
+def calc_fm_fv(mask_arr, skewers):
+
+    mask1d = mask_arr.flatten()
+    fv = np.sum(mask1d)/len(mask1d)
+    fm = np.sum(skewers['ODEN'][mask_arr]) / np.sum(skewers['ODEN'])
+
+    return fm, fv
 
 ###### testing ######
 def make_3darr(params, skewers, halos):
