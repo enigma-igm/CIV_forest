@@ -10,6 +10,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cloudy_runs.cloudy_utils as cloudy_utils
 from astropy.io import fits
+from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 
 def make_xciv_skewer(params, skewers, cloudy_lookup, outfile):
@@ -152,8 +153,30 @@ def get_tau0_frac(lookup, cldy_metal_ion, metal_ion, nh_log10, temp_log10, z, lo
 
     return tau0, ion_frac
 
+def plot_masked_xciv(xciv_ori, xciv_mask1, xciv_mask2, xciv_mask3):
+    #xciv_ori = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau_xciv.fits', hdu=2)['X_CIV']
+    #xciv_mask1 = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_r0.34375_logM9.00.fits', hdu=2)['X_CIV']
+    #xciv_mask2 = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_r1.37500_logM10.00.fits', hdu=2)['X_CIV']
+    #xciv_mask3 = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_r2.75000_logM9.00.fits', hdu=2)['X_CIV']
 
+    ind = np.random.randint(0, len(xciv_ori))
+    print(ind)
 
+    plt.figure(figsize=(12,6))
+    plt.subplot(311)
+    plt.plot(xciv_ori[ind], alpha=0.7)
+    plt.plot(xciv_mask1[ind])
+    plt.ylabel('X_CIV', fontsize=12)
 
+    plt.subplot(312)
+    plt.plot(xciv_ori[ind], alpha=0.7)
+    plt.plot(xciv_mask2[ind])
+    plt.ylabel('X_CIV', fontsize=12)
 
+    plt.subplot(313)
+    plt.plot(xciv_ori[ind], alpha=0.7)
+    plt.plot(xciv_mask3[ind])
+    plt.ylabel('X_CIV', fontsize=12)
+
+    plt.show()
 
