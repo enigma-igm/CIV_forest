@@ -23,7 +23,7 @@ z = par['z'][0]
 # snr, fwhm = 100, 10
 
 # CGM model
-cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.35, W_star = 0.45, n_star = 28.0, W_min=0.001, W_max=5.0, \
+cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.50, W_star = 0.45, n_star = 28.0, W_min=0.001, W_max=5.0, \
                                        b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0, logN_strong=14.5, logN_trans=0.35)
 
 metal_dndz_func = civ_cgm.civ_dndz_sch
@@ -115,6 +115,27 @@ def plot_pdf(v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, f
     plt.tight_layout()
     plt.show()
 
+def plot_pdf_simple(flux, label=None):
+
+    # simple plotting of the flux pdf
+    npix = flux.size
+    nbins = 101
+    oneminf_max = 1.0
+    oneminf_min = 1e-5
+
+    flux_bins, pdf_out = reion_utils.pdf_calc(1.0 - flux, oneminf_min, oneminf_max, nbins)
+    if label != None:
+        plt.plot(flux_bins, pdf_out, drawstyle='steps-mid', label=label)
+    else:
+        plt.plot(flux_bins, pdf_out, drawstyle='steps-mid')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('1-F', fontsize=13)
+    plt.ylabel('PDF', fontsize=13)
+
+    plt.tight_layout()
+    #plt.show()
+
 def compare_wrange(alpha=-0.20):
     cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=alpha, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
@@ -181,13 +202,13 @@ def compare_wrange(alpha=-0.20):
     Wmin, Wmax = Wfactor * oneminf_min, Wfactor * oneminf_max
     ymin, ymax = 1e-3, 3.0
 
-    plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM')
-    plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM')
-    plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise')
-    plt.plot(flux_bins, pdf_cgm_sub1, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.001, W_{max} = 0.01)$')
-    plt.plot(flux_bins, pdf_cgm_sub2, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.01, W_{max} = 0.1)$')
-    plt.plot(flux_bins, pdf_cgm_sub3, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.1, W_{max} = 0.5)$')
-    plt.plot(flux_bins, pdf_cgm_sub4, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.5, W_{max} = 5.0)$')
+    plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM', lw=2)
+    plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM', lw=2)
+    plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=2)
+    plt.plot(flux_bins, pdf_cgm_sub1, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.001, W_{max} = 0.01)$', alpha=0.65)
+    plt.plot(flux_bins, pdf_cgm_sub2, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.01, W_{max} = 0.1)$', alpha=0.65)
+    plt.plot(flux_bins, pdf_cgm_sub3, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.1, W_{max} = 0.5)$', alpha=0.65)
+    plt.plot(flux_bins, pdf_cgm_sub4, drawstyle='steps-mid', label=r'CGM ($W_{min} = 0.5, W_{max} = 5.0)$', alpha=0.65)
 
     plt.xscale('log')
     plt.yscale('log')
@@ -336,22 +357,24 @@ def compare_alpha(Wmin=0.001, Wmax=5.0):
 
 def plot_skewers(vel, flux_tot, flux_igm, flux_cgm, i, flux_decr_cutoff=None):
 
-    plt.subplot(311)
+    #plt.subplot(311)
     plt.plot(vel, flux_tot[i])
     plt.ylabel('F_tot', fontsize=13)
 
+    """
     plt.subplot(312)
     plt.plot(vel, flux_igm[i])
     plt.ylabel('F_IGM', fontsize=13)
 
     plt.subplot(313)
     plt.plot(vel, flux_cgm[i])
+    plt.ylabel('F_CGM', fontsize=13)
+    """
     if flux_decr_cutoff != None:
         fcut = 1 - flux_decr_cutoff
         plt.axhline(fcut, color='r', ls='--')
     plt.xlabel('velocity (km/s)', fontsize=13)
-    plt.ylabel('F_CGM', fontsize=13)
-
+    plt.tight_layout()
     plt.show()
 
 def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_decr_cutoff):
