@@ -10,7 +10,7 @@ path = '/Users/suksientie/Research/CIV_forest/nyx_sim_data/'
 hires_modelfile = path + 'igm_cluster/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits' # R=30k
 xshooter_modelfile = path + 'igm_cluster/corr_func_models_fwhm_30.000_samp_3.000_SNR_50.000_nqsos_20.fits' # R=10k
 deimos_modelfile = path + 'igm_cluster/corr_func_models_fwhm_60.000_samp_3.000_SNR_50.000_nqsos_20.fits' # R=5k
-iZ = 10
+iZ = 15
 
 params_deimos, xi_mock_array_deimos, xi_model_array_deimos, _, _, _ = read_model_grid(deimos_modelfile)
 params_xshooter, xi_mock_array_xshooter, xi_model_array_xshooter, _, _, _ = read_model_grid(xshooter_modelfile)

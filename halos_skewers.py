@@ -7,17 +7,14 @@ from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 from scipy.spatial import distance # v14.0 syntax
 
-def init_all():
-    halofile = 'nyx_sim_data/z45_halo_logMmin_8.fits'
-    skewerfile = 'nyx_sim_data/rand_skewers_z45_ovt_tau.fits'
-    #skewerfile = 'nyx_sim_data/subset100/subset100_rand_skewers_z45_ovt_tau_xciv.fits'
+def init_all(halofile='nyx_sim_data/z45_halo_logMmin_8.fits', skewerfile='nyx_sim_data/rand_skewers_z45_ovt_tau.fits'):
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     halos = Table.read(halofile)
 
     return par, ske, halos
 
-def init_halo_grids(logMmin=8.0, logMmax=11.0, dlogM=0.5, Rmin=0.20, Rmax=2.5, nR=5):
+def init_halo_grids(logMmin=8.0, logMmax=11.0, dlogM=0.5, Rmin=0.1, Rmax=3.0, dR=0.5):
 
     # Booth et al (2012): logM=8 to logM=11.0 in 0.5 dex and R=31.25 proper kpc to R=500 proper kpc, in factor of 2
     # r_pmpc_booth = np.array([0.03125, 0.0625 , 0.125  , 0.25   , 0.5    ])
@@ -25,7 +22,7 @@ def init_halo_grids(logMmin=8.0, logMmax=11.0, dlogM=0.5, Rmin=0.20, Rmax=2.5, n
     # r_cmpc_booth = array([0.171875, 0.34375 , 0.6875  , 1.375   , 2.75    ])
 
     logM_grid = np.arange(logMmin, logMmax + dlogM, dlogM)
-    R_grid = np.linspace(Rmin, Rmax, nR) # cMpc physical
+    R_grid = np.arange(Rmin, Rmax + dR, dR) # cMpc physical
 
     return logM_grid, R_grid
 

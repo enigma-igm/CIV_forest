@@ -31,11 +31,13 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
 
     # xi_tot is an array of 2PCF of each skewer
     (vel_mid, xi_tot, npix_tot, xi_zero_lag_tot) = reion_utils.compute_xi(delta_f_tot, vel_lores, vmin_corr, vmax_corr, dv_corr)
-    xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF from all the skewers, i.e the final quoted 2PCF
+    xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF averaged from all the skewers, i.e the final quoted 2PCF
 
     return vel_mid, xi_mean_tot, xi_tot, npix_tot
 
 def compute_xi_all2(vel, flux_tot, vmin_corr, vmax_corr, dv_corr):
+
+    # same as compute_xi_all but takes output of reion_utils.create_metal_forest() as inputs for flexibility
 
     # Compute mean flux and delta_flux
     mean_flux_tot = np.mean(flux_tot)
@@ -199,6 +201,69 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     #plt.yscale('log')
     plt.legend()
     plt.show()
+
+##################### Temporary plotting #####################
+def temp1_compare_cf_enrichment():
+
+    indx = np.random.choice(10000, replace=False, size=1000)
+    ori_par = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits', hdu=1)
+    ori_ske = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits', hdu=2)[indx]
+
+    mask1_par = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r0.34375_logM9.00.fits', hdu=1)
+    mask1_ske = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r0.34375_logM9.00.fits', hdu=2)[indx]
+
+    mask2_par = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r1.37500_logM10.00.fits', hdu=1)
+    mask2_ske = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r1.37500_logM10.00.fits', hdu=2)[indx]
+
+    mask3_par = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r2.75000_logM9.00.fits', hdu=1)
+    mask3_ske = Table.read('nyx_sim_data/enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r2.75000_logM9.00.fits', hdu=2)[indx]
+
+    return ori_par, ori_ske, mask1_par, mask1_ske, mask2_par, mask2_ske, mask3_par, mask3_ske
+
+def temp2_compare_cf_enrichment(ori_par, ori_ske, mask1_par, mask1_ske, mask2_par, mask2_ske, mask3_par, mask3_ske, logZ, fwhm=10, wantlores=True):
+
+    vel_lores_ori, (flux_lores_tot_ori, flux_lores_igm, flux_lores_cgm), \
+    vel_hires_ori, (flux_hires_tot_ori, flux_hires_igm, flux_hires_cgm), _, _ = \
+        reion_utils.create_metal_forest(ori_par, ori_ske, logZ, fwhm, 'C IV', sampling=3)
+
+    vel_lores_mask1, (flux_lores_tot_mask1, flux_lores_igm, flux_lores_cgm), \
+    vel_hires_mask1, (flux_hires_tot_mask1, flux_hires_igm, flux_hires_cgm), _, _ = \
+        reion_utils.create_metal_forest(mask1_par, mask1_ske, logZ, fwhm, 'C IV', sampling=3)
+
+    vel_lores_mask2, (flux_lores_tot_mask2, flux_lores_igm, flux_lores_cgm), \
+    vel_hires_mask2, (flux_hires_tot_mask2, flux_hires_igm, flux_hires_cgm), _, _ = \
+        reion_utils.create_metal_forest(mask2_par, mask2_ske, logZ, fwhm, 'C IV', sampling=3)
+
+    vel_lores_mask3, (flux_lores_tot_mask3, flux_lores_igm, flux_lores_cgm), \
+    vel_hires_mask3, (flux_hires_tot_mask3, flux_hires_igm, flux_hires_cgm), _, _ = \
+        reion_utils.create_metal_forest(mask3_par, mask3_ske, logZ, fwhm, 'C IV', sampling=3)
+
+    if wantlores:
+        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all2(vel_lores_ori, flux_lores_tot_ori, 10, 2000, 5)
+        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all2(vel_lores_mask1, flux_lores_tot_mask1, 10, 2000, 5)
+        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all2(vel_lores_mask2, flux_lores_tot_mask2, 10, 2000, 5)
+        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all2(vel_lores_mask3, flux_lores_tot_mask3, 10, 2000, 5)
+    else:
+        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all2(vel_hires_ori, flux_hires_tot_ori, 10, 2000, 5)
+        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all2(vel_hires_mask1, flux_hires_tot_mask1, 10, 2000, 5)
+        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all2(vel_hires_mask2, flux_hires_tot_mask2, 10, 2000, 5)
+        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all2(vel_hires_mask3, flux_hires_tot_mask3, 10, 2000, 5)
+
+    return vel_mid_ori, xi_mean_tot_ori, vel_mid_mask1, xi_mean_tot_mask1, \
+           vel_mid_mask2, xi_mean_tot_mask2, vel_mid_mask3, xi_mean_tot_mask3
+
+def temp3_plot_cf_enrichment(vel_mid_hires_ori, xi_mean_tot_hires_ori, vel_mid_hires_mask1, xi_mean_tot_hires_mask1, vel_mid_hires_mask2, xi_mean_tot_hires_mask2, vel_mid_hires_mask3, xi_mean_tot_hires_mask3):
+
+    masklabel = ['r0.34375_logM9.00', 'r1.37500_logM10.00', 'r2.75000_logM9.00']
+    plt.plot(vel_mid_hires_ori, xi_mean_tot_hires_ori, label='uniform')
+    plt.plot(vel_mid_hires_mask1, xi_mean_tot_hires_mask1, label = masklabel[0])
+    plt.plot(vel_mid_hires_mask2, xi_mean_tot_hires_mask2, label = masklabel[1])
+    plt.plot(vel_mid_hires_mask3, xi_mean_tot_hires_mask3, label=masklabel[2])
+    plt.xlabel(r'$\Delta v$ (km/s)', fontsize=13)
+    plt.ylabel(r'$\xi(\Delta v)$', fontsize=13)
+    plt.legend()
+    plt.show()
+
 
 ##################### Inferencing section #####################
 from enigma.reion_forest.utils import find_closest

@@ -165,18 +165,19 @@ def plot_masked_xciv(xciv_ori, xciv_mask1, xciv_mask2, xciv_mask3):
     plt.figure(figsize=(12,6))
     plt.subplot(311)
     plt.plot(xciv_ori[ind], alpha=0.7)
-    plt.plot(xciv_mask1[ind])
+    plt.plot(xciv_mask1[ind], 'k')
     plt.ylabel('X_CIV', fontsize=12)
 
     plt.subplot(312)
     plt.plot(xciv_ori[ind], alpha=0.7)
-    plt.plot(xciv_mask2[ind])
+    plt.plot(xciv_mask2[ind], 'k')
     plt.ylabel('X_CIV', fontsize=12)
 
     plt.subplot(313)
     plt.plot(xciv_ori[ind], alpha=0.7)
-    plt.plot(xciv_mask3[ind])
+    plt.plot(xciv_mask3[ind], 'k')
     plt.ylabel('X_CIV', fontsize=12)
 
+    plt.tight_layout()
     plt.show()
 
