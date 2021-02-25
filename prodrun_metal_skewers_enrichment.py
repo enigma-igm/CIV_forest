@@ -86,7 +86,7 @@ def main():
 
             # Write out the skewers with changes to the X_CIV skewers
             """
-            xciv_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv' + 'R_{:4.2f}'.format(Rval) + 'logM_{:4.2f}'.format(logMval) + '.fits')
+            xciv_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.fits')
 
             """
             hdu_param = fits.table_to_hdu(uniform_xciv_params)
@@ -97,10 +97,10 @@ def main():
             hdulist.writeto(xciv_outfile, overwrite=True)
             """
 
-            tau_logfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + 'logM_{:4.2f}'.format(logMval) + '_tau.log')
-            tau_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + 'logM_{:4.2f}'.format(logMval) + '_tau.fits')
+            tau_logfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '_tau.log')
+            tau_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '_tau.fits')
 
-            command = 'run_reion_skewers_metal ' + '--ranskewerfile ' + xciv_outfile + ' --outfile ' + tau_outfile + \
+            command = 'python run_reion_skewers_metal.py ' + '--ranskewerfile ' + xciv_outfile + ' --outfile ' + tau_outfile + \
                       ' --dmax 3000 --metal_colname X_CIV --metal_mass 12'
 
             test_command = "echo %s > %s" % (command, tau_logfile)
