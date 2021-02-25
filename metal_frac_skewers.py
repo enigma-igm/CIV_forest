@@ -181,3 +181,21 @@ def plot_masked_xciv(xciv_ori, xciv_mask1, xciv_mask2, xciv_mask3):
     plt.tight_layout()
     plt.show()
 
+def modify_skewerfile():
+
+    # appending X_CIV column to random OVT skewerfile, since don't need extra columns from ovt_tau file and that takes up a lot of space
+    xciv_par = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau_xciv.fits', hdu=1)
+    xciv_ske = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau_xciv.fits', hdu=2)
+
+    ovt_par = Table.read('nyx_sim_data/rand_skewers_z45_ovt.fits', hdu=1)
+    ovt_ske = Table.read('nyx_sim_data/rand_skewers_z45_ovt.fits', hdu=2)
+    ovt_ske['X_CIV'] = xciv_ske['X_CIV']
+
+    outfile = 'nyx_sim_data/rand_skewers_z45_ovt_xciv.fits'
+
+    hdu_param = fits.table_to_hdu(ovt_par)
+    hdu_table = fits.table_to_hdu(ovt_ske)
+    hdulist = fits.HDUList()
+    hdulist.append(hdu_param)
+    hdulist.append(hdu_table)
+    hdulist.writeto(outfile, overwrite=True)
