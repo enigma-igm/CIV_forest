@@ -1,3 +1,16 @@
+'''
+Functions here:
+    - init_all
+    - init_halo_grids
+    - plot_halos
+    - calc_distance_one_skewer
+    - calc_distance_all_skewers
+    - write_iz_mask
+    - plot_halos_with_skewers
+    - calc_fm_fv
+    - calc_igm_Zeff
+'''
+
 import time
 import numpy as np
 from matplotlib import pyplot as plt
@@ -6,6 +19,7 @@ from astropy.io import fits
 from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 from scipy.spatial import distance # v14.0 syntax
+from linetools.abund import solar as labsol
 
 def init_all(halofile='nyx_sim_data/z45_halo_logMmin_8.fits', skewerfile='nyx_sim_data/rand_skewers_z45_ovt_tau.fits'):
     par = Table.read(skewerfile, hdu=1)
@@ -14,12 +28,14 @@ def init_all(halofile='nyx_sim_data/z45_halo_logMmin_8.fits', skewerfile='nyx_si
 
     return par, ske, halos
 
-def init_halo_grids(logMmin=8.0, logMmax=11.0, dlogM=0.5, Rmin=0.1, Rmax=3.0, dR=0.5):
+def init_halo_grids(logMmin=8.5, logMmax=11.0, dlogM=0.5, Rmin=0.1, Rmax=3.0, dR=0.5):
 
     # Booth et al (2012): logM=8 to logM=11.0 in 0.5 dex and R=31.25 proper kpc to R=500 proper kpc, in factor of 2
     # r_pmpc_booth = np.array([0.03125, 0.0625 , 0.125  , 0.25   , 0.5    ])
     # r_cmpc_booth = (1+4.5) * r_pmpc_booth
     # r_cmpc_booth = array([0.171875, 0.34375 , 0.6875  , 1.375   , 2.75    ])
+
+    # default logMmin=8.5 since that is the minimum mass of the halo catalog
 
     logM_grid = np.arange(logMmin, logMmax + dlogM, dlogM)
     R_grid = np.arange(Rmin, Rmax + dR, dR) # cMpc physical
@@ -45,40 +61,9 @@ def plot_halos(halos, slice_thickness, Zc, logM_min=8.0):
     plt.axis('equal')
     plt.legend()
 
-def check_halo_xyz(halos, Lbox, Ng, lit_h):
-    xhalos = halos['ZHALO'] # likely in Mpc unit (rather than Mpc/h)
-    ixhalos = halos['IHALOZ']
-
-    Lbox = Lbox / lit_h # converting from Mpc/h to Mpc
-    xhalos_pred = (ixhalos + 0.)* Lbox/Ng
-
-    return xhalos_pred, xhalos
-
-def check_skewers_xyz(param, skewers):
-    # skewers XYZ seem to be grid edges
-    xskew = skewers['XSKEW'] # likely in Mpc unit (rather than Mpc/h)
-    iskew = skewers['ISKEWX']
-
-    Lbox = param['Lbox'][0] / param['lit_h'][0] # converting from Mpc/h to Mpc
-    Ng = param['Ng'][0]
-    xskew_pred = iskew * Lbox/Ng
-
-    return xskew_pred, xskew
-
-def common_cell(halos, ske):
-    ix = [2121, 599, 600, 3150, 3441]
-    iy = [2838, 1164, 1063, 2125, 1498]
-
-    halo_ind = []
-    ske_ind = []
-    for i in range(len(ix)):
-        halo_ind.append(np.where((halos['IHALOX'] == ix[i]) & (halos['IHALOY'] == iy[i]))[0][0])
-        ske_ind.append(np.where((ske['ISKEWX'] == ix[i]) & (ske['ISKEWY'] == iy[i]))[0][0])
-
-    return halo_ind, ske_ind
-
 def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
-    # including periodic BC
+    # halos: list of halos; see init_all()
+    # distance computation includes periodic BC
 
     start = time.time()
     mass_mask = np.log10(halos['MASS']) >= logM_min
@@ -108,7 +93,7 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     dx[mask_x] = Lbox - np.abs(dx[mask_x])
     dy[mask_y] = Lbox - np.abs(dy[mask_y])
 
-    # first cut to trim down the number of halos
+    # first cut to trim down the number of halos, based on 2D position
     dx2dy2 = dx ** 2 + dy ** 2
     want_halos = np.where(dx2dy2 <= Rmax ** 2)[0]
     dx2dy2 = dx2dy2[want_halos]
@@ -132,7 +117,7 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
     end = time.time()
     #print((end-start)/60.)
 
-    return zpix_near_halo
+    return zpix_near_halo # mask array
 
 def calc_distance_all_skewers(params, skewers, halos, Rmax, logM_min):
     # 0.17 min (0.3 min) for 100 skewers at Rmax=0.2 Mpc (2.5 Mpc)
@@ -147,6 +132,7 @@ def calc_distance_all_skewers(params, skewers, halos, Rmax, logM_min):
     return all_iz_near_halo
 
 def write_iz_mask(params, skewers, all_iz_near_halo, outfile):
+    # testing only, not used for production run
 
     skewers['ZPIX_NEAR_HALO'] = all_iz_near_halo
 
@@ -184,12 +170,86 @@ def plot_halos_with_skewers(params, skewers, halos, slice_thickness, Zc, logM_mi
     plt.show()
 
 def calc_fm_fv(mask_arr, skewers):
+    # calculates the mass- and volume-filling fraction of the enriched regions
 
     mask1d = mask_arr.flatten()
     fv = np.sum(mask1d)/len(mask1d)
     fm = np.sum(skewers['ODEN'][mask_arr]) / np.sum(skewers['ODEN'])
 
     return fm, fv
+
+def calc_igm_Zeff(fv):
+    # calculates effective metallicity
+
+    sol = labsol.SolarAbund()
+    logZ_sol = sol.get_ratio('C/H') # same as sol['C'] - 12.0
+    nC_nH_sol = 10**(logZ_sol)
+
+    nH_bar = 3.1315263992114194e-05 # from skewerfile
+    Z_fid = 10 ** (-3.5)
+    nC_nH_fid = Z_fid * nC_nH_sol
+    nC = nH_bar * nC_nH_fid * fv
+
+    logZ_eff = np.log10(nC / nH_bar) - logZ_sol
+    logZ_jfh = np.log10(10**(-3.5) * fv)
+
+    return logZ_eff, logZ_jfh
+
+##### temp #####
+def check_halo_xyz(halos, Lbox, Ng, lit_h):
+    xhalos = halos['ZHALO'] # likely in Mpc unit (rather than Mpc/h)
+    ixhalos = halos['IHALOZ']
+
+    Lbox = Lbox / lit_h # converting from Mpc/h to Mpc
+    xhalos_pred = (ixhalos + 0.)* Lbox/Ng
+
+    return xhalos_pred, xhalos
+
+def check_skewers_xyz(param, skewers):
+    # skewers XYZ seem to be grid edges
+    xskew = skewers['XSKEW'] # likely in Mpc unit (rather than Mpc/h)
+    iskew = skewers['ISKEWX']
+
+    Lbox = param['Lbox'][0] / param['lit_h'][0] # converting from Mpc/h to Mpc
+    Ng = param['Ng'][0]
+    xskew_pred = iskew * Lbox/Ng
+
+    return xskew_pred, xskew
+
+def common_cell(halos, ske):
+    # plt.plot(ske['ISKEWX'], ske['ISKEWY'], 'k.')
+    # plt.plot(halos['IHALOX'][10000:15000], halos['IHALOY'][10000:15000], 'r+')
+
+    ix = [2121, 599, 600, 3150, 3441, 3654, 2798, 2789, 1224]
+    iy = [2838, 1164, 1063, 2125, 1498, 3740, 4056, 3879, 411]
+    # nc, c, c?, c, c, c?, c, nc, c
+
+    halo_ind = []
+    ske_ind = []
+    for i in range(len(ix)):
+        halo_ind.append(np.where((halos['IHALOX'] == ix[i]) & (halos['IHALOY'] == iy[i]))[0][0])
+        ske_ind.append(np.where((ske['ISKEWX'] == ix[i]) & (ske['ISKEWY'] == iy[i]))[0][0])
+
+    return halo_ind, ske_ind
+
+def plot_common_cell(halos, par, ske, halo_ind, ske_ind, index):
+
+    lit_h = par['lit_h'][0]
+    Lbox = par['Lbox'][0] / lit_h  # Mpc unit
+    Ng = par['Ng'][0]
+    cellsize = Lbox / Ng
+
+    oden = ske['ODEN']
+    zskew = np.arange(Ng) * cellsize
+    zskew_offset = (0.5 + np.arange(Ng)) * cellsize
+
+    zhalo = halos['ZHALO'][halo_ind[index]]
+    plt.plot(zhalo, 30, 'r*', ms=10)
+    plt.plot(zskew_offset, oden[ske_ind[index]], 'r')
+    plt.plot(zskew, oden[ske_ind[index]], 'k-')
+    plt.xlim(zhalo - 0.25, zhalo + 0.25)
+    plt.grid()
+    plt.show()
 
 ###### testing ######
 def make_3darr(params, skewers, halos):
