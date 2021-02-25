@@ -6,7 +6,10 @@ import os
 import shutil
 from IPython import embed
 import argparse
+import time
 
+# ~30-60 min for distance computation for 10,000 skewers (?)
+# 1.5 hrs for tau skewer generation for 10,000 skewers
 def parser():
 
     # double check
@@ -67,15 +70,22 @@ def main():
     uniform_xciv_params = Table.read(args.ranskewerfile, hdu=1)
     uniform_xciv_skewers = Table.read(args.ranskewerfile, hdu=1)
 
-    logM, R = logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.25)  # 11 x 13 models
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.25)  # 11 x 13 models
+
+    # testing entire code on subset of models and skewers
+    logM = logM[-2:]
+    R = R[4:6]
+    uniform_xciv_skewers = uniform_xciv_skewers[0:100]
+
     nlogM, nR = len(logM), len(R)
     halos = Table.read(args.halofile)
 
     print('Creating tau skewers using {:d} logM and {:d} R models '.format(nlogM, nR))
 
     for i_R, Rval in enumerate(R):
+        #time.sleep(600) # wait for 1 hr
+        time.sleep(60)
         for i_logM, logMval in enumerate(logM):
-            """
             enrich_mask = halos_skewers.calc_distance_all_skewers(uniform_xciv_params, uniform_xciv_skewers, halos, Rval, logMval)
             enrich_mask = enrich_mask.astype(int)  # converting the bool arr to 1 and 0
 
@@ -85,17 +95,14 @@ def main():
             uniform_xciv_skewers['X_CIV'] = uniform_xciv_skewers['X_CIV'] * enrich_mask
 
             # Write out the skewers with changes to the X_CIV skewers
-            """
             xciv_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.fits')
 
-            """
             hdu_param = fits.table_to_hdu(uniform_xciv_params)
             hdu_table = fits.table_to_hdu(uniform_xciv_skewers)
             hdulist = fits.HDUList()
             hdulist.append(hdu_param)
             hdulist.append(hdu_table)
             hdulist.writeto(xciv_outfile, overwrite=True)
-            """
 
             tau_logfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '_tau.log')
             tau_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '_tau.fits')
