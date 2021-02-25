@@ -13,9 +13,6 @@ def parser():
     parser = argparse.ArgumentParser(description='Create random skewers for metal line forest', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--ranskewerfile', type=str, required=True, help="Name of random skewerfile containing the (uniformly enriched) metal ion fraction skewers")
     parser.add_argument('--halofile', type=str, required=True, help="Name of halo file")
-    parser.add_argument('--dmax', type=float, required=True, help="Maximum density threshold")  # typically set to 3000
-    parser.add_argument('--metal_colname', type=str, required=True, help="Column name for metal fraction, e.g. X_CIV")
-    parser.add_argument('--metal_mass', type=float, required=True, help="Atomic mass of the metal, e.g. 12.0 for Carbon")
     #parser.add_argument('--nran', type=int, help="Number of skewers to create") # 10000
     #parser.add_argument('--seed', type=int, help="Seed for random number generator") # 789
     return parser.parse_args()
