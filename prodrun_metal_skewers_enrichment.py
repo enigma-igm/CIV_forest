@@ -28,9 +28,9 @@ def main():
     import halos_skewers
 
     args = parser()
-    nran = args.nran
-    seed = args.seed
-    dmax = args.dmax
+    #nran = args.nran
+    #seed = args.seed
+    #dmax = args.dmax
 
     """
     # Nyx simulation files and paths
