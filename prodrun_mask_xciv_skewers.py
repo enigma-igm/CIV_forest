@@ -39,8 +39,8 @@ def main():
     logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
 
     # testing entire code on subset of models, skewers, and halos
-    logM = logM[-3:] # 3 models
-    R = R[3:6] # 3 models
+    #logM = logM[-3:] # 3 models
+    #R = R[3:6] # 3 models
     #uniform_xciv_skewers = uniform_xciv_skewers[0:70]
     #rand_halos = np.random.choice(len(halos), replace=False, size=500)
     #halos = halos[rand_halos]
@@ -58,9 +58,9 @@ def main():
             mask_logfile = os.path.join(outpath, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.log')
             command = 'python run_calc_distance_all_skewers.py ' + \
                       ' --ranskewerfile ' + args.ranskewerfile + \
-                      ' --halofile' + args.halofile + \
+                      ' --halofile ' + args.halofile + \
                       ' --outfile ' + mask_outfile + \
-                      ' --Rmax' + Rval + ' --logMmin' + logMval > '%s' % mask_logfile
+                      ' --Rmax ' + str(Rval) + ' --logMmin ' + str(logMval) + ' > %s' % mask_logfile
 
             p = Popen(command, shell=True)
 
@@ -83,5 +83,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-#nohup python prodrun_metal_skewers_enrichment.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /home/sstie/CIV_forest/nyx_sim_data/z45_halo_logMmin_8.fits --nproc 20 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/prodrun_metal_skewers_enrichment.log &

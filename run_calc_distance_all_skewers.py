@@ -24,7 +24,7 @@ def main():
     skewers = Table.read(args.ranskewerfile, hdu=2)
     halos = Table.read(args.halofile)
 
-    skewers = skewers[0:10] # testing
+    #skewers = skewers[0:10] # testing
 
     enrich_mask = halos_skewers.calc_distance_all_skewers(params, skewers, halos, Rmax, logM_min)
     enrich_mask = enrich_mask.astype(int)  # converting the bool arr to 1 and 0
