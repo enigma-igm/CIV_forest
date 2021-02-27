@@ -8,9 +8,8 @@ from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 
 data_path = '/Users/suksientie/research/CIV_forest/nyx_sim_data/'
-#skewerfile = data_path + 'enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r0.34375_logM9.00.fits'
-skewerfile = data_path + 'enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r1.37500_logM10.00.fits'
-#skewerfile = data_path + 'enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r0.34375_logM9.00.fits'
+#skewerfile = data_path + 'enrichment_models/rand_skewers_z45_ovt_tau_xciv_flux_r1.37500_logM10.00.fits'
+skewerfile = 'nyx_sim_data/tmp_igm_cluster/rand_skewers_z45_ovt_xciv_R_1.10_logM_11.00_tau.fits'
 metal_par = Table.read(skewerfile, hdu=1)
 metal_ske = Table.read(skewerfile, hdu=2)
 
@@ -30,6 +29,7 @@ v_hires, (ftot_hires, figm_hires, fcgm_hires), \
 
 #### uniformly enriched ####
 ori_skewerfile = data_path + 'rand_skewers_z45_ovt_tau_xciv_flux.fits' # uniformly enriched
+ori_skewerfile = 'nyx_sim_data/tmp_igm_cluster/rand_skewers_z45_ovt_xciv_R_1.35_logM_11.00_tau.fits'
 ori_metal_par = Table.read(ori_skewerfile, hdu=1)
 ori_metal_ske = Table.read(ori_skewerfile, hdu=2)
 
@@ -61,13 +61,13 @@ ax2.set_xlim([vmin, vmax])
 """
 #### x_metal plot ####
 ax1.plot(ori_v_hires, ori_x_metal[0], alpha=0.7)
-ax1.plot(v_hires, x_metal[0], c='k')
+ax1.plot(v_hires, x_metal[0], 'k.')
 ax1.set_ylabel('X_CIV', fontsize=13)
 ax1.set_xlim([vmin, vmax])
 
 #### flux plot ####
 ax2.plot(ori_v_hires, ori_ftot_hires[0], alpha=0.7, label='hires (uniform Z)')#, drawstyle='steps-mid', alpha=0.6, zorder=10, color='red')
-ax2.plot(v_hires, ftot_hires[0], c='k', label='hires')#, drawstyle='steps-mid', alpha=0.6, zorder=10, color='red')
+ax2.plot(v_hires, ftot_hires[0], 'k', label='hires')#, drawstyle='steps-mid', alpha=0.6, zorder=10, color='red')
 #ax4.plot(v_lores, ftot_lores_noise, label='FWHM=%0.1f km/s; SNR=%0.1f' % (fwhm, snr), c='r', alpha=0.6, zorder=1)#, drawstyle='steps-mid')
 ax2.set_xlabel('v (km/s)', fontsize=14)
 ax2.set_ylabel('F_CIV', fontsize=13)

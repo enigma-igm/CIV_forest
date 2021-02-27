@@ -7,6 +7,7 @@ import shutil
 from IPython import embed
 import argparse
 import time
+from subprocess import Popen
 
 # ~30-60 min for distance computation for 10,000 skewers (?)
 # 1.5 hrs for tau skewer generation for 10,000 skewers
@@ -16,8 +17,10 @@ def parser():
     parser = argparse.ArgumentParser(description='Create random skewers for metal line forest', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--ranskewerfile', type=str, required=True, help="Name of random skewerfile containing the (uniformly enriched) metal ion fraction skewers")
     parser.add_argument('--halofile', type=str, required=True, help="Name of halo file")
+    parser.add_argument('--nproc', type=int, required=False, help="Number of processes to run simultaneously")
     #parser.add_argument('--nran', type=int, help="Number of skewers to create") # 10000
     #parser.add_argument('--seed', type=int, help="Seed for random number generator") # 789
+
     return parser.parse_args()
 
 def main():
@@ -31,6 +34,7 @@ def main():
     import halos_skewers
 
     args = parser()
+    nproc = args.nproc
     #nran = args.nran
     #seed = args.seed
     #dmax = args.dmax
@@ -68,23 +72,26 @@ def main():
     enrichment_path = os.path.join(outpath, 'enrichment_models')  # make sure to create this directory beforehand
 
     uniform_xciv_params = Table.read(args.ranskewerfile, hdu=1)
-    uniform_xciv_skewers = Table.read(args.ranskewerfile, hdu=1)
+    uniform_xciv_skewers = Table.read(args.ranskewerfile, hdu=2)
 
-    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.25)  # 11 x 13 models
-
-    # testing entire code on subset of models and skewers
-    logM = logM[-2:]
-    R = R[4:6]
-    uniform_xciv_skewers = uniform_xciv_skewers[0:100]
-
-    nlogM, nR = len(logM), len(R)
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
     halos = Table.read(args.halofile)
 
-    print('Creating tau skewers using {:d} logM and {:d} R models '.format(nlogM, nR))
+    # testing entire code on subset of models, skewers, and halos
+    #logM = logM[-3:] # 3 models
+    #R = R[3:6] # 3 models
+    #uniform_xciv_skewers = uniform_xciv_skewers[0:70]
+    #rand_halos = np.random.choice(len(halos), replace=False, size=500)
+    #halos = halos[rand_halos]
+    #######
+
+    nlogM, nR = len(logM), len(R)
+    print('Creating tau skewers using {:d} logM and {:d} R models for a total of {:d} models'.format(nlogM, nR, nR * nlogM))
+
+    counter = 0
+    counter_file = []
 
     for i_R, Rval in enumerate(R):
-        #time.sleep(600) # wait for 1 hr
-        time.sleep(60)
         for i_logM, logMval in enumerate(logM):
             enrich_mask = halos_skewers.calc_distance_all_skewers(uniform_xciv_params, uniform_xciv_skewers, halos, Rval, logMval)
             enrich_mask = enrich_mask.astype(int)  # converting the bool arr to 1 and 0
@@ -108,12 +115,31 @@ def main():
             tau_outfile = os.path.join(enrichment_path, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '_tau.fits')
 
             command = 'python run_reion_skewers_metal.py ' + '--ranskewerfile ' + xciv_outfile + ' --outfile ' + tau_outfile + \
-                      ' --dmax 3000 --metal_colname X_CIV --metal_mass 12'
+                      ' --dmax 3000 --metal_colname X_CIV --metal_mass 12 > %s' % tau_logfile
 
-            test_command = "echo %s > %s" % (command, tau_logfile)
-            ret = os.system(test_command)
+            #command = "echo %s > %s" % (command, tau_logfile)
+
+            #ret = os.system(command)
+            p = Popen(command, shell=True)
+
+            counter_file.append(tau_outfile)
+            counter += 1
+            print("counter now", counter)
+
+            if nproc != None:
+                if counter % nproc == 0: # every n-th processes
+                    print("checking if all files exist")
+
+                    while True:
+                        if all([os.path.isfile(f) for f in counter_file]):
+                            counter_file = []
+                            print("yep...proceeding")
+                            break
+                        else:
+                            print('waiting....')
+                            time.sleep(300) # wait 5 min before checking again
 
 if __name__ == '__main__':
     main()
 
-
+#nohup python prodrun_metal_skewers_enrichment.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /home/sstie/CIV_forest/nyx_sim_data/z45_halo_logMmin_8.fits --nproc 20 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/prodrun_metal_skewers_enrichment.log &

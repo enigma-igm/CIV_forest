@@ -121,11 +121,14 @@ def calc_distance_one_skewer(one_skewer, params, halos, Rmax, logM_min):
 
 def calc_distance_all_skewers(params, skewers, halos, Rmax, logM_min):
     # 0.17 min (0.3 min) for 100 skewers at Rmax=0.2 Mpc (2.5 Mpc)
+    print("Doing (R, logM)", Rmax, logM_min)
     start = time.time()
     all_iz_near_halo = []
     for iskew in skewers:
         iz_near_halo = calc_distance_one_skewer(iskew, params, halos, Rmax, logM_min)
         all_iz_near_halo.append(iz_near_halo)
+
+    all_iz_near_halo = np.array(all_iz_near_halo)
     end = time.time()
     print((end - start) / 60.)
 
@@ -177,6 +180,30 @@ def calc_fm_fv(mask_arr, skewers):
     fm = np.sum(skewers['ODEN'][mask_arr]) / np.sum(skewers['ODEN'])
 
     return fm, fv
+
+def calc_fm_fv_all(all_mask_filename, skewers):
+    mask_par = Table.read(all_mask_filename, hdu=1)
+    mask = Table.read(all_mask_filename, hdu=2)
+
+    rgrid = mask_par['r_Mpc'][0]
+    mgrid = mask_par['logM'][0]
+
+    fv_all = []
+    fm_all = []
+    rgrid_all = []
+    mgrid_all = []
+
+    for col in mask.columns:
+        ir, im = int(col.strip('mask')[0]), int(col.strip('mask')[1])
+        fm, fv = calc_fm_fv(mask[col], skewers)
+        rgrid_all.append(rgrid[ir])
+        mgrid_all.append(mgrid[im])
+        fm_all.append(fm)
+        fv_all.append(fv)
+
+    rgrid_all = np.array(rgrid_all)
+    mgrid_all = np.array(mgrid_all)
+    return rgrid_all, mgrid_all, fm_all, fv_all
 
 def calc_igm_Zeff(fv):
     # calculates effective metallicity
