@@ -37,6 +37,7 @@ def main():
     xciv_skewerpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/' + zstr + '/enrichment_models/xciv_mask/'
 
     all_files = glob.glob(xciv_skewerpath + '*.fits')
+    all_files = all_files[0:10]
     print('Creating tau skewers for {:d} models'.format(len(all_files)))
 
     counter = 0
@@ -67,7 +68,7 @@ def main():
                         break
                     else:
                         print('waiting....')
-                        time.sleep(300)  # wait 5 min before checking again
+                        time.sleep(30)  # wait 5 min before checking again
 
 if __name__ == '__main__':
     main()
