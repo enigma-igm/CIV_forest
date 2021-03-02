@@ -17,14 +17,14 @@ R_ls = [0.1, 0.5]
 halofile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits'
 halos = Table.read(halofile)
 maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
-outfig = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/outfig.png'
+outfig = '/home/sstie/CIV_forest/outfig.png'
 
 Zmin = Zc - slice_thickness/2.
 Zmax = Zc + slice_thickness/2.
 slice = (halos['ZHALO'] >= Zmin) * (halos['ZHALO'] < Zmax)
 halo_slice = halos[slice]
 
-plt.figure(figsize=(12,12,12))
+plt.figure(figsize=(12,12))
 nrow = len(logM_min_ls)
 ncol = len(R_ls)
 subplot_counter = 0
@@ -33,7 +33,7 @@ for ilogM, logMval in enumerate(logM_min_ls):
     for iR, Rval in enumerate(R_ls):
         skewerfile = os.path.join(maskpath, 'rand_skewers_z45_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.fits')
         ske = Table.read(skewerfile, hdu=2)
-        mask_arr = ske['MASK']
+        mask_arr = ske['MASK'].astype(bool)
         fm, fv = halos_skewers.calc_fm_fv(mask_arr, ske)
 
         subplot_counter +=1
