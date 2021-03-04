@@ -23,7 +23,6 @@ def main():
     # Now read in the skewers
     params=Table.read(args.ranskewerfile,hdu=1)
     skewers=Table.read(args.ranskewerfile,hdu=2)
-    skewers = skewers[0:50]
     start = time.time()
     retval = make_reion_skewers_metal(params, skewers, args.outfile, args.dmax, args.metal_colname, args.metal_mass, \
                                       IMPOSE_EOS=False)

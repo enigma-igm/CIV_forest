@@ -35,7 +35,7 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
 
     return vel_mid, xi_mean_tot, xi_tot, npix_tot
 
-def compute_xi_all2(vel, flux_tot, vmin_corr, vmax_corr, dv_corr):
+def compute_xi_all_flexi(vel, flux_tot, vmin_corr, vmax_corr, dv_corr):
 
     # same as compute_xi_all but takes output of reion_utils.create_metal_forest() as inputs for flexibility
 

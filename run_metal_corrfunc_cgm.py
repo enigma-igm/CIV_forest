@@ -66,7 +66,7 @@ if compute_corr:
 
     # IGM only
     start = time.time()
-    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_igm, vmin_corr, vmax_corr, dv_corr)
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all_flexi(vel_lores, flux_lores_igm, vmin_corr, vmax_corr, dv_corr)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm)
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end - start) / 60.))
@@ -74,14 +74,14 @@ if compute_corr:
     # IGM + flux cutoff
     start = time.time()
     mask_want = (1 - flux_lores_igm) < flux_decr_cutoff
-    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_igm[mask_want], vmin_corr, vmax_corr, dv_corr)
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all_flexi(vel_lores, flux_lores_igm[mask_want], vmin_corr, vmax_corr, dv_corr)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_mask)
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end - start) / 60.))
 
     # IGM + CGM (no flux mask); using slightly larger dv bin
     start = time.time()
-    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot, vmin_corr, vmax_corr, dv_corr_tot)
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all_flexi(vel_lores, flux_lores_tot, vmin_corr, vmax_corr, dv_corr_tot)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_cgm)
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end-start)/60.))
@@ -89,7 +89,7 @@ if compute_corr:
     # IGM + CGM + flux cutoff
     start = time.time()
     mask_want = (1 - flux_lores_tot) < flux_decr_cutoff
-    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all2(vel_lores, flux_lores_tot[mask_want], vmin_corr, vmax_corr, dv_corr)
+    vel_mid, xi_mean_tot, xi_tot, npix_tot = mcf.compute_xi_all_flexi(vel_lores, flux_lores_tot[mask_want], vmin_corr, vmax_corr, dv_corr)
     mcf.write_corrfunc(vel_mid, xi_tot, npix_tot, corr_outfile_igm_cgm_mask)
     end = time.time()
     print("Done computing 2PCF in %0.2f min" % ((end - start) / 60.))

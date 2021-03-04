@@ -83,3 +83,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# run command on IGM (2/27/21):
+# nohup python prodrun_mask_xciv_skewers.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits --nproc 20 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/prodrun_mask_xciv_skewers.log &

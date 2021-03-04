@@ -14,7 +14,7 @@ R_ls = [0.5, 1.5, 2.7]
 halofile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits'
 halos = Table.read(halofile)
 maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
-outfig = '/home/sstie/CIV_forest/outfig.png'
+outfig = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/enriched_halos.png'
 
 Zmin = Zc - slice_thickness/2.
 Zmax = Zc + slice_thickness/2.
@@ -26,7 +26,7 @@ ncol = len(R_ls)
 tot_subplot = nrow*ncol
 subplot_counter = 0
 
-plt.figure(figsize=(14,12))
+plt.figure(figsize=(14,14))
 
 for ilogM, logMval in enumerate(logM_min_ls):
     for iR, Rval in enumerate(R_ls):

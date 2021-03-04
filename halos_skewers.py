@@ -222,7 +222,7 @@ def calc_igm_Zeff(fv):
 
     return logZ_eff, logZ_jfh
 
-##### temp #####
+##### checking coordinate consistency #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
     xhalos = halos['ZHALO'] # likely in Mpc unit (rather than Mpc/h)
     ixhalos = halos['IHALOZ']
