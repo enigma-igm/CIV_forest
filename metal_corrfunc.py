@@ -83,8 +83,8 @@ def plot_corrmatrix(params, covar):
     corr = covar / np.sqrt(np.outer(np.diag(covar), np.diag(covar)))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
 
     plt.figure(figsize=(8, 8))
-    plt.imshow(corr, origin='lower', cmap='inferno', interpolation='nearest', \
-                   extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], vmin=0.0, vmax=1.0)
+    plt.imshow(corr, origin='lower', interpolation='nearest', extent=[vmin_corr, vmax_corr, vmin_corr, vmax_corr], \
+               vmin=0.0, vmax=1.0, cmap='inferno')
     plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
     plt.ylabel(r'$\Delta v$ (km/s)', fontsize=15)
     plt.title(r'nqso=%d, $\Delta z$=%0.1f, npath=%d' % (nqsos, delta_z, npath) + '\n' + 'ncovar=%d, SNR=%d' % (ncovar, SNR), fontsize=18)
