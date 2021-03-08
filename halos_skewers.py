@@ -20,6 +20,7 @@ from astropy.table import Table
 import enigma.reion_forest.utils as reion_utils
 from scipy.spatial import distance # v14.0 syntax
 from linetools.abund import solar as labsol
+import os
 
 def init_all(halofile='nyx_sim_data/z45_halo_logMmin_8.fits', skewerfile='nyx_sim_data/rand_skewers_z45_ovt_tau.fits'):
     par = Table.read(skewerfile, hdu=1)
@@ -181,6 +182,24 @@ def calc_fm_fv(mask_arr, skewers):
 
     return fm, fv
 
+def calc_igm_Zeff(fm, logZ_fid=-3.5):
+    # calculates effective metallicity
+
+    sol = labsol.SolarAbund()
+    logZ_sol = sol.get_ratio('C/H') # same as sol['C'] - 12.0
+    nC_nH_sol = 10**(logZ_sol)
+
+    nH_bar = 3.1315263992114194e-05 # from skewerfile
+    Z_fid = 10 ** (logZ_fid)
+    nC_nH_fid = Z_fid * nC_nH_sol
+    nC = nH_bar * nC_nH_fid * fm
+
+    logZ_eff = np.log10(nC / nH_bar) - logZ_sol
+    logZ_jfh = np.log10(10**(logZ_fid) * fm)
+
+    return logZ_eff, logZ_jfh
+
+"""
 def calc_fm_fv_all(all_mask_filename, skewers):
     mask_par = Table.read(all_mask_filename, hdu=1)
     mask = Table.read(all_mask_filename, hdu=2)
@@ -204,23 +223,39 @@ def calc_fm_fv_all(all_mask_filename, skewers):
     rgrid_all = np.array(rgrid_all)
     mgrid_all = np.array(mgrid_all)
     return rgrid_all, mgrid_all, fm_all, fv_all
+"""
 
-def calc_igm_Zeff(fv):
-    # calculates effective metallicity
+def calc_fvfm_all():
+    # for files on IGM machine
 
-    sol = labsol.SolarAbund()
-    logZ_sol = sol.get_ratio('C/H') # same as sol['C'] - 12.0
-    nC_nH_sol = 10**(logZ_sol)
+    maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
+    outfile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_all.fits'
 
-    nH_bar = 3.1315263992114194e-05 # from skewerfile
-    Z_fid = 10 ** (-3.5)
-    nC_nH_fid = Z_fid * nC_nH_sol
-    nC = nH_bar * nC_nH_fid * fv
+    logM, R = init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
 
-    logZ_eff = np.log10(nC / nH_bar) - logZ_sol
-    logZ_jfh = np.log10(10**(-3.5) * fv)
+    fm_all = []
+    fv_all = []
+    logM_all = []
+    R_all = []
 
-    return logZ_eff, logZ_jfh
+    for i_logM, logMval in enumerate(logM):
+        for i_R, Rval in enumerate(R):
+            mask_outfile = os.path.join(maskpath, 'rand_skewers_z45_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(
+                logMval) + '.fits')
+            ske = Table.read(mask_outfile, hdu=2)
+            mask_arr = ske['MASK'].astype(bool)
+
+            fm, fv = calc_fm_fv(mask_arr, ske)
+            fm_all.append(fm)
+            fv_all.append(fv)
+            logM_all.append(logMval)
+            R_all.append(Rval)
+
+    outtable = Table([logM_all, R_all, fv_all, fm_all], names=('logM', 'R_Mpc', 'fv', 'fm'))
+    hdu_table = fits.table_to_hdu(outtable)
+    hdulist = fits.HDUList()
+    hdulist.append(hdu_table)
+    hdulist.writeto(outfile, overwrite=True)
 
 ##### checking coordinate consistency #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
