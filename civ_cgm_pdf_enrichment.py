@@ -68,21 +68,23 @@ def varying_fv(outfig, snr=50):
     logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.50, 0.1, 3, 0.4)
     R_want = R[:-1]  # the last element is outside model boundaries
     logM_want = 8.5
+    R_want = R[0:2]
 
-    for iR, Rval in R_want:
+    for iR, Rval in enumerate(R_want):
+        print("Rval", Rval)
         v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, \
         v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand = init(Rval, logM_want)
 
         noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores.shape)
-        flux_noise_igm_lores = flux_igm_lores + noise
-        flux_noise_cgm_lores = flux_cgm_lores + noise
+        #flux_noise_igm_lores = flux_igm_lores + noise
+        #flux_noise_cgm_lores = flux_cgm_lores + noise
 
         # with noise
         if iR == 0:
-            plot_pdf_simple(flux_noise_cgm_lores, label='CGM')
-            plot_pdf_simple(noise, label='noise', noise=True)
+            plot_pdf_simple(flux_cgm_lores, label='CGM')
+            plot_pdf_simple(noise, label='noise (SNR=%d)' % snr, noise=True)
 
-        plot_pdf_simple(flux_noise_igm_lores, label='IGM (R=%0.2f)' % Rval)
+        plot_pdf_simple(flux_igm_lores, label='IGM (R=%0.2f)' % Rval)
 
     plt.legend()
     plt.savefig(outfig)
