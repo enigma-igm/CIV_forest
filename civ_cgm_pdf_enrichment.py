@@ -1,0 +1,64 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import enigma.reion_forest.utils as reion_utils
+from astropy.table import Table
+from linetools.lists.linelist import LineList
+from astropy import constants as const
+from astropy import units as u
+import civ_cgm
+import civ_cgm_pdf
+import halos_skewers
+
+# to run on IGM machine where production files are
+taupath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/tau/'
+
+# random seeds for drawing CGM absorbers
+seed = 102938
+rand = np.random.RandomState(seed)
+
+def init(R_want, logM_want, logZ=-3.5, metal_ion='C IV', fwhm=10, sampling=3.0):
+
+    skewerfile = taupath + 'rand_skewers_z45_ovt_xciv_tau_R_%0.2f' % R_want + '_logM_%0.2f' % logM_want + '.fits'
+    par = Table.read(skewerfile, hdu=1)
+    ske = Table.read(skewerfile, hdu=2)
+    z = par['z'][0]
+
+    in_cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.50, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
+                                           b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
+                                           logN_strong=14.5, logN_trans=0.35)
+
+    metal_dndz_func = civ_cgm.civ_dndz_sch
+
+    v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), \
+    v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
+    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
+                                                                         sampling=sampling, cgm_dict=in_cgm_dict, \
+                                                                         metal_dndz_func=metal_dndz_func, seed=seed)
+
+    return v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, \
+           v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand
+
+def varying_fv(outfig, snr=50):
+
+    # looking at just a subset of all models
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.50, 0.1, 3, 0.4)
+    R_want = R[:-1]  # the last element is outside model boundaries
+    logM_want = 8.5
+
+    for iR, Rval in R_want:
+        v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, \
+        v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand = init(Rval, logM_want)
+
+        noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores.shape)
+        flux_noise_igm_lores = flux_igm_lores + noise
+        flux_noise_cgm_lores = flux_cgm_lores + noise
+
+        # with noise
+        if iR == 0:
+            civ_cgm_pdf.plot_pdf_simple(flux_noise_cgm_lores, label='CGM')
+            civ_cgm_pdf.plot_pdf_simple(noise, label='noise', noise=True)
+
+        civ_cgm_pdf.plot_pdf_simple(flux_noise_igm_lores, label='IGM (R=%0.2f)' % Rval)
+
+    plt.legend()
+    plt.savefig(outfig)
