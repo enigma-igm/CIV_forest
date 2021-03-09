@@ -115,7 +115,7 @@ def plot_pdf(v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, f
     plt.tight_layout()
     plt.show()
 
-def plot_pdf_simple(flux, label=None):
+def plot_pdf_simple(flux, label=None, noise=False):
 
     # simple plotting of the flux pdf
     npix = flux.size
@@ -123,7 +123,11 @@ def plot_pdf_simple(flux, label=None):
     oneminf_max = 1.0
     oneminf_min = 1e-5
 
-    flux_bins, pdf_out = reion_utils.pdf_calc(1.0 - flux, oneminf_min, oneminf_max, nbins)
+    if noise:
+        flux_bins, pdf_out = reion_utils.pdf_calc(flux, oneminf_min, oneminf_max, nbins)
+    else:
+        flux_bins, pdf_out = reion_utils.pdf_calc(1.0 - flux, oneminf_min, oneminf_max, nbins)
+
     if label != None:
         plt.plot(flux_bins, pdf_out, drawstyle='steps-mid', label=label)
     else:
