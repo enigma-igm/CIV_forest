@@ -65,10 +65,10 @@ def plot_pdf_simple(flux, label=None, noise=False):
 def varying_fv(outfig, snr=50):
 
     # looking at just a subset of all models
-    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.50, 0.1, 3, 0.4)
-    R_want = R[:-1]  # the last element is outside model boundaries
+    #logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.50, 0.1, 3, 0.4)
+    #R_want = R[:-1]  # the last element is outside model boundaries
     logM_want = 8.5
-    R_want = R[0:2]
+    R_want = [0.1, 0.7, 1.3, 1.9, 2.5]
 
     for iR, Rval in enumerate(R_want):
         print("Rval", Rval)
@@ -81,8 +81,8 @@ def varying_fv(outfig, snr=50):
 
         # with noise
         if iR == 0:
-            plot_pdf_simple(flux_cgm_lores, label='CGM')
-            plot_pdf_simple(noise, label='noise (SNR=%d)' % snr, noise=True)
+            plot_pdf_simple(flux_cgm_lores, label='CGM', lw=1.5)
+            plot_pdf_simple(noise, label='noise (SNR=%d)' % snr, noise=True, lw=1.5)
 
         plot_pdf_simple(flux_igm_lores, label='IGM (R=%0.2f)' % Rval)
 
