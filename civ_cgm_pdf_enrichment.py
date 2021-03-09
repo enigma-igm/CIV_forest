@@ -6,7 +6,6 @@ from linetools.lists.linelist import LineList
 from astropy import constants as const
 from astropy import units as u
 import civ_cgm
-import civ_cgm_pdf
 import halos_skewers
 
 # to run on IGM machine where production files are
@@ -38,6 +37,31 @@ def init(R_want, logM_want, logZ=-3.5, metal_ion='C IV', fwhm=10, sampling=3.0):
     return v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, \
            v_hires, flux_tot_hires, flux_igm_hires, flux_cgm_hires, cgm_tup, rand
 
+def plot_pdf_simple(flux, label=None, noise=False):
+
+    # simple plotting of the flux pdf
+    npix = flux.size
+    nbins = 101
+    oneminf_max = 1.0
+    oneminf_min = 1e-5
+
+    if noise:
+        flux_bins, pdf_out = reion_utils.pdf_calc(flux, oneminf_min, oneminf_max, nbins)
+    else:
+        flux_bins, pdf_out = reion_utils.pdf_calc(1.0 - flux, oneminf_min, oneminf_max, nbins)
+
+    if label != None:
+        plt.plot(flux_bins, pdf_out, drawstyle='steps-mid', label=label)
+    else:
+        plt.plot(flux_bins, pdf_out, drawstyle='steps-mid')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('1-F', fontsize=13)
+    plt.ylabel('PDF', fontsize=13)
+
+    plt.tight_layout()
+    #plt.show()
+
 def varying_fv(outfig, snr=50):
 
     # looking at just a subset of all models
@@ -55,10 +79,10 @@ def varying_fv(outfig, snr=50):
 
         # with noise
         if iR == 0:
-            civ_cgm_pdf.plot_pdf_simple(flux_noise_cgm_lores, label='CGM')
-            civ_cgm_pdf.plot_pdf_simple(noise, label='noise', noise=True)
+            plot_pdf_simple(flux_noise_cgm_lores, label='CGM')
+            plot_pdf_simple(noise, label='noise', noise=True)
 
-        civ_cgm_pdf.plot_pdf_simple(flux_noise_igm_lores, label='IGM (R=%0.2f)' % Rval)
+        plot_pdf_simple(flux_noise_igm_lores, label='IGM (R=%0.2f)' % Rval)
 
     plt.legend()
     plt.savefig(outfig)
