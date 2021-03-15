@@ -54,7 +54,7 @@ def plot_pdf_simple(flux, label=None, noise=False):
     oneminf_min = 1e-5
 
     if noise:
-        flux_bins, pdf_out = reion_utils.pdf_calc(flux, oneminf_min, oneminf_max, nbins)
+        flux_bins, pdf_out = reion_utils.pdf_calc(-flux, oneminf_min, oneminf_max, nbins)
     else:
         flux_bins, pdf_out = reion_utils.pdf_calc(1.0 - flux, oneminf_min, oneminf_max, nbins)
 
@@ -94,7 +94,7 @@ def varying_fv(outfig, snr=50):
         # with noise
         if iR == 0:
             plot_pdf_simple(flux_cgm_lores, label='CGM')
-            plot_pdf_simple(noise, label='noise (SNR=%d)' % snr, noise=True)
+            plot_pdf_simple(-noise, label='noise (SNR=%d)' % snr, noise=True)
 
         plot_pdf_simple(flux_igm_lores, label='IGM (R=%0.2f)' % Rval)
 

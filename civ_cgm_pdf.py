@@ -61,7 +61,8 @@ def plot_pdf(v_lores, flux_tot_lores, flux_igm_lores, flux_cgm_lores, v_hires, f
     flux_bins, pdf_igm, = reion_utils.pdf_calc(1.0 - flux_igm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm, = reion_utils.pdf_calc(1.0 - flux_cgm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_tot, = reion_utils.pdf_calc(1.0 - flux_tot_lores, oneminf_min, oneminf_max, nbins)
-    _, pdf_noise, = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
+    _, pdf_noise, = reion_utils.pdf_calc(-noise, oneminf_min, oneminf_max, nbins) # flux_noise  = 1 + noise
+                                                                                  # 1 - flux_noise = 1 - (1 + noise) = -noise
     # with noise
     _, pdf_igm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_igm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_cgm_lores, oneminf_min, oneminf_max, nbins)
@@ -194,7 +195,7 @@ def compare_wrange(alpha=-0.20):
     flux_bins, pdf_igm = reion_utils.pdf_calc(1.0 - flux_igm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm = reion_utils.pdf_calc(1.0 - flux_cgm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_tot = reion_utils.pdf_calc(1.0 - flux_tot_lores, oneminf_min, oneminf_max, nbins)
-    _, pdf_noise = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
+    _, pdf_noise = reion_utils.pdf_calc(-noise, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_sub1 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub1, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_sub2 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub2, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_sub3 = reion_utils.pdf_calc(1.0 - flux_cgm_lores_sub3, oneminf_min, oneminf_max, nbins)
@@ -259,7 +260,7 @@ def compare_logZ():
     _, pdf_igm1 = reion_utils.pdf_calc(1.0 - flux_igm_lores_1, oneminf_min, oneminf_max, nbins)
     _, pdf_igm2 = reion_utils.pdf_calc(1.0 - flux_igm_lores_2, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm = reion_utils.pdf_calc(1.0 - flux_cgm_lores_0, oneminf_min, oneminf_max, nbins)
-    _, pdf_noise = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
+    _, pdf_noise = reion_utils.pdf_calc(-noise, oneminf_min, oneminf_max, nbins)
 
     strong_lines = LineList('Strong', verbose=False)
     wave_1548 = strong_lines['CIV 1548']['wrest']
@@ -398,7 +399,7 @@ def plot_pdf_mask(flux_tot_lores, flux_igm_lores, flux_cgm_lores, flux_decr_cuto
     flux_bins, pdf_igm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_igm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_cgm_noise, = reion_utils.pdf_calc(1.0 - flux_noise_cgm_lores, oneminf_min, oneminf_max, nbins)
     _, pdf_tot_noise, = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores, oneminf_min, oneminf_max, nbins)
-    _, pdf_noise = reion_utils.pdf_calc(noise, oneminf_min, oneminf_max, nbins)
+    _, pdf_noise = reion_utils.pdf_calc(-noise, oneminf_min, oneminf_max, nbins)
 
     # with noise and flux cutoff
     mask_want = (1 - flux_noise_tot_lores) < flux_decr_cutoff # checked
