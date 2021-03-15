@@ -7,6 +7,7 @@ import halos_skewers
 ##### to run on IGM cluster where all production files are #####
 
 plot_vs_R = True # if False, then plot vs logM (at fixed R)
+
 maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
 outfig = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_vs_R.png'
 

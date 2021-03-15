@@ -9,6 +9,11 @@ Functions here:
     - plot_halos_with_skewers
     - calc_fm_fv
     - calc_igm_Zeff
+    - calc_fvfm_all
+    - check_halo_xyz
+    - check_skewers_xyz
+    - common_cell
+    - plot_common_cell
 '''
 
 import time
@@ -226,7 +231,8 @@ def calc_fm_fv_all(all_mask_filename, skewers):
 """
 
 def calc_fvfm_all():
-    # for files on IGM machine
+    # calculates the volume- and mass-filling fraction for all enrichment models on IGM machine.
+    # outputs the table of fv and fm as fits file.
 
     maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
     outfile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_all.fits'
@@ -257,7 +263,7 @@ def calc_fvfm_all():
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
 
-##### checking coordinate consistency #####
+##### checking coordinate consistency of halo and skewer files #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
     xhalos = halos['ZHALO'] # likely in Mpc unit (rather than Mpc/h)
     ixhalos = halos['IHALOZ']
@@ -313,32 +319,3 @@ def plot_common_cell(halos, par, ske, halo_ind, ske_ind, index):
     plt.grid()
     plt.show()
 
-###### testing ######
-def make_3darr(params, skewers, halos):
-
-    halos_xyz = [[halos['XHALO'][i], halos['YHALO'][i], halos['ZHALO'][i]] for i in range(len(halos))]
-
-    Lbox = params['Lbox'][0]
-    Ng = params['Ng'][0]
-    cellsize = Lbox / Ng
-
-    skew_xyz = []
-    for i in range(10):
-        xskew = skewers['XSKEW'][i]
-        yskew = skewers['YSKEW'][i]
-        zskew = np.arange(Ng) * cellsize
-        one_skew_xyz = [[xskew, yskew, zskew[j]] for j in range(len(zskew))]
-        skew_xyz.append(one_skew_xyz)
-
-    return halos_xyz, skew_xyz
-
-def calc_distance_old(skew_xyz, halos_xyz):
-    start = time.time()
-    out = distance.cdist(skew_xyz[0], halos_xyz)
-    end = time.time()
-    print((end-start)/60.)
-
-    start = time.time()
-    out = distance.cdist(skew_xyz[0], halos_xyz, 'sqeuclidean')
-    end = time.time()
-    print((end - start) / 60.)
