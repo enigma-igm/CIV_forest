@@ -11,6 +11,9 @@ plot_vs_R = False # if False, then plot vs logM (at fixed R)
 logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.50, 0.1, 3, 0.4)
 R = R[:-1] # the last element is outside model boundaries
 
+# all models
+logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
+
 plt.figure(figsize=(8,6))
 if plot_vs_R:
     for i_logM, logMval in enumerate(logM):
@@ -19,6 +22,7 @@ if plot_vs_R:
         plt.plot(fvfm_all['R_Mpc'][want_logM], logZ_eff, 'o-', ms=3, label='logM = %0.2f' % logMval)
 
     plt.xlabel('R (Mpc)', fontsize=15)
+    plt.legend(fontsize=10)
 
 else:
     fvfm_all_R = []
@@ -31,9 +35,9 @@ else:
         plt.plot(fvfm_all['logM'][want_R], logZ_eff, 'o-', ms=3, label='R = %0.2f Mpc' % Rval)
 
     plt.xlabel('logM', fontsize=15)
+    plt.legend(fontsize=10, ncol=4)
 
 plt.ylabel(r'logZ$_{eff}$', fontsize=15)
 plt.title(r'logZ$_{fid}$ = %0.1f' % logZ_fid)
-plt.legend(fontsize=10)
 plt.tight_layout()
 plt.show()
