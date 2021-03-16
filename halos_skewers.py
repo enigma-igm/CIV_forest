@@ -202,33 +202,7 @@ def calc_igm_Zeff(fm, logZ_fid=-3.5):
     logZ_eff = np.log10(nC / nH_bar) - logZ_sol
     logZ_jfh = np.log10(10**(logZ_fid) * fm)
 
-    return logZ_eff, logZ_jfh
-
-"""
-def calc_fm_fv_all(all_mask_filename, skewers):
-    mask_par = Table.read(all_mask_filename, hdu=1)
-    mask = Table.read(all_mask_filename, hdu=2)
-
-    rgrid = mask_par['r_Mpc'][0]
-    mgrid = mask_par['logM'][0]
-
-    fv_all = []
-    fm_all = []
-    rgrid_all = []
-    mgrid_all = []
-
-    for col in mask.columns:
-        ir, im = int(col.strip('mask')[0]), int(col.strip('mask')[1])
-        fm, fv = calc_fm_fv(mask[col], skewers)
-        rgrid_all.append(rgrid[ir])
-        mgrid_all.append(mgrid[im])
-        fm_all.append(fm)
-        fv_all.append(fv)
-
-    rgrid_all = np.array(rgrid_all)
-    mgrid_all = np.array(mgrid_all)
-    return rgrid_all, mgrid_all, fm_all, fv_all
-"""
+    return logZ_eff
 
 def calc_fvfm_all():
     # calculates the volume- and mass-filling fraction for all enrichment models on IGM machine.
@@ -262,6 +236,18 @@ def calc_fvfm_all():
     hdulist = fits.HDUList()
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
+
+def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment/fvfm_all.fits'):
+    fvfm = Table.read(fvfm_file)
+    logM_all = np.array(fvfm['logM'])
+    R_all = np.round(np.array(fvfm['R_Mpc']), 2)
+    #i = np.where(logM_all == logM_want)[0]
+    #j = np.where(R_all == R_want)[0]
+    k = np.where((logM_all == logM_want) & (R_all == R_want))[0]
+    fv_want = (fvfm['fv'][k])[0] # the [0] is just to extract the value from astropy column
+    fm_want = (fvfm['fm'][k])[0]
+
+    return fv_want, fm_want
 
 ##### checking coordinate consistency of halo and skewer files #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):

@@ -97,12 +97,14 @@ def varying_fv(outfig, snr=50):
         #flux_noise_igm_lores = flux_igm_lores + noise
         #flux_noise_cgm_lores = flux_cgm_lores + noise
 
-        # with noise
-        if iR == 0:
+        fv_want, fm_want = halos_skewers.get_fvfm(logM_want, Rval)
+        logZ_eff_want = halos_skewers.calc_igm_Zeff(fm_want, logZ_fid=-3.5)
+
+        if iR == 0: # plot with noise
             plot_pdf_simple(flux_cgm_lores, label='CGM')
             plot_pdf_simple(noise, label='noise (SNR=%d)' % snr, noise=True)
 
-        plot_pdf_simple(flux_igm_lores, label='IGM (R=%0.2f)' % Rval)
+        plot_pdf_simple(flux_igm_lores, label=r'IGM (logZ$_{eff}$=%0.3f)' % logZ_eff_want)
 
     plt.legend()
     plt.savefig(outfig)
