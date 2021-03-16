@@ -10,6 +10,7 @@ from enigma.reion_forest.compute_model_grid import read_model_grid
 from enigma.reion_forest.utils import find_closest
 from enigma.reion_forest import inference
 import random
+import time
 
 ######## Setting up #########
 seed = 125913 # random seed to pick the mock data set
@@ -60,8 +61,7 @@ def init(modelfile, logZ_guess, logM_guess, R_guess):
     init_out = logZ_coarse, logM_coarse, R_coarse, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array
     return init_out
 
-import time
-def interp_likelihood(init_out, nlogZ_fine=501, nlogM_fine=501, nR_fine=501):
+def interp_likelihood(init_out, nlogZ_fine=501, nlogM_fine=501, nR_fine=501, plot=False):
 
     # unpack input
     logZ_coarse, logM_coarse, R_coarse, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
@@ -91,7 +91,6 @@ def interp_likelihood(init_out, nlogZ_fine=501, nlogM_fine=501, nR_fine=501):
 
     # Loop over the coarse grid and evaluate the likelihood at each location
     lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
-
     for ilogM, logM_val in enumerate(logM_coarse):
         for iR, R_val in enumerate(R_coarse):
             for ilogZ, logZ_val in enumerate(logZ_coarse):
@@ -99,12 +98,36 @@ def interp_likelihood(init_out, nlogZ_fine=501, nlogM_fine=501, nR_fine=501):
                                                             lndet_array[ilogM, iR, ilogZ],
                                                             icovar_array[ilogM, iR, ilogZ, :, :])
 
-
+    print('interpolating lnlike')
     lnlike_fine = inference.interp_lnlike_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, lnlike_coarse)
 
     start = time.time()
+    print('interpolating model')
     xi_model_fine = inference.interp_model_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, xi_model_array)
     end = time.time()
     print((end-start)/60.)
 
-    return xi_model_fine
+    if plot: # make a 2d surface plot of the likelihood
+        # TODO
+        #logZ_fine_2d, xhi_fine_2d = np.meshgrid(logZ_fine, xhi_fine)
+        #lnlikefile = figpath + 'lnlike.pdf'
+        #inference.lnlike_plot(xhi_fine_2d, logZ_fine_2d, lnlike_fine, lnlikefile)
+
+    return lnlike_fine, xi_model_fine
+
+def mcmc_inference(nsteps, burnin, nwalkers, linear_prior, logM_fine, R_fine, logZ_fine, lnlike_fine):
+
+    # find optimal starting points for each walker
+    logM_fine_min, logM_fine_max = logM_fine.min(), logM_fine.max()
+    R_fine_min, R_fine_max = R_fine.min(), R_fine.max()
+    logZ_fine_min, logZ_fine_max = logZ_fine.min(), logZ_fine.max()
+
+    # DOUBLE CHECK
+    bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
+        [(0, 10**logM_fine_max), (0, R_fine_max), (0, 10**logZ_fine_max)]
+
+    chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
+    args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+    result_opt = optimize.differential_evolution(chi2_func, bounds=bounds, popsize=25, recombination=0.7, disp=True, polish=True, args=args, seed=rand)
+
+    ndim = 3
