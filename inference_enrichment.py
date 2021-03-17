@@ -108,14 +108,15 @@ def interp_likelihood(init_out, nlogZ_fine=501, nlogM_fine=501, nR_fine=501, plo
     print((end-start)/60.)
 
     if plot: # make a 2d surface plot of the likelihood
+        pass
         # TODO
         #logZ_fine_2d, xhi_fine_2d = np.meshgrid(logZ_fine, xhi_fine)
         #lnlikefile = figpath + 'lnlike.pdf'
         #inference.lnlike_plot(xhi_fine_2d, logZ_fine_2d, lnlike_fine, lnlikefile)
 
-    return lnlike_fine, xi_model_fine
+    return lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
-def mcmc_inference(nsteps, burnin, nwalkers, linear_prior, logM_fine, R_fine, logZ_fine, lnlike_fine):
+def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior):
 
     # find optimal starting points for each walker
     logM_fine_min, logM_fine_max = logM_fine.min(), logM_fine.max()
@@ -128,6 +129,30 @@ def mcmc_inference(nsteps, burnin, nwalkers, linear_prior, logM_fine, R_fine, lo
 
     chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
     args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
-    result_opt = optimize.differential_evolution(chi2_func, bounds=bounds, popsize=25, recombination=0.7, disp=True, polish=True, args=args, seed=rand)
 
+    result_opt = optimize.differential_evolution(chi2_func, bounds=bounds, popsize=25, recombination=0.7, disp=True, polish=True, args=args, seed=rand)
     ndim = 3
+
+    # initialize walkers
+    pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
+         for i in range(ndim)] for i in range(nwalkers)]
+
+    np.random.seed(rand.randint(0, seed, size=1)[0])
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
+    sampler.run_mcmc(pos, nsteps, progress=True)
+
+    tau = sampler.get_autocorr_time()
+
+    print('Autocorrelation time')
+    print('tau_logM = {:7.2f}, tau_R = {:7.2f}, tau_logZ = {:7.2f}'.format(tau[0], tau[1], tau[2]))
+
+    flat_samples = sampler.get_chain(discard=burnin, thin=250, flat=True) # numpy array
+
+    if linear_prior: # convert the samples to linear units
+        param_samples = flat_samples.copy()
+        param_samples[:, 0] = np.log10(param_samples[:, 0]) # logM
+        param_samples[:, 2] = np.log10(param_samples[:, 2]) # logZ
+    else:
+        param_samples = flat_samples
+
+    return flat_samples
