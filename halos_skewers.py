@@ -205,7 +205,8 @@ def calc_igm_Zeff(fm, logZ_fid=-3.5):
     return logZ_eff
 
 def calc_fvfm_all():
-    # calculates the volume- and mass-filling fraction for all enrichment models on IGM machine.
+    # calculates the volume- and mass-filling fraction
+    # requires enrichment models stored on IGM machine.
     # outputs the table of fv and fm as fits file.
 
     maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
@@ -248,6 +249,26 @@ def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment/f
     fm_want = (fvfm['fm'][k])[0]
 
     return fv_want, fm_want
+
+def get_logM_R(fm_lower, fm_upper, logZ_fid, logM_grid, R_grid, fvfm_file='nyx_sim_data/igm_cluster/enrichment/fvfm_all.fits'):
+
+    logZ_eff_lower = calc_igm_Zeff(fm_lower, logZ_fid)
+    logZ_eff_upper = calc_igm_Zeff(fm_upper, logZ_fid)
+    print('fm_lower %0.2f corresponds to logZ_eff_lower %0.3f' % (fm_lower, logZ_eff_lower))
+    print('fm_upper %0.2f corresponds to logZ_eff_upper %0.3f' % (fm_upper, logZ_eff_upper))
+
+    fvfm = Table.read(fvfm_file)
+    logM_all = np.array(fvfm['logM'])
+    R_all = np.round(np.array(fvfm['R_Mpc']), 2)
+
+    i = np.where((fvfm['fm'] <= fm_upper) & (fvfm['fm'] >= fm_lower))[0]
+    logM_want = logM_all[i]
+    R_want = R_all[i]
+
+    ilogM_want = np.array([np.where(logM_grid == m)[0][0] for m in logM_want])
+    iR_want = np.array([np.where(np.round(R_grid,2) == r)[0][0] for r in R_want])
+
+    return logM_want, R_want, ilogM_want, iR_want
 
 ##### checking coordinate consistency of halo and skewer files #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):

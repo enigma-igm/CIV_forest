@@ -99,7 +99,7 @@ def plot_corrfunc(params, xi_model, label=None):
 
     plt.plot(vel_mid, xi_model, linewidth=2.0, linestyle='-', label=label)
     plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.6) #label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-    plt.legend(fontsize=15)
+    plt.legend(fontsize=12)
     plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
     plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
 
@@ -168,6 +168,7 @@ def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
     else:
         plt.show()
 
+# TODO: needs to be adapted for enrichment model
 def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
 
@@ -200,6 +201,25 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     #plt.ylabel('Covariance', fontsize=13)
     #plt.yscale('log')
     plt.legend()
+    plt.show()
+
+import halos_skewers
+def plot_enrichment_corrfunc_fixedlogZeff(modelfile, fm_lower, fm_upper, logZ):
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    logMgrid, Rgrid = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
+    mwant, rwant, im, ir = halos_skewers.get_logM_R(fm_lower, fm_upper, logZ, logMgrid, Rgrid)
+    ilogZ = np.where(params['logZ'][0] == logZ)[0][0]
+
+    plt.figure(figsize=(8,6))
+    for i in range(len(im)):
+        fv, fm = halos_skewers.get_fvfm(mwant[i], rwant[i])
+        plot_corrfunc(params, xi_model_array[im[i]][ir[i]][ilogZ], label='logM=%0.2f, R=%0.2f (fv=%0.2f, fm=%0.2f)' % \
+                                                                         (mwant[i], rwant[i], fv, fm))
+
+    fm_avg = (fm_lower + fm_upper)/2
+    logZ_eff = halos_skewers.calc_igm_Zeff(fm_avg, logZ_fid=logZ)
+    plt.title(r'log$Z_{eff} = %0.3f$, log$Z_{fid} = %0.3f$' % (logZ_eff, logZ), fontsize=15)
     plt.show()
 
 ##################### Temporary plotting #####################
