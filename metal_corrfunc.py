@@ -5,6 +5,7 @@ from astropy.table import Table
 from astropy.io import fits
 from astropy.table import hstack, vstack
 from enigma.reion_forest.compute_model_grid_civ import read_model_grid
+import halos_skewers
 
 def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, \
                    cgm_dict=None, metal_dndz_func=None, cgm_seed=None):
@@ -168,8 +169,7 @@ def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
     else:
         plt.show()
 
-# TODO: needs to be adapted for enrichment model
-def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
+def plot_single_cov_elem_old(modelfile, rand_i=None, rand_j=None):
     # for outputs of enigma.reion_forest.compute_model_grid_civ.py
 
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
@@ -203,7 +203,89 @@ def plot_single_cov_elem(modelfile, rand_i=None, rand_j=None):
     plt.legend()
     plt.show()
 
-import halos_skewers
+def plot_corrmatrix_movie(modelfile, param_name, ind_par1, ind_par2):
+    # continuously plot the correlation matrix at grid values of 'param_name' while fixing the other 2 parameters
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    nlogM, nR, nlogZ, ncorr, _ = np.shape(covar_array)
+
+    if param_name == 'logM':
+        print(params['R_Mpc'][0][ind_par1], params['logZ'][0][ind_par2])
+        for i in range(nlogM):
+            print(i, params[param_name][0][i])
+            plot_corrmatrix(params, covar_array[i, ind_par1, ind_par2])
+
+    elif param_name == 'R_Mpc':
+        print(params['logM'][0][ind_par1], params['logZ'][0][ind_par2])
+        for i in range(nR):
+            print(i, params[param_name][0][i])
+            plot_corrmatrix(params, covar_array[ind_par1, i, ind_par2])
+
+    elif param_name == 'logZ':
+        print(params['logM'][0][ind_par1], params['R_Mpc'][0][ind_par2])
+        for i in range(nR):
+            print(i, params[param_name][0][i])
+            plot_corrmatrix(params, covar_array[ind_par1, ind_par2, i])
+
+def plot_single_cov_elem(modelfile, param_name, rand_ind_par1=None, rand_ind_par2=None, rand_i=None, rand_j=None):
+    # for outputs of enigma.reion_forest.compute_model_grid_civ.py
+
+    params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
+    param_vec = params[param_name][0]
+    nlogM, nR, nlogZ, ncorr, _ = np.shape(covar_array)
+
+    if param_name == 'logM':
+        if rand_ind_par1 == None:
+            rand_ind_par1 = np.random.randint(nR)
+        if rand_ind_par2 == None:
+            rand_ind_par2 = np.random.randint(nlogZ)
+
+        print('random param ind', rand_ind_par1, rand_ind_par2)
+        covar_array = covar_array[:, rand_ind_par1, rand_ind_par2]
+
+    elif param_name == 'R_Mpc':
+        if rand_ind_par1 == None:
+            rand_ind_par1 = np.random.randint(nlogM)
+        if rand_ind_par2 == None:
+            rand_ind_par2 = np.random.randint(nlogZ)
+
+        print('random param ind', rand_ind_par1, rand_ind_par2)
+        covar_array = covar_array[rand_ind_par1, :, rand_ind_par2]
+
+    elif param_name == 'logZ':
+        if rand_ind_par1 == None:
+            rand_ind_par1 = np.random.randint(nlogM)
+        if rand_ind_par2 == None:
+            rand_ind_par2 = np.random.randint(nR)
+
+        print('random param ind', rand_ind_par1, rand_ind_par2)
+        covar_array = covar_array[rand_ind_par1, rand_ind_par2,:]
+
+    # constructing the correlation matrix
+    corr_array = []
+    for i in range(len(covar_array)):
+        corr = covar_array[i] / np.sqrt(np.outer(np.diag(covar_array[i]), np.diag(covar_array[i])))  # correlation matrix; see Eqn 14 of Hennawi+ 2020
+        corr_array.append(corr)
+    corr_array = np.array(corr_array)
+
+    if rand_i == None and rand_j == None:
+        rand_i, rand_j = np.random.randint(ncorr), np.random.randint(ncorr)
+        print(rand_i, rand_j)
+
+    # plot the correlation matrix
+    corr_array_diag1 = corr_array[:, rand_i, rand_i]
+    corr_array_diag2 = corr_array[:, rand_j, rand_j]
+    corr_array_nondiag = corr_array[:, rand_i, rand_j]
+
+    plt.plot(param_vec, corr_array_diag1, 'o-', label=r"Diag: ($i,j$)=(%d,%d)" % (rand_i, rand_i))
+    plt.plot(param_vec, corr_array_diag2, 'x-', label=r"Diag: ($i,j$)=(%d,%d)" % (rand_j, rand_j))
+    plt.plot(param_vec, corr_array_nondiag, 'o-', label=r"Off-diag: ($i,j$)=(%d,%d)" % (rand_i, rand_j))
+    plt.xlabel(param_name, fontsize=13)
+    plt.ylabel(r'Corr$_{ij}$=Cov$_{ij}$/$\sqrt{Cov_{ii}Cov_{jj}}$', fontsize=13)
+    #plt.yscale('log')
+    plt.legend()
+    #plt.show()
+
 def plot_enrichment_corrfunc_fixedlogZeff(modelfile, fm_lower, fm_upper, logZ):
 
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
