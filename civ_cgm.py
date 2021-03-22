@@ -6,7 +6,7 @@ Functions here:
     - civ_dndz_cooksey
     - civ_dndNdX_pl
     - cooksey2013_dndz
-    - dodorico2013_cddf
+    - dodorico2013_cddfq
     - reproduce_dodorico2013_fig18
     - plot_multiple_cog
     - reproduce_cooksey_w
@@ -252,11 +252,20 @@ def dodorico2013_cddf():
     # data points for CDDF not provided, so estimating the points by eye from Figure 18
     # for 4.35 < z < 5.3
 
-    logN_CIV = np.array([12.82, 13.45, 13.64, 14.04])
+    logN_CIV = np.array([12.82, 13.25, 13.64, 14.04]) # (3/19/21) Corrected 2nd element from 13.45 --> 13.25
     logf = np.array([-12.98, -12.97, -13.59, -14.39]) # f = dn/dN/dX
 
     # note: returning the log10 values
     return logN_CIV, logf
+
+def dodorico2013_cddf_bosman():
+    dl_n = np.array([12.85, 13.25, 13.65, 14.05]) # log10(N)
+    dl = np.array([-12.8942474, -13.0310060, -13.58779213, -14.5044219]) # log10(d^2 n/(dN dX))
+    dl_bot = np.array([-13.19, -13.11406, -13.68934, -14.7106])
+    dl_top = np.array([-12.71, -12.96130, -13.50554, -14.3651])
+    dl_err = np.array([dl-dl_bot, dl_top-dl])
+
+    return dl_n, dl, dl_err
 
 def reproduce_dodorico2013_fig18():
     # to check if my by-eye estimate of the data points looks ok
@@ -318,23 +327,78 @@ def simcoe2011_cddf(plot=False):
 
     return logN_CIV, logf
 
-def plot_alldata():
-    do_logN_CIV, do_logf = dodorico2013_cddf()
-    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+def simcoe2011_cddf_bosman():
 
-    plt.plot(do_logN_CIV, do_logf, 'kx', mew=2, ms=8, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
-    plt.plot(simcoe_logN_CIV, simcoe_logf, 'b+', mew=2, ms=10, label="Simcoe MIKE data (z=4.25)")
+    from astropy.cosmology import FlatLambdaCDM
+    cosmo_this = FlatLambdaCDM(H0=67.74, Om0=0.3089, Tcmb0=2.725)
+    #cosmo_this = FlatLambdaCDM(H0=65, Om0=1.0)
+
+    def abspath(z1, z2):
+        return cosmo_this.absorption_distance(z1) - cosmo_this.absorption_distance(z2)
+
+    # S11 length
+    xp = abspath(4.475, 4.024) + abspath(4.353, 4.000) + abspath(4.397, 4.122)
+
+    # S11 bins
+    binn = np.arange(11.8, 14.6, 0.3)
+    binlen = 0.3
+
+    # S11 list of systems (paper)
+    systems = [3.17e12, 1.45e12, 4.48e12, 6.62e12, 6.53e12, 1.406e13, 1.499e13, 9.96e12, 9.18e12, 9.76e12, 1.9e13,
+               6.301e13, 3.027e12, 2.055e13, 1.854e12, 1.298e13, 2.136e12, 6.06e11, 6.524e12, 2.4015e12, 2.833e12,
+               1.3346e13, 4.20e12, 1.187e12, 1.896e13, 2.149e13, 4.352e13, 1.933e12, 1.329e13, 2.229e12, 2.185e13,
+               3.049e12, 9.325e12, 6.065e12, 1.95e13, 3.804e12, 2.932e12, 1.792e14, 7.748e12, 5.041e12, 2.864e12]
+
+    # calculating density
+    logsys = np.log10(systems)
+    a = np.histogram(logsys, binn - (binlen / 2.))
+    dn = 10 ** (binn + (binlen / 2)) - 10 ** (binn - (binlen / 2)) # logN
+    df = a[0] / (xp * dn[:-1]) # d^2 n/dN/dX, in linear scale
+
+    # calculating uncertainty
+    toperr = np.zeros_like(a[0]).astype('float')
+    boterr = np.zeros_like(a[0]).astype('float')
+    # approximate-Poisson error bars (not great but still better than original S11!)
+    for i in range(len(a[0])):
+        if a[0][i] == 1:
+            toperr[i] = 3.3
+            boterr[i] = 0.33
+        else:
+            toperr[i] = np.sqrt(a[0][i].astype('float')) + a[0][i]
+            boterr[i] = a[0][i] - np.sqrt(a[0][i].astype('float'))
+
+    dftop = (toperr) / (xp * dn[:-1])
+    dfbot = (boterr) / (xp * dn[:-1])
+    y_error = [np.log10(df) - np.log10(dfbot), np.log10(dftop) - np.log10(df)]
+
+    out_logN = binn[:-1]
+    out_logf = np.log10(df)
+    out_logf_err = y_error
+    #out_logf_bot = np.log10(dfbot)
+    #out_logf_top = np.log10(dftop)
+
+    return out_logN, out_logf, out_logf_err #out_logf_bot, out_logf_top
+
+def plot_alldata():
+    do_logN_CIV, do_logf, do_logf_err = dodorico2013_cddf_bosman()
+    simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
+
+    #plt.plot(do_logN_CIV, do_logf, 'kx', mew=2, ms=8, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    #plt.plot(simcoe_logN_CIV, simcoe_logf, 'b+', mew=2, ms=10, label="Simcoe MIKE data (z=4.25)")
+    plt.errorbar(do_logN_CIV, do_logf, yerr=do_logf_err, marker='x', color='k', mew=2, ms=8, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    plt.errorbar(simcoe_logN_CIV, simcoe_logf, yerr=simcoe_logf_err, marker='+', color='b', mew=2, ms=10, label="Simcoe MIKE data (z=4.25)")
+
     plt.axvline(12.0, color='b', ls='--', alpha=0.7, label='Simcoe rough detection limit')
     plt.axvline(13.3, color='k', ls='--', alpha=0.7, label="D'Odorico 85% complete")
     plt.xlim([11, 15])
     plt.ylim([-17, -10])
     plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log(f=dn/dN/dX)', fontsize=13)
+    plt.ylabel(r'log($f=d^2n/dN/dX$)', fontsize=13)
     plt.legend(loc=3)
     plt.show()
 
 ########## fitting data with Schechter function ##########
-def fit_alldata_dW(cgm_dict):
+def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
     # do fitting in terms of W
 
     #W = np.arange(0.01, 5.0, 0.01)  # range for Cooksey and Schechter
@@ -344,22 +408,34 @@ def fit_alldata_dW(cgm_dict):
     W_max = cgm_dict['W_max']
     W = np.arange(W_min, W_max, 0.01)
 
-    # D'Odorico data, converted to dW
+    # D'Odorico data, converted to dW (using Sarah Bosman's data)
     omega_m = 0.26
     omega_lambda = 1 - omega_m
+    #omega_m = Planck15.Om0
+    #omega_lambda = 1 - omega_m
     z = 4.8
     dX_dz = convert_dXdz(omega_m, omega_lambda, z)
 
-    data_logN_CIV, data_logf = dodorico2013_cddf()
-    data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
-    data_f_dz = 10 ** data_logf_dz
+    data_logN_CIV, data_logf, data_logf_err = dodorico2013_cddf_bosman()
+    #data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
+    #data_f_dz = 10 ** data_logf_dz
+    data_f_dz = dX_dz * 10 ** (data_logf)
+
+    data_logf_bot = data_logf - data_logf_err[0]
+    data_logf_top = data_logf + data_logf_err[1]
+    data_f_dz_bot = dX_dz * 10 ** (data_logf_bot)
+    data_f_dz_top = dX_dz * 10 ** (data_logf_top)
 
     W_blue, logN_metal = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, return_wtau=True)
     W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
     W_out_data = W_interp(data_logN_CIV)
     dw_dn2 = np.gradient(W_out_data, 10 ** data_logN_CIV, edge_order=2)
     dn_dzdW_do = data_f_dz / dw_dn2
-    dn_dXdW_do = (10** data_logf) / dw_dn2
+    dn_dzdW_do_bot = data_f_dz_bot / dw_dn2
+    dn_dzdW_do_top = data_f_dz_top / dw_dn2
+    dn_dzdW_do_err = np.array([dn_dzdW_do - dn_dzdW_do_bot, dn_dzdW_do_top - dn_dzdW_do])
+
+    #return dn_dzdW_do_err, np.log10(dn_dzdW_do_err)
 
     # D'Odorico fit parameters
     B = 10 ** 10.3
@@ -373,20 +449,28 @@ def fit_alldata_dW(cgm_dict):
     f_dW = f/dw_dn3
     f_dzdW = f_dz/dw_dn3
 
-    # Simcoe data, converted to dW
+    # Simcoe data, converted to dW (using Sarah Bosman's data)
     omega_m = 0.3
     omega_lambda = 1 - omega_m
     z = 4.25
     dX_dz = convert_dXdz(omega_m, omega_lambda, z)
 
-    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+    simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
     simcoe_logf_dz = np.log10(dX_dz * 10 ** (simcoe_logf))  # f = dn/dN/dz
     simcoe_f_dz = 10 ** simcoe_logf_dz
+
+    simcoe_logf_bot = simcoe_logf - simcoe_logf_err[0]
+    simcoe_logf_top = simcoe_logf + simcoe_logf_err[1]
+    simcoe_f_dz_bot = dX_dz * 10 ** (simcoe_logf_bot)
+    simcoe_f_dz_top = dX_dz * 10 ** (simcoe_logf_top)
 
     W_out_simcoe = W_interp(simcoe_logN_CIV)
     dw_dn2 = np.gradient(W_out_simcoe, 10 ** simcoe_logN_CIV, edge_order=2)
     dn_dzdW_simcoe = simcoe_f_dz / dw_dn2
-    dn_dXdW_simcoe = (10 ** simcoe_logf) / dw_dn2
+    #dn_dXdW_simcoe = (10 ** simcoe_logf) / dw_dn2
+    dn_dzdW_simcoe_bot = simcoe_f_dz_bot / dw_dn2
+    dn_dzdW_simcoe_top = simcoe_f_dz_top / dw_dn2
+    dn_dzdW_simcoe_err = np.array([dn_dzdW_simcoe - dn_dzdW_simcoe_bot, dn_dzdW_simcoe_top - dn_dzdW_simcoe])
 
     # Cooksey's fit at z=3.25
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
@@ -403,17 +487,23 @@ def fit_alldata_dW(cgm_dict):
     ##### plotting #####
     plt.figure(figsize=(8,6))
     #plt.plot(np.log10(W_out_fit), np.log10(f_dzdW), ':', label="D'Odorico fit")
-    plt.plot(np.log10(W), np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
-    plt.plot(np.log10(W), np.log10(11.0 * dn_dzdW_cook), '-' , label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
-    plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
-    plt.plot(np.log10(W_out_simcoe), np.log10(dn_dzdW_simcoe), 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
+    plt.plot(W, np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    plt.plot(W, np.log10(cooksey_norm * dn_dzdW_cook), '-' , label=r'Cooksey fit x arbitrary norm (%0.1f), $<z>=3.3$' % cooksey_norm)
+
+    plt.errorbar(W_out_data, np.log10(dn_dzdW_do), yerr=np.log10(dn_dzdW_do_err), fmt='kx', ms=6, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    plt.errorbar(W_out_simcoe, np.log10(dn_dzdW_simcoe), yerr=np.log10(dn_dzdW_simcoe_err), fmt='bx', ms=6,
+                 label="Simcoe MIKE data (z=4.25)")
+
+    #plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
+    #plt.plot(np.log10(W_out_simcoe), np.log10(dn_dzdW_simcoe), 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
 
     plt.legend(fontsize=11, loc=3)
-    plt.xlabel('log W', fontsize=13)
-    plt.ylabel('log (dn/dW/dz)', fontsize=13)
+    plt.xlabel('W', fontsize=13)
+    plt.ylabel(r'log($d^2n/dW/dz$)', fontsize=13)
+    plt.xscale('log')
     plt.show()
 
-def fit_alldata_dN(cgm_dict):
+def fit_alldata_dN(cgm_dict, cooksey_norm=11.0):
     # do the fitting in terms of N
 
     #W = np.arange(0.01, 5.0, 0.01) # range for Cooksey and Schechter
@@ -423,23 +513,38 @@ def fit_alldata_dN(cgm_dict):
     W_max = cgm_dict['W_max']
     W = np.arange(W_min, W_max, 0.01)
 
-    # D'Odorico data
+    # D'Odorico data (updated with Sarah Bosman's data)
     omega_m = 0.26 # D'Odorico's cosmology
     omega_lambda = 1 - omega_m
+    #omega_m = Planck15.Om0
+    #omega_lambda = 1 - omega_m
     z = 4.8
     dX_dz = convert_dXdz(omega_m, omega_lambda, z)
 
-    data_logN_CIV, data_logf = dodorico2013_cddf()
+    # dl_err = np.array([dl-dl_bot, dl_top-dl])
+    data_logN_CIV, data_logf, data_logf_err = dodorico2013_cddf_bosman()
     data_logf_dz = np.log10(dX_dz * 10 ** (data_logf))  # f = dn/dN/dz
 
-    # Simcoe data
+    data_logf_bot = data_logf - data_logf_err[0]
+    data_logf_top = data_logf + data_logf_err[1]
+    data_logf_dz_bot = np.log10(dX_dz * 10 ** (data_logf_bot))
+    data_logf_dz_top = np.log10(dX_dz * 10 ** (data_logf_top))
+    data_logf_dz_err = np.array([data_logf_dz - data_logf_dz_bot, data_logf_dz_top - data_logf_dz])
+
+    # Simcoe data (updated with Sarah Bosman's data)
     omega_m = 0.3 # Simcoe's cosmology
     omega_lambda = 1 - omega_m
     z = 4.25
     dX_dz = convert_dXdz(omega_m, omega_lambda, z) # dX/dz
 
-    simcoe_logN_CIV, simcoe_logf = simcoe2011_cddf()
+    simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
     simcoe_logf_dz = np.log10(dX_dz * 10 ** (simcoe_logf))  # f = dn/dN/dz
+
+    simcoe_logf_bot = simcoe_logf - simcoe_logf_err[0]
+    simcoe_logf_top = simcoe_logf + simcoe_logf_err[1]
+    simcoe_logf_dz_bot = np.log10(dX_dz * 10 ** (simcoe_logf_bot))
+    simcoe_logf_dz_top = np.log10(dX_dz * 10 ** (simcoe_logf_top))
+    simcoe_logf_dz_err = np.array([simcoe_logf_dz - simcoe_logf_dz_bot, simcoe_logf_dz_top - simcoe_logf_dz])
 
     # dw/dN for converting Schechter and Cooksey
     _, dw_dn, logN_out = dwdn_numerical(cgm_dict, None) # using input cgm_dict and sigmoid function for b-value
@@ -462,15 +567,18 @@ def fit_alldata_dN(cgm_dict):
     plt.figure(figsize=(8,6))
     # arbitrary norm 11.0 agrees better with the Schechter function dn_dz
     plt.plot(logN_out, np.log10(dn_dzdN_sch), '--', lw=2.5, label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
-    plt.plot(logN_out, np.log10(11.0 * dn_dzdN_cook), '-', label=r'Cooksey fit x arbitrary norm (11.0), $<z>=3.3$')
-    plt.plot(data_logN_CIV, data_logf_dz, 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
-    plt.plot(simcoe_logN_CIV, simcoe_logf_dz, 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
+    plt.plot(logN_out, np.log10(cooksey_norm * dn_dzdN_cook), '-', label=r'Cooksey fit x arbitrary norm (%0.1f), $<z>=3.3$' % cooksey_norm)
+    plt.errorbar(data_logN_CIV, data_logf_dz, yerr=data_logf_dz_err, fmt='kx', ms=6, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    plt.errorbar(simcoe_logN_CIV, simcoe_logf, yerr=simcoe_logf_dz_err, fmt='bx', ms=6, label="Simcoe MIKE data (z=4.25)")
+
+    #plt.plot(data_logN_CIV, data_logf_dz, 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)
+    #plt.plot(simcoe_logN_CIV, simcoe_logf_dz, 'b+', label="Simcoe data (z=4.25)", ms=10, mew=2)
     #plt.axvline(12.0, color='b', ls=':', alpha=0.7, label='Simcoe rough detection limit')
     #plt.axvline(13.3, color='k', ls=':', alpha=0.7, label="D'Odorico 85% complete")
 
     plt.legend(fontsize=11, loc=3)
     plt.xlabel('log N(CIV)', fontsize=13)
-    plt.ylabel('log (dn/dN/dz)', fontsize=13)
+    plt.ylabel(r'log($d^2n/dN/dz$)', fontsize=13)
     plt.show()
 
 ########## cgm model dictionary ##########
@@ -486,8 +594,19 @@ def init_metal_cgm_dict(alpha=-0.20, W_star = 0.45, n_star = 28.0, \
     cgm_dict = dict(n_star=n_star, alpha=alpha, W_star=W_star, W_min=W_min, W_max=W_max, b_weak=b_weak, b_strong=b_strong, \
                     logN_metal_min=logN_metal_min, logN_metal_max=logN_metal_max, logN_strong=logN_strong, logN_trans=logN_trans)
 
+    """
+    Using Sarah's data: 
+    {'n_star': 5,
+     'alpha': -0.75,
+     'W_star': 0.45,
+     'W_min': 0.001,
+     'W_max': 5.0,
+     'b_weak': 10.0,
+     'b_strong': 150.0,
+     'logN_metal_min': 10.0,
+     'logN_metal_max': 22.0,
+     'logN_strong': 14.5,
+     'logN_trans': 0.35}
+     """
+
     return cgm_dict
-
-
-
-
