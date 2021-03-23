@@ -26,9 +26,11 @@ def init(R_want, logM_want, logZ=-3.5, metal_ion='C IV', fwhm=10, sampling=3.0):
     z = par['z'][0]
 
     # cgm model
-    in_cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.50, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
+    in_cgm_dict_old = civ_cgm.init_metal_cgm_dict(alpha=-0.50, W_star=0.45, n_star=28.0, W_min=0.001, W_max=5.0, \
                                            b_weak=10.0, b_strong=150.0, logN_metal_min=10.0, logN_metal_max=22.0,
                                            logN_strong=14.5, logN_trans=0.35)
+
+    in_cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.75, n_star=5.0) # using Sarah's data
 
     metal_dndz_func = civ_cgm.civ_dndz_sch
 
