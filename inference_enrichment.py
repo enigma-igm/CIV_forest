@@ -13,17 +13,28 @@ import random
 import time
 
 ######## Setting up #########
+"""
 seed = 125913 # random seed to pick the mock data set
-seed = 3600394 # lnlike_fine.npy, xi_model_fine.npy
+seed = 3600394 # lnlike_fine.npy, xi_model_fine.npy, corner.png
 
 if seed == None:
     seed = np.random.randint(0, 10000000)
     print("Using random seed", seed)
+else:
+    print("Using random seed", seed)
 
 rand = np.random.RandomState(seed)
-random.seed(seed)
+#random.seed(seed)
+"""
+def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
 
-def init(modelfile, logM_guess, R_guess, logZ_guess):
+    if seed == None:
+        seed = np.random.randint(0, 10000000)
+        print("Using random seed", seed)
+    else:
+        print("Using random seed", seed)
+
+    rand = np.random.RandomState(seed)
 
     # Read in the model grid
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
@@ -43,6 +54,7 @@ def init(modelfile, logM_guess, R_guess, logZ_guess):
     # Pick the data that we will run with
     nmock = xi_mock_array.shape[2]
     imock = rand.choice(np.arange(nmock), size=1)
+    print('imock', imock)
 
     linearZprior = False
 
@@ -62,7 +74,7 @@ def init(modelfile, logM_guess, R_guess, logZ_guess):
 
     return init_out
 
-def interp_likelihood(init_out, nlogM_fine=501, nR_fine=501, nlogZ_fine=501):
+def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=False, interp_ximodel=False):
 
     # 30 min for nlogZ_fine=201, nlogM_fine=201, nR_fine=201 (ncorr=199)
     # dlogM_fine 0.0125
@@ -91,31 +103,38 @@ def interp_likelihood(init_out, nlogM_fine=501, nR_fine=501, nlogZ_fine=501):
     dlogZ_fine = (logZ_fine_max - logZ_fine_min) / (nlogZ_fine - 1)
     logZ_fine = logZ_fine_min + np.arange(nlogZ_fine) * dlogZ_fine
 
-    return logM_fine, R_fine, logZ_fine
-
     print('dlogM_fine', dlogM_fine)
     print('dR', dR_fine)
     print('dlogZ_fine', dlogZ_fine)
 
-    # Loop over the coarse grid and evaluate the likelihood at each location
-    lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
-    for ilogM, logM_val in enumerate(logM_coarse):
-        for iR, R_val in enumerate(R_coarse):
-            for ilogZ, logZ_val in enumerate(logZ_coarse):
-                lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :],
-                                                            lndet_array[ilogM, iR, ilogZ],
-                                                            icovar_array[ilogM, iR, ilogZ, :, :])
-    print('interpolating lnlike')
-    start = time.time()
-    lnlike_fine = inference.interp_lnlike_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, lnlike_coarse)
-    end = time.time()
-    print((end - start) / 60.)
+    # Loop over the coarse grid and evaluate the likelihood at each location for the chosen mock data
+    # Needs to be repeated for each chosen mock data
+    if interp_lnlike:
+        lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
+        for ilogM, logM_val in enumerate(logM_coarse):
+            for iR, R_val in enumerate(R_coarse):
+                for ilogZ, logZ_val in enumerate(logZ_coarse):
+                    lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :],
+                                                                lndet_array[ilogM, iR, ilogZ],
+                                                                icovar_array[ilogM, iR, ilogZ, :, :])
 
-    start = time.time()
-    print('interpolating model')
-    xi_model_fine = inference.interp_model_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, xi_model_array)
-    end = time.time()
-    print((end-start)/60.)
+        print('interpolating lnlike')
+        start = time.time()
+        lnlike_fine = inference.interp_lnlike_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, lnlike_coarse)
+        end = time.time()
+        print((end - start) / 60.)
+    else:
+        lnlike_fine = None
+
+    # Only needs to be done once, unless the fine grid is change
+    if interp_ximodel:
+        start = time.time()
+        print('interpolating model')
+        xi_model_fine = inference.interp_model_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, xi_model_array)
+        end = time.time()
+        print((end-start)/60.)
+    else:
+        xi_model_fine = None
 
     return lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
@@ -164,7 +183,43 @@ def plot_likelihoods(lnlike_fine, logM_fine, R_fine, logZ_fine):
     plt.tight_layout()
     plt.show()
 
-def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior):
+def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data, logZ_data):
+
+    ilogM = find_closest(logM_grid, logM_data)
+    iR = find_closest(R_grid, R_data)
+    ilogZ = find_closest(logZ_grid, logZ_data)
+
+    plt.figure(figsize=(10, 4))
+    plt.subplot(131)
+    plt.plot(logM_grid, lnlike[:, iR, ilogZ])
+    plt.axvline(logM_data, ls='--', c='k', label='logM_data=% 0.1f' % logM_data)
+    plt.legend()
+    plt.xlabel('logM', fontsize = 13)
+    plt.ylabel('lnL', fontsize=13)
+
+    plt.subplot(132)
+    plt.plot(R_grid, lnlike[ilogM, :, ilogZ])
+    plt.axvline(R_data, ls='--', c = 'k', label = 'R_data=%0.1f' % R_data)
+    plt.legend()
+    plt.xlabel('R (Mpc)', fontsize=13)
+
+    plt.subplot(133)
+    plt.plot(logZ_grid, lnlike[ilogM, iR])
+    plt.axvline(logZ_data, ls='--', c= 'k', label = 'logZ_data=%0.1f' % logZ_data)
+    plt.legend()
+    plt.xlabel('logZ', fontsize=13)
+    plt.tight_layout()
+    plt.show()
+
+def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, seed=None):
+
+    if seed == None:
+        seed = np.random.randint(0, 10000000)
+        print("Using random seed", seed)
+    else:
+        print("Using random seed", seed)
+
+    rand = np.random.RandomState(seed)
 
     # find optimal starting points for each walker
     logM_fine_min, logM_fine_max = logM_fine.min(), logM_fine.max()
@@ -203,24 +258,23 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     else:
         param_samples = flat_samples
 
-    return sampler, flat_samples
+    return sampler, param_samples, bounds
 
-def plot_mcmc(sampler, flat_samples, init_out, linear_prior):
+def plot_mcmc(sampler, param_samples, init_out, linear_prior):
 
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
 
-    # Make the walker plot, use the true values in the chain
+    # (1) Make the walker plot, use the true values in the chain
     var_label = ['logM', 'R_Mpc', 'logZ']
     truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
     print("truths", truths)
     chain = sampler.get_chain()
 
-    walker_outfig = 'walker.pdf'
-    inference.walker_plot(chain, truths, var_label, walker_outfig)
-    plt.clf()
+    #walker_outfig = 'walker.pdf'
+    #inference.walker_plot(chain, truths, var_label, walker_outfig)
 
-    # Make the corner plot, again use the true values in the chain
-    fig = corner.corner(flat_samples, labels=var_label, truths=truths, levels=(0.68,), color='k',
+    # (2) Make the corner plot, again use the true values in the chain
+    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k',
                         truth_color='darkgreen',
                         show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20},
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
@@ -234,32 +288,14 @@ def plot_mcmc(sampler, flat_samples, init_out, linear_prior):
     plt.show()
     plt.close()
 
+    # (3) Make the corrfunc plot
+    # Need to modify inference.corrfunc_plot()
+
     """
-    var_label = [r'$\langle x_{\rm HI}\rangle$', '[Mg/H]']
-    truths = [xhi_data, np.power(10.0, logZ_data)] if linearZprior else [xhi_data, logZ_data]
-    chain = sampler.get_chain()
-    inference.walker_plot(chain, truths, var_label, figpath + 'walkers.pdf')
-
-    # Make the corner plot, again use the true values in the chain
-    fig = corner.corner(flat_samples, labels=var_label, truths=truths, levels=(0.68,), color='k',
-                        truth_color='darkgreen',
-                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20},
-                        data_kwargs={'ms': 1.0, 'alpha': 0.1})
-    cornerfile = figpath + 'corner_plot.pdf'
-    for ax in fig.get_axes():
-        # ax.tick_params(axis='both', which='major', labelsize=14)
-        # ax.tick_params(axis='both', which='minor', labelsize=12)
-        ax.tick_params(labelsize=12)
-    plt.close()
-    fig.savefig(cornerfile)
-
     lower = np.array([bounds[0][0], bounds[1][0]])
     upper = np.array([bounds[0][1], bounds[1][1]])
-    param_limits = [lower, upper],
-    # param_names = ['xHI', 'logZ']
-    # labels = param_names
-    # ranges = dict(zip(param_names, [[lower[i], upper[i]] for i in range(ndim)]))
-    # triangle_plot([samples], param_names, labels, ranges, filename=figpath + 'triangle.pdf', show_plot=True)
+    param_limits = [lower, upper]
+    
     corrfile = figpath + 'corr_func_data.pdf'
     inference.corrfunc_plot(xi_data, param_samples, params, xhi_fine, logZ_fine, xi_model_fine, xhi_coarse, logZ_coarse,
                             covar_array,
