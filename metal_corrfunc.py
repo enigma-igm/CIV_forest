@@ -223,7 +223,7 @@ def plot_corrmatrix_movie(modelfile, param_name, ind_par1, ind_par2):
 
     elif param_name == 'logZ':
         print(params['logM'][0][ind_par1], params['R_Mpc'][0][ind_par2])
-        for i in range(nR):
+        for i in range(nlogZ):
             print(i, params[param_name][0][i])
             plot_corrmatrix(params, covar_array[ind_par1, ind_par2, i])
 

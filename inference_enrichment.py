@@ -13,19 +13,13 @@ import random
 import time
 
 ######## Setting up #########
-"""
-seed = 125913 # random seed to pick the mock data set
-seed = 3600394 # lnlike_fine.npy, xi_model_fine.npy, corner.png
 
-if seed == None:
-    seed = np.random.randint(0, 10000000)
-    print("Using random seed", seed)
-else:
-    print("Using random seed", seed)
+### debugging config (3.25.2021)
+#modelfile = 'nyx_sim_data/igm_cluster/enrichment/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+#logM_guess, R_guess, logZ_guess = 9.89, 0.98, -3.57
+#seed = 5382029
+# nlogM, nR, nlogZ = 251, 201, 161
 
-rand = np.random.RandomState(seed)
-#random.seed(seed)
-"""
 def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
 
     if seed == None:
@@ -62,10 +56,12 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     ilogZ = find_closest(logZ_coarse, logZ_guess)
     ilogM =  find_closest(logM_coarse, logM_guess)
     iR = find_closest(R_coarse, R_guess)
+    print('ilogM, iR, ilogZ', ilogM, iR, ilogZ)
 
     logZ_data = logZ_coarse[ilogZ]
     logM_data = logM_coarse[ilogM]
     R_data = R_coarse[iR]
+    print('logM_data, R_data, logZ_data', logM_data, R_data, logZ_data)
 
     xi_data = xi_mock_array[ilogM, iR, ilogZ, imock, :].flatten()
     xi_mask = np.ones_like(xi_data, dtype=bool)  # in case you want to mask any xi value, otherwise all True
@@ -76,10 +72,10 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
 
 def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=False, interp_ximodel=False):
 
-    # 30 min for nlogZ_fine=201, nlogM_fine=201, nR_fine=201 (ncorr=199)
-    # dlogM_fine 0.0125
+    # ~10 sec to interpolate 3d likelihood for nlogM_fine, nR_fine, nlogZ_fine = 251, 201, 161
+    # dlogM_fine 0.01
     # dR 0.015
-    # dlogZ_fine 0.0125
+    # dlogZ_fine 0.015625
 
     # unpack input
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
@@ -136,7 +132,7 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
     else:
         xi_model_fine = None
 
-    return lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
+    return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
 def plot_marginal_likelihood(xparam, yparam, lnlike_fine, summing_axis, xparam_label, yparam_label):
     # double check
@@ -166,18 +162,18 @@ def plot_single_likelihood(lnlike_3d, grid_arr, param_name, ind_par1, ind_par2):
 def plot_likelihoods(lnlike_fine, logM_fine, R_fine, logZ_fine):
     plt.figure(figsize=(10, 5))
     plt.subplot(131)
-    for i in range(0, 200, 50):
-        for j in range(0, 300, 100):
+    for i in range(0, 150, 50):
+        for j in range(0, 150, 50):
             plot_single_likelihood(lnlike_fine, logM_fine, 'logM', i, j)
 
     plt.subplot(132)
-    for i in range(0, 200, 50):
-        for j in range(0, 300, 100):
+    for i in range(0, 150, 50):
+        for j in range(0, 150, 50):
             plot_single_likelihood(lnlike_fine, R_fine, 'R_Mpc', i, j)
 
     plt.subplot(133)
-    for i in range(0, 200, 50):
-        for j in range(0, 300, 100):
+    for i in range(0, 150, 50):
+        for j in range(0, 150, 50):
             plot_single_likelihood(lnlike_fine, logZ_fine, 'logZ', i, j)
 
     plt.tight_layout()
@@ -188,30 +184,35 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
     ilogM = find_closest(logM_grid, logM_data)
     iR = find_closest(R_grid, R_data)
     ilogZ = find_closest(logZ_grid, logZ_data)
+    print(ilogM, iR, ilogZ)
 
     plt.figure(figsize=(10, 4))
     plt.subplot(131)
     plt.plot(logM_grid, lnlike[:, iR, ilogZ])
-    plt.axvline(logM_data, ls='--', c='k', label='logM_data=% 0.1f' % logM_data)
+    plt.axvline(logM_data, ls='--', c='k', label='logM_data=% 0.2f' % logM_data)
     plt.legend()
     plt.xlabel('logM', fontsize = 13)
     plt.ylabel('lnL', fontsize=13)
+    plt.ylim([2400, 2800])
 
     plt.subplot(132)
     plt.plot(R_grid, lnlike[ilogM, :, ilogZ])
-    plt.axvline(R_data, ls='--', c = 'k', label = 'R_data=%0.1f' % R_data)
+    plt.axvline(R_data, ls='--', c='k', label = 'R_data=%0.2f' % R_data)
     plt.legend()
     plt.xlabel('R (Mpc)', fontsize=13)
+    plt.ylim([2400, 2800])
 
     plt.subplot(133)
     plt.plot(logZ_grid, lnlike[ilogM, iR])
-    plt.axvline(logZ_data, ls='--', c= 'k', label = 'logZ_data=%0.1f' % logZ_data)
+    plt.axvline(logZ_data, ls='--', c='k', label = 'logZ_data=%0.2f' % logZ_data)
     plt.legend()
     plt.xlabel('logZ', fontsize=13)
+    plt.ylim([2400, 2800])
+
     plt.tight_layout()
     plt.show()
 
-def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, seed=None):
+def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, seed=None):
 
     if seed == None:
         seed = np.random.randint(0, 10000000)
@@ -237,8 +238,17 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     ndim = 3
 
     # initialize walkers
-    pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
-         for i in range(ndim)] for i in range(nwalkers)]
+    # for my own understanding #
+    pos = []
+    for i in range(nwalkers):
+        tmp = []
+        for j in range(ndim):
+            perturb_pos = result_opt.x[j] + (ball_size * (bounds[j][1] - bounds[j][0]) * rand.randn(1)[0])
+            tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
+        pos.append(tmp)
+    embed()
+    #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
+    #     for i in range(ndim)] for i in range(nwalkers)]
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
     sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
@@ -270,15 +280,14 @@ def plot_mcmc(sampler, param_samples, init_out, linear_prior):
     print("truths", truths)
     chain = sampler.get_chain()
 
-    #walker_outfig = 'walker.pdf'
+    #walker_outfig = 'walker_ballsize_0.1_nwalker20.pdf'
     #inference.walker_plot(chain, truths, var_label, walker_outfig)
 
     # (2) Make the corner plot, again use the true values in the chain
-    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k',
-                        truth_color='darkgreen',
-                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20},
+    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k', \
+                        truth_color='darkgreen', \
+                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
-
 
     #cornerfile = figpath + 'corner_plot.pdf'
     for ax in fig.get_axes():
