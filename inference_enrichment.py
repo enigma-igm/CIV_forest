@@ -179,7 +179,7 @@ def plot_likelihoods(lnlike_fine, logM_fine, R_fine, logZ_fine):
     plt.tight_layout()
     plt.show()
 
-def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data, logZ_data):
+def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data, logZ_data, savefig=None):
 
     ilogM = find_closest(logM_grid, logM_data)
     iR = find_closest(R_grid, R_data)
@@ -193,24 +193,28 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
     plt.legend()
     plt.xlabel('logM', fontsize = 13)
     plt.ylabel('lnL', fontsize=13)
-    plt.ylim([2400, 2800])
+    #plt.ylim([2400, 2800])
 
     plt.subplot(132)
     plt.plot(R_grid, lnlike[ilogM, :, ilogZ])
     plt.axvline(R_data, ls='--', c='k', label = 'R_data=%0.2f' % R_data)
     plt.legend()
     plt.xlabel('R (Mpc)', fontsize=13)
-    plt.ylim([2400, 2800])
+    #plt.ylim([2400, 2800])
 
     plt.subplot(133)
     plt.plot(logZ_grid, lnlike[ilogM, iR])
     plt.axvline(logZ_data, ls='--', c='k', label = 'logZ_data=%0.2f' % logZ_data)
     plt.legend()
     plt.xlabel('logZ', fontsize=13)
-    plt.ylim([2400, 2800])
+    #plt.ylim([2400, 2800])
 
     plt.tight_layout()
-    plt.show()
+
+    if savefig != None:
+        plt.savefig(savefig)
+    else:
+        plt.show()
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, seed=None):
 

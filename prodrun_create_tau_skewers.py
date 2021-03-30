@@ -33,7 +33,7 @@ def main():
     nproc = args.nproc
 
     zstr = 'z45'
-    outpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/' + zstr + '/enrichment_models/'
+    outpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/' + zstr + '/enrichment_models/tau/'
     xciv_skewerpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/' + zstr + '/enrichment_models/xciv_mask/'
 
     all_files = glob.glob(xciv_skewerpath + '*.fits')
