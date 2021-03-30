@@ -38,6 +38,10 @@ def main():
 
     logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
 
+    # extra models to run (3/30/2021)
+    logM = [8.6, 8.7, 8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.6, 9.7, 9.8, 9.9, 10.1, 10.2, 10.3, 10.4, 10.6, 10.7, 10.8, 10.9] # 20 values
+    R = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0] # 15 values
+
     # testing entire code on subset of models, skewers, and halos
     #logM = logM[-3:] # 3 models
     #R = R[3:6] # 3 models
@@ -56,30 +60,34 @@ def main():
 
             mask_outfile = os.path.join(outpath, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.fits')
             mask_logfile = os.path.join(outpath, 'rand_skewers_' + zstr + '_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(logMval) + '.log')
-            command = 'python run_calc_distance_all_skewers.py ' + \
-                      ' --ranskewerfile ' + args.ranskewerfile + \
-                      ' --halofile ' + args.halofile + \
-                      ' --outfile ' + mask_outfile + \
-                      ' --Rmax ' + str(Rval) + ' --logMmin ' + str(logMval) + ' > %s' % mask_logfile
 
-            p = Popen(command, shell=True)
+            if os.path.exists(mask_outfile):
+                print(mask_outfile, 'already exists... skipping')
+            else:
+                command = 'python run_calc_distance_all_skewers.py ' + \
+                          ' --ranskewerfile ' + args.ranskewerfile + \
+                          ' --halofile ' + args.halofile + \
+                          ' --outfile ' + mask_outfile + \
+                          ' --Rmax ' + str(Rval) + ' --logMmin ' + str(logMval) + ' > %s' % mask_logfile
 
-            counter_file.append(mask_outfile)
-            counter += 1
-            print("counter now", counter)
+                p = Popen(command, shell=True)
 
-            if nproc != None:
-                if counter % nproc == 0: # every n-th processes
-                    print("checking if all files exist")
+                counter_file.append(mask_outfile)
+                counter += 1
+                print(mask_outfile, ": counter now", counter)
 
-                    while True:
-                        if all([os.path.isfile(f) for f in counter_file]):
-                            counter_file = []
-                            print("yep...proceeding")
-                            break
-                        else:
-                            print('waiting....')
-                            time.sleep(300) # wait 5 min before checking again
+                if nproc != None:
+                    if counter % nproc == 0: # every n-th processes
+                        print("checking if all files exist")
+
+                        while True:
+                            if all([os.path.isfile(f) for f in counter_file]):
+                                counter_file = []
+                                print("yep...proceeding")
+                                break
+                            else:
+                                print('waiting....')
+                                time.sleep(300) # wait 5 min before checking again
 
 if __name__ == '__main__':
     main()
