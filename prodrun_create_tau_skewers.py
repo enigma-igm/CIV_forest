@@ -47,30 +47,37 @@ def main():
         tau_outfile = os.path.join(outpath, 'rand_skewers_' + zstr + '_ovt_xciv_tau_' + suffix)
         tau_logfile = os.path.join(outpath, 'rand_skewers_' + zstr + '_ovt_xciv_tau_' + suffix.split('.fits')[0] + '.log')
 
-        command = 'python run_reion_skewers_metal.py ' + '--ranskewerfile ' + file + ' --outfile ' + tau_outfile + \
-                  ' --dmax 3000 --metal_colname X_CIV --metal_mass 12 > %s' % tau_logfile
+        if os.path.exists(tau_outfile):
+            print(tau_outfile, 'already exists... skipping')
+        else:
+            command = 'python run_reion_skewers_metal.py ' + '--ranskewerfile ' + file + ' --outfile ' + tau_outfile + \
+                      ' --dmax 3000 --metal_colname X_CIV --metal_mass 12 > %s' % tau_logfile
 
-        p = Popen(command, shell=True)
+            p = Popen(command, shell=True)
 
-        counter_file.append(tau_outfile)
-        counter += 1
-        print("counter now", counter)
+            counter_file.append(tau_outfile)
+            counter += 1
+            print(tau_outfile, ": counter now", counter)
 
-        if nproc != None:
-            if counter % nproc == 0:  # every n-th processes
-                print("checking if all files exist")
+            if nproc != None:
+                if counter % nproc == 0:  # every n-th processes
+                    print("checking if all files exist")
 
-                while True:
-                    if all([os.path.isfile(f) for f in counter_file]):
-                        counter_file = []
-                        print("yep...proceeding")
-                        break
-                    else:
-                        print('waiting....')
-                        time.sleep(600)  # wait 10 min before checking because making tau skewers takes a while
+                    while True:
+                        if all([os.path.isfile(f) for f in counter_file]):
+                            counter_file = []
+                            print("yep...proceeding")
+                            break
+                        else:
+                            print('waiting....')
+                            time.sleep(600)  # wait 10 min before checking because making tau skewers takes a while
 
 if __name__ == '__main__':
     main()
+
+# run command on IGM (3/31/21) for extra models:
+# nohup python prodrun_create_tau_skewers.py --nproc 40 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_create_tau_skewers.log &
+# start:
 
 # run command in IGM (2/27/21):
 # nohup python prodrun_create_tau_skewers.py --nproc 30 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/prodrun_create_tau_skewers.log &
