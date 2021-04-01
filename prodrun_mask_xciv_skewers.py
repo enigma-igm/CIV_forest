@@ -36,11 +36,13 @@ def main():
     zstr = 'z45'
     outpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/' + zstr + '/enrichment_models/xciv_mask/' # make sure these directories exist
 
-    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
+    #logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
 
     # extra models to run (3/30/2021)
-    logM = [8.6, 8.7, 8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.6, 9.7, 9.8, 9.9, 10.1, 10.2, 10.3, 10.4, 10.6, 10.7, 10.8, 10.9] # 20 values
-    R = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0] # 15 values
+    #logM = [8.6, 8.7, 8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.6, 9.7, 9.8, 9.9, 10.1, 10.2, 10.3, 10.4, 10.6, 10.7, 10.8, 10.9] # 20 values
+    #R = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0] # 15 values
+
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1) # 26 logM x 30 R models
 
     # testing entire code on subset of models, skewers, and halos
     #logM = logM[-3:] # 3 models
@@ -91,6 +93,10 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# run command on IGM (3/30/21) for extra models:
+# nohup python prodrun_mask_xciv_skewers.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits --nproc 50 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_mask_xciv_skewers_extra.log &
+# runtime: 8.5 hrs (start: 3/30 15:21; end: 3/30 23:55)
 
 # run command on IGM (2/27/21):
 # nohup python prodrun_mask_xciv_skewers.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits --nproc 20 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/prodrun_mask_xciv_skewers.log &
