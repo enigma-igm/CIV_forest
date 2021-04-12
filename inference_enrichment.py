@@ -9,6 +9,7 @@ from IPython import embed
 from enigma.reion_forest.compute_model_grid import read_model_grid
 from enigma.reion_forest.utils import find_closest
 from enigma.reion_forest import inference
+from enigma.reion_forest import utils as reion_utils
 import random
 import time
 
@@ -66,7 +67,8 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     xi_data = xi_mock_array[ilogM, iR, ilogZ, imock, :].flatten()
     xi_mask = np.ones_like(xi_data, dtype=bool)  # in case you want to mask any xi value, otherwise all True
 
-    init_out = logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array
+    init_out = logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+               covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess
 
     return init_out
 
@@ -78,7 +80,8 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
     # dlogZ_fine 0.015625
 
     # unpack input
-    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
 
     # Interpolate the likelihood onto a fine grid to speed up the MCMC
     nlogM = logM_coarse.size
@@ -133,6 +136,58 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
         xi_model_fine = None
 
     return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
+
+def interp_likelihood_fixedlogZ(init_out, ilogZ, nlogM_fine, nR_fine, interp_lnlike=False, interp_ximodel=False):
+
+    # unpack input
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
+
+    # Interpolate the likelihood onto a fine grid to speed up the MCMC
+    nlogM = logM_coarse.size
+    logM_fine_min = logM_coarse.min()
+    logM_fine_max = logM_coarse.max()
+    dlogM_fine = (logM_fine_max - logM_fine_min) / (nlogM_fine - 1)
+    logM_fine = logM_fine_min + np.arange(nlogM_fine) * dlogM_fine
+
+    nR = R_coarse.size
+    R_fine_min = R_coarse.min()
+    R_fine_max = R_coarse.max()
+    dR_fine = (R_fine_max - R_fine_min) / (nR_fine - 1)
+    R_fine = R_fine_min + np.arange(nR_fine) * dR_fine
+
+    print('dlogM_fine', dlogM_fine)
+    print('dR', dR_fine)
+
+    # Loop over the coarse grid and evaluate the likelihood at each location for the chosen mock data
+    # Needs to be repeated for each chosen mock data
+    if interp_lnlike:
+        lnlike_coarse = np.zeros((nlogM, nR))
+        for ilogM, logM_val in enumerate(logM_coarse):
+            for iR, R_val in enumerate(R_coarse):
+                lnlike_coarse[ilogM, iR] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :], \
+                                                                 lndet_array[ilogM, iR, ilogZ], icovar_array[ilogM, iR, ilogZ, :, :])
+
+        print('interpolating lnlike')
+        start = time.time()
+        lnlike_fine = inference.interp_lnlike(logM_fine, R_fine, logM_coarse, R_coarse, lnlike_coarse) # RectBivariateSpline
+        end = time.time()
+        print((end - start) / 60.)
+    else:
+        lnlike_fine = None
+
+    """"
+    # Only needs to be done once, unless the fine grid is change
+    if interp_ximodel:
+        start = time.time()
+        print('interpolating model')
+        xi_model_fine = inference.interp_model_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, xi_model_array)
+        end = time.time()
+        print((end-start)/60.)
+    else:
+        xi_model_fine = None
+    """
+
+    return lnlike_coarse, lnlike_fine, logM_fine, R_fine
 
 def plot_marginal_likelihood(xparam, yparam, lnlike_fine, summing_axis, xparam_label, yparam_label):
     # double check
@@ -250,7 +305,8 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
             perturb_pos = result_opt.x[j] + (ball_size * (bounds[j][1] - bounds[j][0]) * rand.randn(1)[0])
             tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
         pos.append(tmp)
-    embed()
+
+    #embed()
     #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
     #     for i in range(ndim)] for i in range(nwalkers)]
 
@@ -258,10 +314,10 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
     sampler.run_mcmc(pos, nsteps, progress=True)
 
-    tau = sampler.get_autocorr_time()
+    #tau = sampler.get_autocorr_time()
 
-    print('Autocorrelation time')
-    print('tau_logM = {:7.2f}, tau_R = {:7.2f}, tau_logZ = {:7.2f}'.format(tau[0], tau[1], tau[2]))
+    #print('Autocorrelation time')
+    #print('tau_logM = {:7.2f}, tau_R = {:7.2f}, tau_logZ = {:7.2f}'.format(tau[0], tau[1], tau[2]))
 
     flat_samples = sampler.get_chain(discard=burnin, thin=250, flat=True) # numpy array
 
@@ -274,26 +330,23 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     return sampler, param_samples, bounds
 
-def plot_mcmc(sampler, param_samples, init_out, linear_prior):
+def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, seed=None):
 
-    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
 
-    # (1) Make the walker plot, use the true values in the chain
+    ##### (1) Make the walker plot, use the true values in the chain
     var_label = ['logM', 'R_Mpc', 'logZ']
     truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
     print("truths", truths)
     chain = sampler.get_chain()
+    inference.walker_plot(chain, truths, var_label, walkerfile=None)
 
-    #walker_outfig = 'walker_ballsize_0.1_nwalker20.pdf'
-    #inference.walker_plot(chain, truths, var_label, walker_outfig)
-
-    # (2) Make the corner plot, again use the true values in the chain
+    ##### (2) Make the corner plot, again use the true values in the chain
     fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k', \
                         truth_color='darkgreen', \
                         show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
-
-    #cornerfile = figpath + 'corner_plot.pdf'
     for ax in fig.get_axes():
         # ax.tick_params(axis='both', which='major', labelsize=14)
         # ax.tick_params(axis='both', which='minor', labelsize=12)
@@ -301,21 +354,6 @@ def plot_mcmc(sampler, param_samples, init_out, linear_prior):
     plt.show()
     plt.close()
 
-    # (3) Make the corrfunc plot
-    # Need to modify inference.corrfunc_plot()
-
-    """
-    lower = np.array([bounds[0][0], bounds[1][0]])
-    upper = np.array([bounds[0][1], bounds[1][1]])
-    param_limits = [lower, upper]
-    
-    corrfile = figpath + 'corr_func_data.pdf'
-    inference.corrfunc_plot(xi_data, param_samples, params, xhi_fine, logZ_fine, xi_model_fine, xhi_coarse, logZ_coarse,
-                            covar_array,
-                            xhi_data, logZ_data, corrfile, rand=rand)
-    # Lower limit on metallicity for pristine case
-    if linearZprior:
-        ixhi_prior = flat_samples[:, 0] > 0.95
-        logZ_95 = np.percentile(param_samples[ixhi_prior, 1], 95.0)
-        print('Obtained 95% upper limit of {:6.4f}'.format(logZ_95))
-    """
+    ##### (3) Make the corrfunc plot with mcmc realizations
+    inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
+                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, nrand=50, seed=seed)
