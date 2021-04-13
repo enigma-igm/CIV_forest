@@ -94,6 +94,10 @@ def main():
 if __name__ == '__main__':
     main()
 
+# (4/1/21):
+# nohup python prodrun_mask_xciv_skewers.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits --nproc 40 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_mask_xciv_skewers_extra2.log &
+# start: 1415 - 0335 (~14 hrs)
+
 # run command on IGM (3/30/21) for extra models:
 # nohup python prodrun_mask_xciv_skewers.py --ranskewerfile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/rand_skewers_z45_ovt_xciv.fits --halofile /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/z45_halo_logMmin_8.fits --nproc 50 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_mask_xciv_skewers_extra.log &
 # runtime: 8.5 hrs (start: 3/30 15:21; end: 3/30 23:55)

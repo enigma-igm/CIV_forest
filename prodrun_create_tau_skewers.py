@@ -76,8 +76,8 @@ if __name__ == '__main__':
     main()
 
 # 4.2.21:
-# nohup python prodrun_create_tau_skewers.py --nproc 40 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_create_tau_skewers_extra2.log &
-# start:
+# nohup python prodrun_create_tau_skewers.py --nproc 30 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_create_tau_skewers_extra2.log &
+# start: 1000 (4.2.21) - 1430 (4.3.21)
 
 # run command on IGM (3/31/21) for extra models:
 # nohup python prodrun_create_tau_skewers.py --nproc 40 > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/prodrun_create_tau_skewers_extra.log &
