@@ -204,7 +204,7 @@ def calc_igm_Zeff(fm, logZ_fid=-3.5):
 
     return logZ_eff
 
-def calc_fvfm_all():
+def calc_fvfm_all(logM_grid=None, R_grid=None):
     # calculates the volume- and mass-filling fraction
     # requires enrichment models stored on IGM machine.
     # outputs the table of fv and fm as fits file.
@@ -212,15 +212,17 @@ def calc_fvfm_all():
     maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
     outfile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_all.fits'
 
-    logM, R = init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2)
+    # logM, R = init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2) # initial sparser grid
+    if logM_grid == None and R_grid == None:
+        logM_grid, R_grid = init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1) # final grid
 
     fm_all = []
     fv_all = []
     logM_all = []
     R_all = []
 
-    for i_logM, logMval in enumerate(logM):
-        for i_R, Rval in enumerate(R):
+    for i_logM, logMval in enumerate(logM_grid):
+        for i_R, Rval in enumerate(R_grid):
             mask_outfile = os.path.join(maskpath, 'rand_skewers_z45_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(
                 logMval) + '.fits')
             ske = Table.read(mask_outfile, hdu=2)
