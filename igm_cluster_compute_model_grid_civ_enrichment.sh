@@ -10,5 +10,8 @@ python ~/codes/enigma/enigma/reion_forest/compute_model_grid_civ_new.py \
 now=`date`
 echo "Finish: $now"
 
+# April 5, 2021:
+# nohup ./igm_cluster_compute_model_grid_civ_enrichment.sh > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/igm_cluster_compute_model_grid_civ_enrichment_fine.log &
+
 # ran in IGM on March 5, 2021:
 # nohup ./igm_cluster_compute_model_grid_civ_enrichment.sh > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/igm_cluster_compute_model_grid_civ_enrichment.log &
