@@ -207,7 +207,7 @@ def calc_igm_Zeff(fm, logZ_fid=-3.5):
 def calc_fvfm_all(logM_grid=None, R_grid=None):
     # calculates the volume- and mass-filling fraction
     # requires enrichment models stored on IGM machine.
-    # outputs the table of fv and fm as fits file.
+    # outputs the table of fv and fm as fits file
 
     maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
     outfile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_all.fits'
@@ -221,6 +221,7 @@ def calc_fvfm_all(logM_grid=None, R_grid=None):
     logM_all = []
     R_all = []
 
+    start = time.time()
     for i_logM, logMval in enumerate(logM_grid):
         for i_R, Rval in enumerate(R_grid):
             mask_outfile = os.path.join(maskpath, 'rand_skewers_z45_ovt_xciv_' + 'R_{:4.2f}'.format(Rval) + '_logM_{:4.2f}'.format(
@@ -239,7 +240,9 @@ def calc_fvfm_all(logM_grid=None, R_grid=None):
     hdulist = fits.HDUList()
     hdulist.append(hdu_table)
     hdulist.writeto(outfile, overwrite=True)
-
+    end = time.time()
+    print("Done in", (end-start)/60)
+    
 def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment/fvfm_all.fits'):
     fvfm = Table.read(fvfm_file)
     logM_all = np.array(fvfm['logM'])
