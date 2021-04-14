@@ -204,17 +204,16 @@ def calc_igm_Zeff(fm, logZ_fid=-3.5):
 
     return logZ_eff
 
-def calc_fvfm_all(logM_grid=None, R_grid=None):
+def calc_fvfm_all(logM_grid, R_grid):
     # calculates the volume- and mass-filling fraction
     # requires enrichment models stored on IGM machine.
-    # outputs the table of fv and fm as fits file
+    # outputs the table of fv and fm as fits file (~1 hr on 780 models)
 
     maskpath = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/xciv_mask/'
     outfile = '/mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/fvfm_all.fits'
 
     # logM, R = init_halo_grids(8.5, 11.0, 0.25, 0.1, 3, 0.2) # initial sparser grid
-    if logM_grid == None and R_grid == None:
-        logM_grid, R_grid = init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1) # final grid
+    # logM_grid, R_grid = init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1) # final grid
 
     fm_all = []
     fv_all = []
@@ -230,6 +229,8 @@ def calc_fvfm_all(logM_grid=None, R_grid=None):
             mask_arr = ske['MASK'].astype(bool)
 
             fm, fv = calc_fm_fv(mask_arr, ske)
+            del mask_arr # trying to free up memory
+            del ske
             fm_all.append(fm)
             fv_all.append(fv)
             logM_all.append(logMval)
@@ -242,7 +243,7 @@ def calc_fvfm_all(logM_grid=None, R_grid=None):
     hdulist.writeto(outfile, overwrite=True)
     end = time.time()
     print("Done in", (end-start)/60)
-    
+
 def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment/fvfm_all.fits'):
     fvfm = Table.read(fvfm_file)
     logM_all = np.array(fvfm['logM'])

@@ -273,6 +273,7 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, seed=None):
 
+    # TODO: save mcmc chains (https://emcee.readthedocs.io/en/stable/tutorials/monitor/)
     if seed == None:
         seed = np.random.randint(0, 10000000)
         print("Using random seed", seed)

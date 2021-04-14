@@ -2,6 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cloudy_utils as cu
 
+# plotting the relative difference in ion fraction between logZ=-3.5 and logZ=-1.5 in the Cloudy outputs
+
 metal_ion_ls = ['IONI CARB 1 1', 'IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1']
 #metal_ion_ls = ['IONI SILI 1 1', 'IONI SILI 2 1', 'IONI SILI 3 1', 'IONI SILI 4 1', 'IONI SILI 5 1', 'IONI SILI 6 1']
 out_filename = 'plots/carb_reldiff.pdf'
