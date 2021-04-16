@@ -26,6 +26,7 @@ import enigma.reion_forest.utils as reion_utils
 from scipy.spatial import distance # v14.0 syntax
 from linetools.abund import solar as labsol
 import os
+import h5py
 
 def init_all(halofile='nyx_sim_data/z45_halo_logMmin_8.fits', skewerfile='nyx_sim_data/rand_skewers_z45_ovt_tau.fits'):
     par = Table.read(skewerfile, hdu=1)
@@ -275,6 +276,39 @@ def get_logM_R(fm_lower, fm_upper, logZ_fid, logM_grid, R_grid, fvfm_file='nyx_s
     iR_want = np.array([np.where(np.round(R_grid,2) == r)[0][0] for r in R_want])
 
     return logM_want, R_want, ilogM_want, iR_want
+
+def get_baryon_field_slice(Zwant, slice_thickness=None, saveout=None):
+    # returns the 2D XY slice of baryon density field at Zwant location
+    # default saveout location is /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/
+
+    simfile = '/mnt/quasar/sims/L100n4096S2/z45.h5'
+    simbox = h5py.File(simfile, 'r')
+
+    lit_h = simbox['universe'].attrs['hubble'] # = 0.685
+    Ng = simbox['domain'].attrs['shape'][0]
+    Lbox_hMpc = simbox['domain'].attrs['size'][0] # = 100.0
+    Lbox = Lbox_hMpc / lit_h # = 145.985401459854
+
+    if slice_thickness != None:
+        Zwant = np.array([Zwant - slice_thickness / 2., Zwant + slice_thickness / 2.])
+        inv_IZ = Zwant * Ng / Lbox
+        inv_IZ_round = np.round(inv_IZ).astype(int)
+        print(inv_IZ, inv_IZ_round)
+
+        bslice = np.zeros((Ng, Ng))
+        for iz in range(inv_IZ_round[0], inv_IZ_round[1]+1, 1):
+            bslice += simbox['native_fields']['baryon_density'][:, :, iz]
+    else:
+        inv_IZ = Zwant * Ng/Lbox
+        inv_IZ_round = np.round(inv_IZ).astype(int)
+        print(inv_IZ, inv_IZ_round)
+        bslice = simbox['native_fields']['baryon_density'][:,:,inv_IZ_round]
+
+    simbox.close()
+
+    if saveout != None:
+        np.save(saveout, bslice)
+    return bslice
 
 ##### checking coordinate consistency of halo and skewer files #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):
