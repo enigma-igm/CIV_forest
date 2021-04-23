@@ -43,7 +43,8 @@ def read_cloudy_koki(filename, verbose=True):
 
 def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_value):
     """
-    Extract or interpolate the metal ion fraction at given density and temperature from Cloudy models
+    Extract or interpolate the metal ion fraction at given density and temperature from Cloudy models.
+    (Script is used to create xciv skewers, see metal_frac_skewers.py)
 
     Args:
         lookup (pandas dataframe):
@@ -65,18 +66,18 @@ def get_ion_frac(lookup, metal_ion, fixed_Z_value, want_hden_value, want_temp_va
     if fixed_Z_value != None:
         # selecting out a specific metallicity
         metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
-        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
-        temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind]) # log10 unit
+        temp_grid = np.array(lookup['CONSTANT'][metal_ind]) # log10 unit
         ion_frac = np.array(lookup[metal_ion][metal_ind])
     else:
-        nh_grid = np.array(lookup['HDEN=%f L'])
-        temp_grid = np.array(lookup['CONSTANT'])
+        nh_grid = np.array(lookup['HDEN=%f L']) # log10 unit
+        temp_grid = np.array(lookup['CONSTANT']) # log10 unit
         ion_frac = np.array(lookup[metal_ion])
 
     # defining additional arrays for 2D interpolation
     nh_grid_uniq = np.unique(nh_grid) # returns unique and sorted values
     temp_grid_uniq = np.unique(temp_grid)
-    ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq)))
+    ion_frac2d = np.reshape(ion_frac, (len(nh_grid_uniq), len(temp_grid_uniq))) # double-checked reshaping is correct
 
     # RectBivariateSpline is a (faster) subclass of interp2d if x and y are rectangular grids
     # linear interpolation if kx=1 and ky=1
@@ -105,8 +106,8 @@ def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_
     if fixed_Z_value != None:
         # selecting out a specific metallicity
         metal_ind = np.where(lookup['METALS= %'] == fixed_Z_value)[0]
-        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind])
-        temp_grid = np.array(lookup['CONSTANT'][metal_ind])
+        nh_grid = np.array(lookup['HDEN=%f L'][metal_ind]) # log10 unit
+        temp_grid = np.array(lookup['CONSTANT'][metal_ind]) # log10 unit
         ion_frac = np.array(lookup[metal_ion][metal_ind])
     else:
         nh_grid = np.array(lookup['HDEN=%f L'])
