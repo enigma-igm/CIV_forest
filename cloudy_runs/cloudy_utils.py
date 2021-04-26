@@ -124,6 +124,33 @@ def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_
     # return 1D slice; also 1D array
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
 
+from matplotlib import pyplot as plt
+def dominant_ion(lookup='cloudy_runs/output/cloudy_grid_more', \
+                 ion_ls=['IONI CARB 1 1', 'IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1', 'IONI CARB 7 1'], \
+                 logZ=-3.5):
+    met_lookup = read_cloudy_koki(lookup)
+    metal_ind = np.where(met_lookup['METALS= %'] == logZ)[0]
+    nh_grid = np.array(met_lookup['HDEN=%f L'][metal_ind])  # log10 unit
+    temp_grid = np.array(met_lookup['CONSTANT'][metal_ind])  # log10 unit
+
+    ionfrac_ls = [] # 2d array
+    for ind, metal in enumerate(ion_ls):
+        ion_frac = np.array(met_lookup[metal][metal_ind])
+        ionfrac_ls.append(ion_frac)
+
+    ionfrac_ls = np.array(ionfrac_ls)
+    sum_ionfrac = np.sum(ionfrac_ls, axis=0)
+    print("min(sum ionfrac):", sum_ionfrac.min(), "max(sum ionfrac):", sum_ionfrac.max())
+
+    domion = np.argmax(ionfrac_ls, axis=0)
+    return domion, nh_grid, temp_grid
+
+    #color = ['g', 'b', 'r', 'k', 'y', 'm', 'c', 'orchid']
+    #for i in range(len(nh_grid)):
+    #    plt.scatter(nh_grid[i], temp_grid[i], color=color[domion[i]])
+    #plt.show()
+
+
 # cu.make_cldy_grid_script('cloudy_grid_more.in', -7, 0, 0.1, -3.5, -1.5, 2, 7, 0.1, 32, metals_list)
 # metals_list = ['hydrogen 1 2', 'oxygen 1 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
 def make_cldy_grid_script(outfile, hden_start, hden_end, hden_step, \

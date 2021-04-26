@@ -9,8 +9,7 @@ temp_log10 = 4.0 # temp at mean density
 met_lookup = cu.read_cloudy_koki('output/cloudy_grid_more')
 metal_ion_ls = ['IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1', 'IONI CARB 7 1']
 
-
-title = ['$C\ I$', '$C\ II$', '$C\ III$', '$C\ IV$', '$C\ V$', '$C\ VI$']
+title = ['$C\ II$', '$C\ III$', '$C\ IV$', '$C\ V$', '$C\ VI$', '$C\ VII$']
 
 vmin = -3.0
 vmax = 0
