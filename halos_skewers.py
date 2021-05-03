@@ -10,6 +10,9 @@ Functions here:
     - calc_fm_fv
     - calc_igm_Zeff
     - calc_fvfm_all
+    - get_fvfm
+    - get_logM_R
+    - get_baryong_field_slice
     - check_halo_xyz
     - check_skewers_xyz
     - common_cell
@@ -245,12 +248,10 @@ def calc_fvfm_all(logM_grid, R_grid):
     end = time.time()
     print("Done in", (end-start)/60)
 
-def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment/fvfm_all.fits'):
+def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits'):
     fvfm = Table.read(fvfm_file)
-    logM_all = np.array(fvfm['logM'])
+    logM_all = np.round(fvfm['logM'], 2)
     R_all = np.round(np.array(fvfm['R_Mpc']), 2)
-    #i = np.where(logM_all == logM_want)[0]
-    #j = np.where(R_all == R_want)[0]
     k = np.where((logM_all == logM_want) & (R_all == R_want))[0]
     fv_want = (fvfm['fv'][k])[0] # the [0] is just to extract the value from astropy column
     fm_want = (fvfm['fm'][k])[0]

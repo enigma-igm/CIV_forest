@@ -93,16 +93,24 @@ def plot_corrmatrix(params, covar):
 
     plt.show()
 
-def plot_corrfunc(params, xi_model, label=None):
+def plot_corrfunc(params, xi_model, color=None, linestyle=None, label=None):
 
     vel_mid = params['vel_mid'][0]
     vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
 
-    plt.plot(vel_mid, xi_model, linewidth=2.0, linestyle='-', label=label)
-    plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.6) #label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+    if (color == None) & (linestyle == None):
+        plt.plot(vel_mid, xi_model, linewidth=2.0, linestyle='-', label=label)
+    elif (color == None) & (linestyle != None):
+        plt.plot(vel_mid, xi_model, linewidth=2.0, linestyle=linestyle, label=label)
+    elif (color != None) & (linestyle == None):
+        plt.plot(vel_mid, xi_model, linewidth=2.0, color=color, label=label)
+    elif (color != None) & (linestyle != None):
+        plt.plot(vel_mid, xi_model, linewidth=2.0, color=color, linestyle=linestyle, label=label)
+
+    plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.8) #label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
     plt.legend(fontsize=12)
-    plt.xlabel(r'$\Delta v$ (km/s)', fontsize=15)
-    plt.ylabel(r'$\xi(\Delta v)$', fontsize=15)
+    plt.xlabel(r'$\Delta v$ (km/s)', fontsize=18)
+    plt.ylabel(r'$\xi(\Delta v)$', fontsize=18)
 
 
 def plot_all_corrmatrix(modelfile, type, outfig=None, cf_overplot=False):
@@ -341,15 +349,15 @@ def temp2_compare_cf_enrichment(ori_par, ori_ske, mask1_par, mask1_ske, mask2_pa
         reion_utils.create_metal_forest(mask3_par, mask3_ske, logZ, fwhm, 'C IV', sampling=3)
 
     if wantlores:
-        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all2(vel_lores_ori, flux_lores_tot_ori, 10, 2000, 5)
-        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all2(vel_lores_mask1, flux_lores_tot_mask1, 10, 2000, 5)
-        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all2(vel_lores_mask2, flux_lores_tot_mask2, 10, 2000, 5)
-        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all2(vel_lores_mask3, flux_lores_tot_mask3, 10, 2000, 5)
+        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all_flexi(vel_lores_ori, flux_lores_tot_ori, 10, 2000, 5)
+        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all_flexi(vel_lores_mask1, flux_lores_tot_mask1, 10, 2000, 5)
+        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all_flexi(vel_lores_mask2, flux_lores_tot_mask2, 10, 2000, 5)
+        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all_flexi(vel_lores_mask3, flux_lores_tot_mask3, 10, 2000, 5)
     else:
-        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all2(vel_hires_ori, flux_hires_tot_ori, 10, 2000, 5)
-        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all2(vel_hires_mask1, flux_hires_tot_mask1, 10, 2000, 5)
-        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all2(vel_hires_mask2, flux_hires_tot_mask2, 10, 2000, 5)
-        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all2(vel_hires_mask3, flux_hires_tot_mask3, 10, 2000, 5)
+        vel_mid_ori, xi_mean_tot_ori, _, _ = compute_xi_all_flexi(vel_hires_ori, flux_hires_tot_ori, 10, 2000, 5)
+        vel_mid_mask1, xi_mean_tot_mask1, _, _ = compute_xi_all_flexi(vel_hires_mask1, flux_hires_tot_mask1, 10, 2000, 5)
+        vel_mid_mask2, xi_mean_tot_mask2, _, _ = compute_xi_all_flexi(vel_hires_mask2, flux_hires_tot_mask2, 10, 2000, 5)
+        vel_mid_mask3, xi_mean_tot_mask3, _, _ = compute_xi_all_flexi(vel_hires_mask3, flux_hires_tot_mask3, 10, 2000, 5)
 
     return vel_mid_ori, xi_mean_tot_ori, vel_mid_mask1, xi_mean_tot_mask1, \
            vel_mid_mask2, xi_mean_tot_mask2, vel_mid_mask3, xi_mean_tot_mask3

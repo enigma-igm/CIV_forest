@@ -8,6 +8,7 @@ Functions in this module:
 
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.interpolate import interp2d, RectBivariateSpline
 
 def read_cloudy_koki(filename, verbose=True):
@@ -124,7 +125,6 @@ def get_ion_frac1d(lookup, metal_ion, fixed_Z_value, want_hden_value=None, want_
     # return 1D slice; also 1D array
     return ion_frac[ind_slice], nh_grid[ind_slice], temp_grid[ind_slice]
 
-from matplotlib import pyplot as plt
 def dominant_ion(lookup='cloudy_runs/output/cloudy_grid_more', \
                  ion_ls=['IONI CARB 1 1', 'IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1', 'IONI CARB 7 1'], \
                  logZ=-3.5):
@@ -145,11 +145,61 @@ def dominant_ion(lookup='cloudy_runs/output/cloudy_grid_more', \
     domion = np.argmax(ionfrac_ls, axis=0)
     return domion, nh_grid, temp_grid
 
-    #color = ['g', 'b', 'r', 'k', 'y', 'm', 'c', 'orchid']
-    #for i in range(len(nh_grid)):
-    #    plt.scatter(nh_grid[i], temp_grid[i], color=color[domion[i]])
-    #plt.show()
+""" # unused
+def dominant_ion2(domion_ls, nh_grid, temp_grid):
+    ci_ls = []
+    cii_ls = []
+    ciii_ls = []
+    civ_ls = []
+    cv_ls = []
+    cvi_ls = []
+    cvii_ls = []
+    print(set(domion_ls))
+    for i in range(len(nh_grid)):
+        if domion_ls[i] == 0:
+            ci_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 1:
+            cii_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 2:
+            ciii_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 3:
+            civ_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 4:
+            cv_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 5:
+            cvi_ls.append([nh_grid[i], temp_grid[i]])
+        elif domion_ls[i] == 6:
+            cvii_ls.append([nh_grid[i], temp_grid[i]])
 
+    print("Total each ion:", len(ci_ls), len(cii_ls), len(ciii_ls), len(civ_ls), len(cv_ls), len(cvi_ls), len(cvii_ls))
+    print("Sum:", len(ci_ls) + len(cii_ls) + len(ciii_ls) + len(civ_ls) + len(cv_ls) + len(cvi_ls) + len(cvii_ls))
+
+    #return np.array(ci_ls), np.array(cii_ls), np.array(ciii_ls), np.array(civ_ls), \
+    #       np.array(cv_ls), np.array(cvi_ls), np.array(cvii_ls)
+
+def dominant_ion3(specific_ion, nh_grid, temp_grid):
+    xmin, ymin = [], []
+    xmax, ymax = [], []
+    xall = list(set(specific_ion[:,0]))
+    xall = np.array(xall)
+
+    for i in range(len(xall)):
+        ind = np.where(specific_ion[:, 0] == xall[i])[0]
+        #print(ind, ind[0])
+        if len(ind) == 1:
+            xmin.append(specific_ion[:, 0][ind[0]])
+            ymin.append(specific_ion[:, 1][ind[0]])
+        else:
+            ind_min = np.argmin(specific_ion[:, 1][ind])
+            xmin.append(specific_ion[:, 0][ind][ind_min])
+            ymin.append(specific_ion[:, 1][ind][ind_min])
+
+            ind_max = np.argmax(specific_ion[:, 1][ind])
+            xmax.append(specific_ion[:, 0][ind][ind_max])
+            ymax.append(specific_ion[:, 1][ind][ind_max])
+    plt.plot(xmin, ymin, 'ko')
+    plt.plot(xmax, ymax, 'ro')
+"""
 
 # cu.make_cldy_grid_script('cloudy_grid_more.in', -7, 0, 0.1, -3.5, -1.5, 2, 7, 0.1, 32, metals_list)
 # metals_list = ['hydrogen 1 2', 'oxygen 1 7', 'carbon 1 7', 'silicon 1 7', 'nitrogen 1 7', 'magnesium 1 4']
