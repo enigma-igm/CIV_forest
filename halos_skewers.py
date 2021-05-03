@@ -12,7 +12,8 @@ Functions here:
     - calc_fvfm_all
     - get_fvfm
     - get_logM_R
-    - get_baryong_field_slice
+    - get_baryon_field_slice
+    - get_Nciv
     - check_halo_xyz
     - check_skewers_xyz
     - common_cell
@@ -310,6 +311,18 @@ def get_baryon_field_slice(Zwant, slice_thickness=None, saveout=None):
     if saveout != None:
         np.save(saveout, bslice)
     return bslice
+
+def get_Nciv(oden, x_metal, logZ, nH_bar, pixscale_in_cm):
+    # N_civ = n_civ * pixelscale
+    # n_civ = x_civ * n_c, where n_c = nH * Z
+
+    logZ_sol = labsol.SolarAbund().get_ratio('C/H')
+    Z_sol = 10**(logZ_sol)
+    Z = Z_sol * 10**(logZ) # = nC/nH
+    nC = Z * (oden * nH_bar)
+    n_civ = x_metal * nC
+    N_civ = n_civ * pixscale_in_cm
+    return N_civ
 
 ##### checking coordinate consistency of halo and skewer files #####
 def check_halo_xyz(halos, Lbox, Ng, lit_h):

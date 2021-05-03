@@ -11,7 +11,7 @@ from scipy.spatial import ConvexHull
 #shading the region spanned by all grid points a single color and using transparency
 
 # setting the figure
-font = {'family' : 'serif', 'weight' : 'normal'}#, 'size': 11}
+font = {'family' : 'serif', 'weight' : 'normal'}
 plt.rc('font', **font)
 mpl.rcParams['axes.linewidth'] = 1.5
 mpl.rcParams['xtick.major.width'] = 1.5
@@ -114,5 +114,4 @@ atwin.xaxis.set_minor_locator(AutoMinorLocator())
 atwin.yaxis.set_minor_locator(AutoMinorLocator())
 atwin.tick_params(axis="x", labelsize=16)
 
-#plt.tight_layout()
 plt.show()
