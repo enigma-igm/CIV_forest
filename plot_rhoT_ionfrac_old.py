@@ -10,7 +10,7 @@ from scipy.spatial import ConvexHull
 #TODO: plot shaded locus for each ion, show contours of CIV like Illustris paper
 #shading the region spanned by all grid points a single color and using transparency
 
-# setting the figure
+#setting the figure
 font = {'family' : 'serif', 'weight' : 'normal'}#, 'size': 11}
 plt.rc('font', **font)
 mpl.rcParams['axes.linewidth'] = 1.5
@@ -23,16 +23,6 @@ mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
-plt.figure(figsize=(12., 8))
-plt.subplots_adjust(left=0.07, bottom=0.1, right=0.95, top=0.9, wspace=0, hspace=0)
-
-cbar_fontsize = 12
-xytick_size = 16
-annotate_text_size = 16
-xylabel_fontsize = 20
-ionfrac_alpha = 1.0
-tdr_alpha = 0.7
-
 logZ_cloudy = -3.5
 cloudy_file = 'cloudy_runs/output/cloudy_grid_more'
 metal_ion_ls = ['IONI CARB 1 1', 'IONI CARB 2 1', 'IONI CARB 3 1', 'IONI CARB 4 1', 'IONI CARB 5 1', 'IONI CARB 6 1', 'IONI CARB 7 1']
@@ -43,15 +33,32 @@ nh_grid = np.array(met_lookup['HDEN=%f L'][metal_ind])  # log10 unit
 temp_grid = np.array(met_lookup['CONSTANT'][metal_ind])  # log10 unit
 domion, nh_grid, temp_grid = cu.dominant_ion(lookup=cloudy_file, ion_ls=metal_ion_ls, logZ=logZ_cloudy)
 
-N_nh_grid, nh_grid_lo, nh_grid_hi = len(np.unique(nh_grid)), np.unique(nh_grid)[0], np.unique(nh_grid)[-1]
-print(N_nh_grid, nh_grid_lo, nh_grid_hi)
-N_temp_grid, temp_grid_lo, temp_grid_hi = len(np.unique(temp_grid)), np.unique(temp_grid)[0], np.unique(temp_grid)[-1]
-print(N_temp_grid, temp_grid_lo, temp_grid_hi)
+### plotting ion fraction from Cloudy
+plt.figure(figsize=(10,8))
+title = ['$C\ I$', '$C\ II$', '$C\ III$', '$C\ IV$', '$C\ V$', '$C\ VI$', '$C\ VII$']
+color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:olive', 'tab:cyan']
+#alpha = np.linspace(0, 1, 7)
+# use plt.colorbar but set the colorbar to be the ion!
 
-# reshaping from 1d to 2d, for plt.imshow
-cmap = plt.cm.get_cmap('BuPu', len(set(domion))) # discrete colormap
-domion = np.reshape(domion, (N_nh_grid, N_temp_grid))
+n = np.zeros(len(metal_ion_ls))
+for i in range(len(nh_grid)):
+    n[domion[i]] += 1
+    if n[domion[i]] == 1:
+        #plt.plot(nh_grid[i], temp_grid[i], 's', ms=10, color=color[domion[i]], label=title[domion[i]])
+        plt.plot(nh_grid[i], temp_grid[i], 's', ms=5, color='tab:red', alpha=alpha[domion[i]], label=title[domion[i]], mew=0)
+    else:
+        plt.plot(nh_grid[i], temp_grid[i], 's', ms=5, color='tab:red', alpha=alpha[domion[i]], mew=0)
+print(n, np.sum(n))
+"""
+for i in range(len(metal_ion_ls)):
+    ion_frac = np.array(met_lookup[metal_ion_ls[i]][metal_ind])
+    ind = np.where(ion_frac > 0.3)[0]
+    plt.plot(nh_grid[ind], temp_grid[ind], 's', ms=3, label=title[i])
+    #plt.scatter(nh_grid[ind], temp_grid[ind], marker=marker[i], s=6, label=title[i])
+"""
+plt.legend(loc=2,fontsize=14)
 
+"""
 ### plotting TDR using Nyx skewers
 # borrowing things from Vikram: https://github.com/qsopairs/enigma/blob/master/enigma/whim/my_plotting_routines/paper_plots/weighted_bN_igm.py
 par = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau.fits', hdu=1)
@@ -68,51 +75,40 @@ y_coord = 0.5 *(ye[:-1]+ ye[1:]) # bin centers
 x_coord = 0.5 *(xe[:-1]+ xe[1:])
 
 # converting x-axis from log(overdensity) to log(nH)
-x_coord = np.log10(nH_bar*(10**x_coord))
-mat2 = plt.pcolormesh(x_coord, y_coord, norm_hist2d.T, norm=LogNorm(), cmap=plt.cm.gist_gray, alpha=tdr_alpha) # LogNorm uses a log-scale colorbar
-#plt.imshow(norm_hist2d.T, norm=LogNorm(), cmap=plt.cm.gist_gray, origin='lower', \
-#           extent=[x_coord.min(), x_coord.max(), y_coord.min(), y_coord.max()], alpha=tdr_alpha)
-
-cbar2 = plt.colorbar(mat2, fraction=0.047, pad=0.047)
-cbar2.ax.tick_params(labelsize=cbar_fontsize)
-#cbar2.set_label('Density', rotation=270, fontsize=cbar_fontsize, labelpad=15)
-
+plt.pcolormesh(np.log10(nH_bar*(10**x_coord)), y_coord, norm_hist2d.T, norm=LogNorm(), cmap=plt.cm.gist_gray) # LogNorm uses a log-scale colorbar
+cbar = plt.colorbar()
+cbar.set_label('Density', rotation=270, fontsize=14, labelpad=15)
 plt.gca().tick_params(right=True, which='both')
 plt.gca().minorticks_on()
-plt.gca().set_xlim([nh_grid.min(), nh_grid.max()])
-plt.gca().set_ylim([temp_grid.min(), temp_grid.max()])
 
 # demarcating different IGM phases
 max_log_oden = 2.0 # maximum oden for diffuse IGM
 plt.axhline(5.0, ls='--', lw=2, color='k')
 plt.vlines(np.log10(nH_bar*(10**max_log_oden)), ymin=2.0, ymax=5.0, ls='--', lw=2, color='k')
-plt.xlabel(r'log(n$_\mathrm{H}$) [cm$^{-3}$]', fontsize=xylabel_fontsize)
-plt.ylabel('log(T) [K]', fontsize=xylabel_fontsize)
-plt.gca().tick_params(axis="both", labelsize=xytick_size)
+#plt.xlabel(r'log$\mathrm{(n_H)}$ $\mathrm{[cm^{-3}]}$', fontsize=18)
+#plt.ylabel(r'log$\mathrm{(T)}$ $\mathrm{[K]}$', fontsize=18)
+plt.xlabel(r'log(n$_\mathrm{H}$) [cm$^{-3}$]', fontsize=18)
+plt.ylabel('log(T) [K]', fontsize=18)
+plt.gca().tick_params(axis="x", labelsize=16)
+plt.gca().tick_params(axis="y", labelsize=16)
 
 bbox = dict(boxstyle="round", fc="0.9") # fc is shading of the box, sth like alpha
-plt.gca().annotate('Condensed', xy=(-1.2, 2.2), xytext=(-1.2, 2.2), textcoords='data', xycoords='data', annotation_clip=False, fontsize=annotate_text_size, bbox=bbox)
-plt.gca().annotate('Diffuse', xy=(-6.8, 2.2), xytext=(-6.8, 2.2), textcoords='data', xycoords='data', annotation_clip=False, fontsize=annotate_text_size, bbox=bbox)
-plt.gca().annotate('WHIM', xy=(-1., 6.7), xytext=(-1., 6.7), textcoords='data', xycoords='data', annotation_clip=False, fontsize=annotate_text_size, bbox=bbox)
-
-title = ['C II', 'C III', 'C IV', 'C V', 'C VI', 'C VII']
-mat = plt.imshow(domion.transpose(), cmap=cmap, vmin=np.min(domion) - 0.5, vmax=np.max(domion) + 0.5, \
-      origin='lower', extent=[nh_grid_lo, nh_grid_hi, temp_grid_lo, temp_grid_hi], interpolation='None', alpha=ionfrac_alpha)
-cbar1 = plt.colorbar(mat, ticks=np.arange(np.min(domion), np.max(domion)+1), fraction=0.047, pad=0.02)#, orientation='horizontal')
-cbar1.ax.set_yticklabels(title, fontsize=cbar_fontsize)
+plt.gca().annotate('Condensed', xy=(-1.4, 2.2), xytext=(-1.4, 2.2), textcoords='data', xycoords='data', annotation_clip=False, fontsize=14, bbox=bbox)
+plt.gca().annotate('Diffuse', xy=(-6.8, 2.2), xytext=(-6.8, 2.2), textcoords='data', xycoords='data', annotation_clip=False, fontsize=14, bbox=bbox)
+plt.gca().annotate('WHIM', xy=(-1., 6.7), xytext=(-1., 6.7), textcoords='data', xycoords='data', annotation_clip=False, fontsize=14, bbox=bbox)
 
 # including ODEN on the top axis
 min_oden = np.log10((10**nh_grid.min())/nH_bar)
 max_oden = np.log10((10**nh_grid.max())/nH_bar)
 atwin = plt.gca().twiny()
-atwin.set_xlabel(r'log($\Delta$) [$\rho/\bar{\rho}$]', fontsize=xylabel_fontsize, labelpad=8)
+atwin.set_xlabel(r'log$(\Delta)$ $[\rho/\bar{\rho}]$', fontsize=18, labelpad=8)
 atwin.xaxis.tick_top()
-atwin.axis([min_oden, max_oden, temp_grid_lo, temp_grid_hi])
-atwin.tick_params(top=True)
 
+atwin.axis([min_oden, max_oden, temp_grid.min(), temp_grid.max()])
+atwin.tick_params(top=True)
 atwin.xaxis.set_minor_locator(AutoMinorLocator())
 atwin.yaxis.set_minor_locator(AutoMinorLocator())
 atwin.tick_params(axis="x", labelsize=16)
-
-#plt.tight_layout()
+"""
+plt.tight_layout()
 plt.show()
