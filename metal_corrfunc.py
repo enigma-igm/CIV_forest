@@ -1,3 +1,22 @@
+"""
+Functions here:
+    - compute_xi_all
+    - compute_xi_all_flexi
+    - write_corrfunc
+    - plot_corrmatrix
+    - plot_corrfunc
+    - plot_all_corrmatrix
+    - plot_single_cov_elem
+    - plot_single_cov_elem_old
+    - plot_corrmatrix_movie
+    - plot_enrichment_corrfunc_fixedlogZeff
+    - covar_scaling
+    - init_inference_1d_civ
+    - normalize_like
+    - calc_plogZ
+    - calc_prec
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import enigma.reion_forest.utils as reion_utils
@@ -311,6 +330,35 @@ def plot_enrichment_corrfunc_fixedlogZeff(modelfile, fm_lower, fm_upper, logZ):
     logZ_eff = halos_skewers.calc_igm_Zeff(fm_avg, logZ_fid=logZ)
     plt.title(r'log$Z_{eff} = %0.3f$, log$Z_{fid} = %0.3f$' % (logZ_eff, logZ), fontsize=15)
     plt.show()
+
+def covar_scaling():
+    modelfile_path = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/'
+    modelfile_ori_nqso = modelfile_path + 'fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+    modelfile_half_nqso = modelfile_path + 'scaling_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_10.fits'
+    modelfile_twice_nqso = modelfile_path + 'scaling_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_40.fits'
+
+    params_ori, _, _, covar_ori, _, _ = read_model_grid(modelfile_ori_nqso)
+    params_half, _, _, covar_half, _, _ = read_model_grid(modelfile_half_nqso)
+    params_twice, _, _, covar_twice, _, _ = read_model_grid(modelfile_twice_nqso)
+
+    logM, R, logZ = params_half['logM'][0], params_half['R_Mpc'][0], params_half['logZ'][0]
+    ind_logM = np.where(np.round(params_ori['logM'][0], 2) == logM)[0][0]
+    ind_R = np.where(np.round(params_ori['R_Mpc'][0], 2) == R)[0][0]
+    ind_logZ = np.where(np.round(params_ori['logZ'][0], 2) == logZ)[0][0]
+
+    covar_ori = covar_ori[ind_logM][ind_R][ind_logZ]
+    covar_half = covar_half[0][0][0]
+    covar_twice = covar_twice[0][0][0]
+
+    sigma_xi_ori = np.sqrt(np.diag(covar_ori))
+    sigma_xi_half = np.sqrt(np.diag(covar_half))
+    sigma_xi_twice = np.sqrt(np.diag(covar_twice))
+
+    #sigma_xi_ori = np.sqrt(covar_ori)
+    #sigma_xi_half = np.sqrt(covar_half)
+    #sigma_xi_twice = np.sqrt(covar_twice)
+
+    return sigma_xi_ori, sigma_xi_half, sigma_xi_twice
 
 ##################### Temporary plotting #####################
 def temp1_compare_cf_enrichment():
