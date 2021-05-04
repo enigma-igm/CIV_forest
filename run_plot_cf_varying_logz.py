@@ -1,6 +1,7 @@
 from astropy.table import Table
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 import os
 import halos_skewers
 import metal_corrfunc
@@ -9,6 +10,27 @@ import enigma.reion_forest.utils as reion_utils
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 from matplotlib.ticker import AutoMinorLocator
+
+### Figure settings
+font = {'family' : 'serif', 'weight' : 'normal'}
+plt.rc('font', **font)
+mpl.rcParams['axes.linewidth'] = 1.5
+mpl.rcParams['xtick.major.width'] = 1.5
+mpl.rcParams['ytick.major.width'] = 1.5
+mpl.rcParams['xtick.minor.width'] = 1.5
+mpl.rcParams['ytick.minor.width'] = 1.5
+mpl.rcParams['xtick.major.size'] = 7
+mpl.rcParams['xtick.minor.size'] = 4
+mpl.rcParams['ytick.major.size'] = 7
+mpl.rcParams['ytick.minor.size'] = 4
+
+fig = plt.figure(figsize=(9, 7.5))
+fig.subplots_adjust(left=0.12, bottom=0.1, right=0.97, top=0.88)
+
+xytick_size = 16
+xylabel_fontsize = 20
+legend_fontsize = 14
+linewidth = 2
 
 outfig = 'paper_plots/cf_varying_logZ.pdf'
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
@@ -27,7 +49,6 @@ colorls = ['#7570b3', '#d95f02', '#1b9e77']
 vel_doublet = reion_utils.vel_metal_doublet('C IV', returnVerbose=False)
 divbyfactor = 1e-5
 
-plt.figure(figsize=(8.5, 6.5))
 for ilogZ, logZval in enumerate(logZ_fid):
     ximodel_ilogZ = np.where(params['logZ'][0] == logZval)[0][0]
     xi_model = xi_model_array[ximodel_ilogM][ximodel_iR][ximodel_ilogZ]
@@ -35,19 +56,20 @@ for ilogZ, logZval in enumerate(logZ_fid):
     #fv, fm = halos_skewers.get_fvfm(logMval, Rval)
     #logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZval)
 
-    label = r'log$Z=%0.2f$' % logZval
-    plt.plot(vel_mid, xi_model/divbyfactor, linewidth=2.0, color=colorls[ilogZ], label=label)
+    #label = r'log$Z=%0.2f$' % logZval
+    label = r'[C/H] = $%0.2f$' % logZval
+    plt.plot(vel_mid, xi_model/divbyfactor, linewidth=linewidth, color=colorls[ilogZ], label=label)
 
 vmin, vmax = 0, 1250
 ymin, ymax = -0.1, 1.5
 
-plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=1.8) #label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-plt.text(160, 0.8*ymax, r'log$M$=%0.2f' % logM + '\n' + '$R$=%0.2f' % R, fontsize='x-large')
-plt.legend(fontsize=12)
-plt.xlabel(r'$\Delta v$ (km/s)', fontsize=18)
-plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=18)
-plt.gca().tick_params(axis="x", labelsize=13)
-plt.gca().tick_params(axis="y", labelsize=13)
+plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
+plt.text(160, 0.82*ymax, r'log(M)=%0.2f M$_{\odot}$' % logM + '\n' + 'R=%0.2f Mpc' % R, fontsize=xytick_size, linespacing=1.8)
+plt.legend(fontsize=legend_fontsize)
+plt.xlabel(r'$\Delta v$ (km/s)', fontsize=xylabel_fontsize)
+plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)
+plt.gca().tick_params(axis="x", labelsize=xytick_size)
+plt.gca().tick_params(axis="y", labelsize=xytick_size)
 plt.xlim([vmin, vmax])
 plt.gca().xaxis.set_minor_locator(AutoMinorLocator())
 plt.gca().yaxis.set_minor_locator(AutoMinorLocator())
@@ -61,14 +83,14 @@ rmin = (vmin*u.km/u.s/a/Hz).to('Mpc').value
 rmax = (vmax*u.km/u.s/a/Hz).to('Mpc').value
 # Make the new upper x-axes
 atwin = plt.gca().twiny()
-atwin.set_xlabel('R (cMpc)', fontsize=18, labelpad=8)
+atwin.set_xlabel('R (cMpc)', fontsize=xylabel_fontsize, labelpad=8)
 atwin.xaxis.tick_top()
 # atwin.yaxis.tick_right()
 atwin.axis([rmin, rmax, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.xaxis.set_minor_locator(AutoMinorLocator())
-atwin.tick_params(axis="x", labelsize=13)
+atwin.tick_params(axis="x", labelsize=xytick_size)
 
-plt.tight_layout()
-#plt.show()
 plt.savefig(outfig)
+plt.show()
+plt.close
