@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from scipy import integrate, special
 from scipy.interpolate import interp1d
 from astropy.cosmology import Planck15
@@ -7,6 +8,8 @@ import mpmath
 from astropy import constants as const
 from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
+import matplotlib.style as style
+style.use('tableau-colorblind10')
 
 ########## literature data ##########
 def dodorico2013_cddf_bosman():
@@ -170,8 +173,27 @@ def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
     else:
         return dn_dzdW
 
+def civ_dndz_sch(n_star, alpha, W_star, W_min, W_max):
+    """
+    Compute Schechter integral (civ_dndzdW_sch above) over [W_min, W_max] interval using the incomplete gamma functions.
+    """
+
+    z = alpha + 1 # changing variable and integrating as a function of z
+    upper = W_max / W_star
+    lower = W_min / W_star
+
+    # \Gamma(z, l, u) = \int_lower^upper x^(z-1) exp(-x) dx, where x = W/W_star
+    if isinstance(W_max,float):
+        I = float(mpmath.gammainc(z, lower, upper))
+    elif isinstance(W_max,np.ndarray):
+        I = np.zeros_like(W_max)
+        for indx in range(W_max.size):
+            I[indx] = float(mpmath.gammainc(z, lower, upper[indx]))
+    dn_dz = n_star * I
+    return dn_dz
+
 ########## fitting data with Schechter function ##########
-def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
+def fit_alldata_dW(cgm_dict, cooksey_norm):
     # do fitting in terms of dW (and dz)
 
     # (1) Schechter function fit
@@ -196,16 +218,38 @@ def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
     dX_dz = convert_dXdz(3.25)
     cooksey_datafit = cooksey_datafit * dX_dz
 
-    ##### plotting #####
-    plt.figure(figsize=(8,6))
-    plt.errorbar(np.log10(DO_W_out), DO_logf_new, yerr=DO_logf_err_new, fmt='kx', ms=6, label="D'Odorico et al. (2013), z=4.8") #r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
-    plt.errorbar(np.log10(simcoe_W_out), simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='bx', ms=6, label="Simcoe(2011), z=4.25")
-    plt.errorbar(np.log10(W_cooksey), np.log10(cooksey_norm * cooksey_datafit), fmt='-', label=r'Cooksey et al. (2013), z=3.25')
-    plt.errorbar(np.log10(W_range), np.log10(d2n_dzdW_sch), fmt='--', label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
+    ##### plotting (paper plot settings) #####
+    font = {'family': 'serif', 'weight': 'normal'}  # , 'size': 11}
+    plt.rc('font', **font)
+    mpl.rcParams['axes.linewidth'] = 1.5
+    mpl.rcParams['xtick.major.width'] = 1.5
+    mpl.rcParams['ytick.major.width'] = 1.5
+    mpl.rcParams['xtick.minor.width'] = 1.5
+    mpl.rcParams['ytick.minor.width'] = 1.5
+    mpl.rcParams['xtick.major.size'] = 7
+    mpl.rcParams['xtick.minor.size'] = 4
+    mpl.rcParams['ytick.major.size'] = 7
+    mpl.rcParams['ytick.minor.size'] = 4
 
-    plt.legend(fontsize=11, loc=3)
-    plt.xlabel('log(W)', fontsize=13)
-    plt.ylabel(r'log(d$^2$n/dW/dz)', fontsize=13)
+    plt.figure(figsize=(8, 6))
+    plt.subplots_adjust(left=0.12, bottom=0.14, right=0.97, top=0.97)
+
+    xytick_size = 16
+    xylabel_fontsize = 20
+    legend_fontsize = 14
+    linewidth = 2.5
+
+    plt.errorbar(DO_W_out, DO_logf_new, yerr=DO_logf_err_new, fmt='o', ms=6, label=r"D'Odorico et al. (2013), $z$ = 4.8")
+    plt.errorbar(simcoe_W_out, simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='o', ms=6, label=r"Simcoe(2011), $z$ = 4.25")
+    plt.errorbar(W_cooksey, np.log10(cooksey_norm * cooksey_datafit), fmt='r--', lw=3.0, zorder=1, label=r'Cooksey et al. (2013), $z$ = 3.25')
+    plt.errorbar(W_range, np.log10(d2n_dzdW_sch), fmt='k-', alpha=0.7, lw=linewidth, zorder=-1, label=r"Schechter fit ($\alpha=%0.2f, W*=%0.2f, n*=%0.2f$)" % (alpha, W_star, n_star))
+
+    plt.xscale('log')
+    plt.gca().minorticks_on()
+    plt.gca().tick_params(which='both', labelsize=xytick_size)
+    plt.legend(fontsize=legend_fontsize, loc=3)
+    plt.xlabel(r'W [$\AA$]', fontsize=xylabel_fontsize)
+    plt.ylabel(r'log(d$^2$n/dW/dz)', fontsize=xylabel_fontsize)
     plt.show()
 
 ########## cgm model dictionary ##########
@@ -221,12 +265,12 @@ def init_metal_cgm_dict(alpha=-0.50, W_star = 0.45, n_star = 28.0, \
 ########## various presets ##########
 def cgm_model1():
      out_dict = init_metal_cgm_dict() # default
-     fit_alldata_dW(out_dict, 11.0)
+     fit_alldata_dW(out_dict, 1.0)
 
 def cgm_model2():
-    out_dict = init_metal_cgm_dict(alpha=-1.0, W_star=0.45, n_star=5)
+    out_dict = init_metal_cgm_dict(alpha=-1.1, n_star=5)
     fit_alldata_dW(out_dict, 1.0)
 
 def cgm_model3():
-    out_dict = init_metal_cgm_dict(alpha=-0.6)
-    fit_alldata_dW(out_dict, 11.0)
+    out_dict = init_metal_cgm_dict(alpha=-0.95, n_star=5)
+    fit_alldata_dW(out_dict, 1.0)
