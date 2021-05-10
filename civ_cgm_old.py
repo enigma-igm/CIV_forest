@@ -437,9 +437,7 @@ def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
     dn_dzdW_do = data_f_dz / dw_dn2
     dn_dzdW_do_bot = data_f_dz_bot / dw_dn2
     dn_dzdW_do_top = data_f_dz_top / dw_dn2
-    dn_dzdW_do_err = np.array([dn_dzdW_do - dn_dzdW_do_bot, dn_dzdW_do_top - dn_dzdW_do])
-
-    #return dn_dzdW_do_err, np.log10(dn_dzdW_do_err)
+    dn_dzdW_do_err = np.array([np.log10(dn_dzdW_do) - np.log10(dn_dzdW_do_bot), np.log10(dn_dzdW_do_top) - np.log10(dn_dzdW_do)])
 
     # D'Odorico fit parameters
     B = 10 ** 10.3
@@ -474,7 +472,8 @@ def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
     #dn_dXdW_simcoe = (10 ** simcoe_logf) / dw_dn2
     dn_dzdW_simcoe_bot = simcoe_f_dz_bot / dw_dn2
     dn_dzdW_simcoe_top = simcoe_f_dz_top / dw_dn2
-    dn_dzdW_simcoe_err = np.array([dn_dzdW_simcoe - dn_dzdW_simcoe_bot, dn_dzdW_simcoe_top - dn_dzdW_simcoe])
+    dn_dzdW_simcoe_err = np.array([np.log10(dn_dzdW_simcoe) - np.log10(dn_dzdW_simcoe_bot), \
+                                   np.log10(dn_dzdW_simcoe_top) - np.log10(dn_dzdW_simcoe)])
 
     # Cooksey's fit at z=3.25
     dn_dzdW_cook, dn_dXdW_cook = civ_dndzdW(W, 3.25, 'Cooksey')
@@ -494,8 +493,8 @@ def fit_alldata_dW(cgm_dict, cooksey_norm=11.0):
     plt.plot(W, np.log10(dn_dzdW_sch), '--', label=r"Schechter fit ($W*=%0.2f, n*=%0.2f, \alpha=%0.2f$)" % (W_star, n_star, alpha))
     plt.plot(W, np.log10(cooksey_norm * dn_dzdW_cook), '-' , label=r'Cooksey fit x arbitrary norm (%0.1f), $<z>=3.3$' % cooksey_norm)
 
-    plt.errorbar(W_out_data, np.log10(dn_dzdW_do), yerr=np.log10(dn_dzdW_do_err), fmt='kx', ms=6, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
-    plt.errorbar(W_out_simcoe, np.log10(dn_dzdW_simcoe), yerr=np.log10(dn_dzdW_simcoe_err), fmt='bx', ms=6,
+    plt.errorbar(W_out_data, np.log10(dn_dzdW_do), yerr=dn_dzdW_do_err, fmt='kx', ms=6, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
+    plt.errorbar(W_out_simcoe, np.log10(dn_dzdW_simcoe), yerr=dn_dzdW_simcoe_err, fmt='bx', ms=6,
                  label="Simcoe MIKE data (z=4.25)")
 
     #plt.plot(np.log10(W_out_data), np.log10(dn_dzdW_do), 'kx', label=r"D'Odorico data ($z_{med}$ = 4.8)", ms=8, mew=2)

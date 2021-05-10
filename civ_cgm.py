@@ -148,10 +148,9 @@ def convert_data_dNtodW(logN, logf, logf_err, W_range, cgm_dict):
     #f_bot_new = 10**logf_bot / dw_dn
     #f_top_new = 10**logf_top / dw_dn
 
-    logf_new = np.log10(10 ** logf / dw_dn)
-    logf_bot_new = np.log10(10 ** logf_bot / dw_dn)
-    logf_top_new = np.log10(10 ** logf_top / dw_dn)
-
+    logf_new = np.log10((10 ** logf) / dw_dn)
+    logf_bot_new = np.log10((10 ** logf_bot) / dw_dn)
+    logf_top_new = np.log10((10 ** logf_top) / dw_dn)
     logf_err_new = np.array([logf_new - logf_bot_new, logf_top_new - logf_new])
 
     return W_out, logf_new, logf_err_new
