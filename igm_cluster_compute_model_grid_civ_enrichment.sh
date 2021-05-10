@@ -13,5 +13,8 @@ echo "Finish: $now"
 # April 5, 2021:
 # nohup ./igm_cluster_compute_model_grid_civ_enrichment.sh > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/igm_cluster_compute_model_grid_civ_enrichment_fine.log &
 
+# Requested path length for nqsos=20 covering delta_z=1.000 corresponds to requested total dz_req = 20.000,
+# or 92.743 total skewers. Rounding to 93 or dz_tot=20.055."
+
 # ran in IGM on March 5, 2021:
 # nohup ./igm_cluster_compute_model_grid_civ_enrichment.sh > /mnt/quasar/sstie/CIV_forest/Nyx_outputs/z45/enrichment_models/igm_cluster_compute_model_grid_civ_enrichment.log &
