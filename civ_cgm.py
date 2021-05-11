@@ -1,3 +1,20 @@
+'''
+Functions here:
+    - dodorico2013_cddf_bosman
+    - simcoe2011_cddf_bosman
+    - cooksey_dndXdW
+    - plot_alldata_raw
+    - civ_dndzdW_sch
+    - civ_dndz_sch
+    - dwdn_theory
+    - reproduce_cooksey_w
+    - convert_dXdz
+    - convert_data_dXtodz
+    - convert_data_dNtodW
+    - fit_alldata_dW
+    - init_metal_cgm_dict
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -115,46 +132,6 @@ def plot_alldata_raw():
     plt.tight_layout()
     plt.show()
 
-########## converting functions
-def convert_dXdz(z, omega_m=0.3, omega_lambda=0.7):
-    # default values are Nyx cosmology
-    dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5) # Eqn(1) from DO+(2013) paper
-    return dX_dz
-
-def convert_data_dXtodz(logf, logf_err, z):
-
-    dX_dz = convert_dXdz(z)
-    logf_bot = logf - logf_err[0]
-    logf_top = logf + logf_err[1]
-
-    logf_dz = np.log10(dX_dz * 10 ** (logf))
-    logf_dz_bot = np.log10(dX_dz * 10 ** (logf_bot))
-    logf_dz_top = np.log10(dX_dz * 10 ** (logf_top))
-    logf_dz_err = np.array([logf_dz - logf_dz_bot, logf_dz_top - logf_dz])
-
-    return logf_dz, logf_dz_err
-
-def convert_data_dNtodW(logN, logf, logf_err, W_range, cgm_dict):
-
-    logf_bot  = logf - logf_err[0]
-    logf_top = logf + logf_err[1]
-
-    W_blue, logN_metal = reion_utils.metal_W2bN(W_range, cgm_dict=cgm_dict, return_wtau=True)
-    W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
-    W_out = W_interp(logN)  # interpolated EWs
-
-    dw_dn = np.gradient(W_out, 10 ** logN, edge_order=2)  # dW/dN
-    #f_new = 10**logf / dw_dn
-    #f_bot_new = 10**logf_bot / dw_dn
-    #f_top_new = 10**logf_top / dw_dn
-
-    logf_new = np.log10((10 ** logf) / dw_dn)
-    logf_bot_new = np.log10((10 ** logf_bot) / dw_dn)
-    logf_top_new = np.log10((10 ** logf_top) / dw_dn)
-    logf_err_new = np.array([logf_new - logf_bot_new, logf_top_new - logf_new])
-
-    return W_out, logf_new, logf_err_new
-
 ########## Schechter function ##########
 def civ_dndzdW_sch(W, W_star, n_star, alpha, z=None):
 
@@ -191,8 +168,102 @@ def civ_dndz_sch(n_star, alpha, W_star, W_min, W_max):
     dn_dz = n_star * I
     return dn_dz
 
+########## COG and dW/dN ##########
+def dwdn_theory(N_in=None):
+    # calculate theoretical value of dW/dN on the linear part of the COG
+
+    wrest_civ = 1548 * u.Angstrom
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+
+    dW_dN = f * np.pi * (ec ** 2) / (me * c ** 2) * wrest_civ.to('cm')  # W is dimensionless (W = Wlambda / lambda)
+    dWlambda_dN = dW_dN * wrest_civ  # units are Angstrom * cm2
+
+    if N_in.all() != None:
+        N_in = N_in / (u.cm**2)
+        wrest_civ_cm = wrest_civ.to('cm')
+        w_lambda = N_in * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_civ_cm ** 2) # unit is cm
+        w_lambda = w_lambda.to('Angstrom')
+        return dWlambda_dN, w_lambda
+
+    else:
+        return dWlambda_dN
+
+def reproduce_cooksey_w():
+    # Cooksey+ (2013) claims W_1548 = 0.6A is saturated, which is logN ~ 14
+    # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
+    # this gives b ~ 66 km/s and logN ~ 14.17
+
+    wrest_civ  = 1548 * u.Angstrom
+    W_lambda_saturate = 0.6 * u.Angstrom
+    tau_saturate = 1.0
+
+    c = const.c.to('km/s')
+    b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
+
+    # getting N now
+    ec = const.e.esu # cgs
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+    N = (tau_saturate * b_linear_out.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2) # 1/cm2
+    logN = np.log10(N.value)
+
+    return logN, b_linear_out
+
+########## converting functions
+def convert_dXdz(z, omega_m=0.3, omega_lambda=0.7):
+    # default values are Nyx cosmology
+    dX_dz = ((1 + z) ** 2) * (omega_m * (1 + z) ** 3 + omega_lambda) ** (-0.5) # Eqn(1) from DO+(2013) paper
+    return dX_dz
+
+def convert_data_dXtodz(logf, logf_err, z):
+    # taking outputs from dodorico2013_cddf_bosman() and simcoe2011_cddf_bosman
+
+    dX_dz = convert_dXdz(z)
+    logf_bot = logf - logf_err[0]
+    logf_top = logf + logf_err[1]
+
+    logf_dz = np.log10(dX_dz * 10 ** (logf))
+    logf_dz_bot = np.log10(dX_dz * 10 ** (logf_bot))
+    logf_dz_top = np.log10(dX_dz * 10 ** (logf_top))
+    logf_dz_err = np.array([logf_dz - logf_dz_bot, logf_dz_top - logf_dz])
+
+    return logf_dz, logf_dz_err
+
+def convert_data_dNtodW(logN, logf, logf_err, W_range=[], cgm_dict=None):
+    # cddf formats following dodorico2013_cddf_bosman() and simcoe2011_cddf_bosman
+
+    logf_bot  = logf - logf_err[0]
+    logf_top = logf + logf_err[1]
+
+    if len(W_range) != 0 and cgm_dict != None:
+        W_blue, logN_metal = reion_utils.metal_W2bN(W_range, cgm_dict=cgm_dict, return_wtau=True)
+        W_interp = interp1d(logN_metal, W_blue.value, kind='cubic', bounds_error=True)
+        W_out = W_interp(logN)  # interpolated EWs
+        dw_dn = np.gradient(W_out, 10 ** logN, edge_order=2)  # dW/dN
+
+    else:
+        print("....... getting W and dW/dN assuming linear COG")
+        dw_dn, W_out = dwdn_theory(10**logN)
+        dw_dn = np.ones(len(logN))*dw_dn.value
+        W_out = W_out.value
+
+    #f_new = 10**logf / dw_dn
+    #f_bot_new = 10**logf_bot / dw_dn
+    #f_top_new = 10**logf_top / dw_dn
+    logf_new = np.log10((10 ** logf) / dw_dn)
+    logf_bot_new = np.log10((10 ** logf_bot) / dw_dn)
+    logf_top_new = np.log10((10 ** logf_top) / dw_dn)
+    logf_err_new = np.array([logf_new - logf_bot_new, logf_top_new - logf_new])
+
+    return W_out, logf_new, logf_err_new
+
 ########## fitting data with Schechter function ##########
-def fit_alldata_dW(cgm_dict, cooksey_norm):
+def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
     # do fitting in terms of dW (and dz)
 
     # (1) Schechter function fit
@@ -204,12 +275,18 @@ def fit_alldata_dW(cgm_dict, cooksey_norm):
     # (2) D'Odorico data (from Sarah Bosman)
     DO_logN_CIV, DO_logf, DO_logf_err = dodorico2013_cddf_bosman()
     DO_logf, DO_logf_err = convert_data_dXtodz(DO_logf, DO_logf_err, 4.8) # converting data dX to dz
-    DO_W_out, DO_logf_new, DO_logf_err_new = convert_data_dNtodW(DO_logN_CIV, DO_logf, DO_logf_err, W_range, cgm_dict) # converting data from dN to dW
+    if use_theory:
+        DO_W_out, DO_logf_new, DO_logf_err_new = convert_data_dNtodW(DO_logN_CIV, DO_logf, DO_logf_err)
+    else:
+        DO_W_out, DO_logf_new, DO_logf_err_new = convert_data_dNtodW(DO_logN_CIV, DO_logf, DO_logf_err, W_range, cgm_dict) # converting data from dN to dW
 
     # (3) Simcoe data
     simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
     simcoe_logf, simcoe_logf_err = convert_data_dXtodz(simcoe_logf, simcoe_logf_err, 4.25) # converting data dX to dz
-    simcoe_W_out, simcoe_logf_new, simcoe_logf_err_new = convert_data_dNtodW(simcoe_logN_CIV, simcoe_logf, simcoe_logf_err, W_range, cgm_dict) # converting from dN to dW
+    if use_theory:
+        simcoe_W_out, simcoe_logf_new, simcoe_logf_err_new = convert_data_dNtodW(simcoe_logN_CIV, simcoe_logf, simcoe_logf_err)
+    else:
+        simcoe_W_out, simcoe_logf_new, simcoe_logf_err_new = convert_data_dNtodW(simcoe_logN_CIV, simcoe_logf, simcoe_logf_err, W_range, cgm_dict) # converting from dN to dW
 
     # (4) Cooksey data fit
     W_cooksey = np.arange(0.6, W_max+0.01, 0.01) # starting at 0.6 A where the fit is applicable
