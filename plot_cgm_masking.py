@@ -51,7 +51,7 @@ cgm_n_star = 5
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # rest are default
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
-flux_decr_cutoff = 0.11
+flux_decr_cutoff = 0.1
 
 ################
 start = time.time()
@@ -79,7 +79,7 @@ mask_want = (1 - flux_noise_tot_lores) < flux_decr_cutoff  # checked
 _, pdf_tot_noise_mask = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores[mask_want], oneminf_min, oneminf_max, nbins)
 
 ################ plotting
-#plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', alpha=0.5, label='noise')
+plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
 plt.plot(flux_bins, pdf_igm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(flux_bins, pdf_cgm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(flux_bins, pdf_tot_noise, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')

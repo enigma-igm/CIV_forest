@@ -27,7 +27,7 @@ cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-0.50, W_star = 0.45, n_star = 28.0
 
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_seed = 102938  # same seed as civ_cgm_pdf.py
-flux_decr_cutoff = 0.08 # mask where pixels with 1 - F > cutoff will be masked
+flux_decr_cutoff = 0.1 # mask where pixels with 1 - F > cutoff will be masked
 
 # input and output files
 tau_metal_file = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # 10,000 skewers total

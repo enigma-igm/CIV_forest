@@ -27,7 +27,7 @@ mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
-plt.figure(figsize=(10, 8))
+plt.figure(figsize=(11, 9))
 plt.subplots_adjust(left=0.11, bottom=0.1, right=0.98, top=0.89)
 
 xytick_size = 16
@@ -35,12 +35,9 @@ annotate_text_size = 16
 xylabel_fontsize = 20
 legend_fontsize = 14
 linewidth = 2
+alpha = 0.75
 
 savefig = 'paper_plots/flux_pdf_wrange.pdf'
-skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
-par = Table.read(skewerfile, hdu=1)
-ske = Table.read(skewerfile, hdu=2)
-z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
@@ -54,7 +51,10 @@ cgm_n_star = 5
 metal_dndz_func = civ_cgm.civ_dndz_sch
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
 
-def init_one_model(Wmin, Wmax):
+def init_one_model(skewerfile, Wmin, Wmax):
+    par = Table.read(skewerfile, hdu=1)
+    ske = Table.read(skewerfile, hdu=2)
+    z = par['z'][0]
 
     cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star, W_min=Wmin, W_max=Wmax) # rest are default
 
@@ -89,19 +89,35 @@ def init_one_model(Wmin, Wmax):
 
     return flux_bins, out_pdf_no_noise, out_pdf_with_noise
 
+
+##### plot uniform IGM as reference
+Wmin, Wmax = 0.001, 0.05 # placeholder values, since we just want the uniform IGM pdf
+skewerfile = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # uniformly enriched
+flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax)
+pdf_igm, pdf_cgm, pdf_tot, pdf_noise = out_pdf_no_noise
+
+plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM, uniform', lw=linewidth + 0.5, c='tab:red', alpha=alpha)
+
+##### plot fiducial IGM model
+skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
+logM = float(skewerfile.split('logM_')[-1].split('.fits')[0])
+R_Mpc = float(skewerfile.split('R_')[-1].split('_logM')[0])
+#text = 'log(M)={:4.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:4.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ)
+text = 'log(M)={:4.2f} '.format(logM) + 'R={:4.2f}, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ)
+
 W_range_ls = [[0.001, 5.0], [0.001, 0.05], [0.05, 0.5], [0.5, 5.0]]
 #W_range_ls = [[0.001, 5.0], [0.5, 5.0],  [0.1, 0.5], [0.01, 0.1], [0.001, 0.01]]
 alpha_ls = np.linspace(1, 0.4, len(W_range_ls))
 
 for iW, W_range in enumerate(W_range_ls):
     Wmin, Wmax = W_range[0], W_range[1]
-    flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(Wmin, Wmax)
+    flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax)
     pdf_igm, pdf_cgm, pdf_tot, pdf_noise = out_pdf_no_noise
 
     if iW == 0: # entire W-range
-        plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM', lw=linewidth + 0.5, c='tab:orange')
+        plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM, %s' % text, lw=linewidth + 0.5, c='tab:orange')
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM', lw=linewidth + 0.5, c='tab:blue')
-        plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=0.8)
+        plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)
 
     else: # sub W-range
         if iW == 1:
@@ -110,12 +126,9 @@ for iW, W_range in enumerate(W_range_ls):
             label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.2f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label=label, lw=linewidth, alpha=alpha_ls[iW], c='tab:blue')
 
-logM = float(skewerfile.split('logM_')[-1].split('.fits')[0])
-R_Mpc = float(skewerfile.split('R_')[-1].split('_logM')[0])
 #plt.gca().annotate('log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:5.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ), \
 #             xy=(2.5e-3, 1.0), xytext=(2.5e-3, 1.0), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
-text = 'log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:5.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ)
-plt.text(0.07, 0.83, text, fontsize=legend_fontsize, linespacing=1.5)
+#plt.text(0.07, 0.83, text, fontsize=legend_fontsize, linespacing=1.5)
 
 ymin, ymax = 1e-3, 3.0
 plt.xscale('log')
@@ -123,7 +136,7 @@ plt.yscale('log')
 plt.xlabel('1-F', fontsize=xylabel_fontsize)
 plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.ylim([ymin, ymax])
-plt.legend(loc=2, fontsize=legend_fontsize)
+plt.legend(loc=2, fontsize=legend_fontsize, frameon=False)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 
 strong_lines = LineList('Strong', verbose=False)
