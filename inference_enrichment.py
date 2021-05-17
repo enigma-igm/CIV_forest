@@ -9,9 +9,9 @@ from IPython import embed
 from enigma.reion_forest.compute_model_grid import read_model_grid
 from enigma.reion_forest.utils import find_closest
 from enigma.reion_forest import inference
-from enigma.reion_forest import utils as reion_utils
-import random
+import halos_skewers
 import time
+from astropy.io import fits
 
 ######## Setting up #########
 
@@ -47,11 +47,16 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     nR = params['nR'][0]
 
     # Pick the data that we will run with
-    nmock = xi_mock_array.shape[2]
+    if seed == 5382029 or seed == 4355455: # there is a bug for getting nmock for debug seeds
+        print("Using debug seed", seed)
+        nmock = 26
+    else:
+        nmock = xi_mock_array.shape[3]
+
     imock = rand.choice(np.arange(nmock), size=1)
     print('imock', imock)
 
-    linearZprior = False
+    #linearZprior = False
 
     # find the closest model values to guesses
     ilogZ = find_closest(logZ_coarse, logZ_guess)
@@ -108,15 +113,22 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
 
     # Loop over the coarse grid and evaluate the likelihood at each location for the chosen mock data
     # Needs to be repeated for each chosen mock data
+    lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
+    for ilogM, logM_val in enumerate(logM_coarse):
+        for iR, R_val in enumerate(R_coarse):
+            for ilogZ, logZ_val in enumerate(logZ_coarse):
+                lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask,
+                                                                        xi_model_array[ilogM, iR, ilogZ, :],
+                                                                        lndet_array[ilogM, iR, ilogZ],
+                                                                        icovar_array[ilogM, iR, ilogZ, :, :])
     if interp_lnlike:
-        lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
-        for ilogM, logM_val in enumerate(logM_coarse):
-            for iR, R_val in enumerate(R_coarse):
-                for ilogZ, logZ_val in enumerate(logZ_coarse):
-                    lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :],
-                                                                lndet_array[ilogM, iR, ilogZ],
-                                                                icovar_array[ilogM, iR, ilogZ, :, :])
-
+        #lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
+        #for ilogM, logM_val in enumerate(logM_coarse):
+        #    for iR, R_val in enumerate(R_coarse):
+        #        for ilogZ, logZ_val in enumerate(logZ_coarse):
+        #            lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :],
+        #                                                        lndet_array[ilogM, iR, ilogZ],
+        #                                                        icovar_array[ilogM, iR, ilogZ, :, :])
         print('interpolating lnlike')
         start = time.time()
         lnlike_fine = inference.interp_lnlike_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, lnlike_coarse)
@@ -137,6 +149,217 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
 
     return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
+
+def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
+                   seed=None, savefits_chain=None):
+
+    if seed == None:
+        seed = np.random.randint(0, 10000000)
+        print("Using random seed", seed)
+    else:
+        print("Using random seed", seed)
+
+    print("Using ball size", ball_size)
+
+    rand = np.random.RandomState(seed)
+
+    # find optimal starting points for each walker
+    logM_fine_min, logM_fine_max = logM_fine.min(), logM_fine.max()
+    R_fine_min, R_fine_max = R_fine.min(), R_fine.max()
+    logZ_fine_min, logZ_fine_max = logZ_fine.min(), logZ_fine.max()
+
+    # DOUBLE CHECK
+    bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
+        [(0, 10**logM_fine_max), (0, R_fine_max), (0, 10**logZ_fine_max)]
+
+    chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
+    args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+
+    result_opt = optimize.differential_evolution(chi2_func, bounds=bounds, popsize=25, recombination=0.7, disp=True, polish=True, args=args, seed=rand)
+    ndim = 3
+
+    # initialize walkers
+    # for my own understanding #
+    pos = []
+    for i in range(nwalkers):
+        tmp = []
+        for j in range(ndim):
+            perturb_pos = result_opt.x[j] + (ball_size * (bounds[j][1] - bounds[j][0]) * rand.randn(1)[0])
+            tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
+        pos.append(tmp)
+
+    #embed()
+    #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
+    #     for i in range(ndim)] for i in range(nwalkers)]
+
+    np.random.seed(rand.randint(0, seed, size=1)[0])
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
+    sampler.run_mcmc(pos, nsteps, progress=True)
+
+    tau = sampler.get_autocorr_time()
+    print('Autocorrelation time')
+    print('tau_logM = {:7.2f}, tau_R = {:7.2f}, tau_logZ = {:7.2f}'.format(tau[0], tau[1], tau[2]))
+
+    flat_samples = sampler.get_chain(discard=burnin, thin=250, flat=True) # numpy array
+
+    if linear_prior: # convert the samples to linear units
+        param_samples = flat_samples.copy()
+        param_samples[:, 0] = np.log10(param_samples[:, 0]) # logM
+        param_samples[:, 2] = np.log10(param_samples[:, 2]) # logZ
+    else:
+        param_samples = flat_samples
+
+    if savefits_chain != None:
+        hdulist = fits.HDUList()
+        hdulist.append(fits.ImageHDU(data=sampler.get_chain(), name='all_chain'))
+        hdulist.append(fits.ImageHDU(data=sampler.get_chain(flat=True), name='all_chain_flat'))
+        hdulist.append(fits.ImageHDU(data=sampler.get_chain(discard=burnin, flat=True), name='all_chain_discard_burnin'))
+        hdulist.append(fits.ImageHDU(data=param_samples, name='param_samples'))
+        hdulist.writeto(savefits_chain, overwrite=True)
+
+    return sampler, param_samples, bounds
+
+def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, seed=None):
+    # seed here used to choose random nrand(=50) mcmc realizations to plot on the 2PCF measurement
+
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
+
+    ##### (1) Make the walker plot, use the true values in the chain
+    var_label = ['log(M)', 'R', '[C/H]']
+    truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
+    print("truths", truths)
+    chain = sampler.get_chain()
+    inference.walker_plot(chain, truths, var_label, walkerfile=None)
+
+    ##### (2) Make the corner plot, again use the true values in the chain
+    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68, ), color='k', \
+                        truth_color='darkgreen', \
+                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
+                        data_kwargs={'ms': 1.0, 'alpha': 0.1})
+    for ax in fig.get_axes():
+        # ax.tick_params(axis='both', which='major', labelsize=14)
+        # ax.tick_params(axis='both', which='minor', labelsize=12)
+        ax.tick_params(labelsize=12)
+
+    plt.show()
+    plt.close()
+
+    ##### (3) Make the corrfunc plot with mcmc realizations
+    fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
+    logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
+    print("logZ_eff", logZ_eff)
+    inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
+                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, nrand=50, seed=seed)
+
+################ run all the driver functions leading to mcmc ################
+import configparser
+
+def do_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, coarse_outcsv, \
+                 logM_fine, R_fine, logZ_fine, want_fine_outcsv, arbinterp_outnpy):
+
+    prep_for_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, coarse_outcsv)
+    trunc_nlogM, trunc_nR, trunc_nlogZ = prep_for_arbinterp2(logM_coarse, R_coarse, logZ_coarse, logM_fine, R_fine, logZ_fine, want_fine_outcsv)
+
+    from ARBTools.ARBInterp import tricubic
+
+    start = time.time()
+    field = np.genfromtxt(coarse_outcsv, delimiter=',')
+    Run = tricubic(field)
+    allpts = np.genfromtxt(want_fine_outcsv, delimiter=',')
+
+    print("########## starting interpolation ########## ")
+    out_norm, out_grad = Run.Query(allpts)  # ~10 min compute time
+    out_norm2 = out_norm[:, 0]
+    out_norm2 = np.reshape(out_norm2, (trunc_nlogM, trunc_nR, trunc_nlogZ))
+
+    np.save(arbinterp_outnpy, out_norm2)
+    end = time.time()
+    print((end - start) / 60.)
+
+def do_all(config_file):
+    """
+    modelfile_path = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/'
+    modelfile = modelfile_path + 'fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+
+
+    #seed = 4355455  # using the incorrect nmock=26
+    #logM_guess, R_guess, logZ_guess = 9.12, 0.45, -3.50
+
+    seed = 5382029
+    logM_guess, R_guess, logZ_guess = 9.89, 0.98, -3.57
+
+    nlogM, nR, nlogZ = 251, 291, 251
+    interp_lnlike = False  # If False, need to provide filename containing pre-interpolated lnlikelihood;
+                           # if True, then interpolate here
+    interp_ximodel = False  # Same
+    nsteps = 150000
+    burnin = 1000
+    nwalkers = 30
+    linear_prior = False
+    """
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    modelfile = config['DEFAULT']['modelfile']
+    seed = int(config['DEFAULT']['seed'])
+    logM_guess, R_guess, logZ_guess = float(config['DEFAULT']['logm_guess']), float(config['DEFAULT']['r_guess']), float(config['DEFAULT']['logz_guess'])
+    nlogM, nR, nlogZ = int(config['DEFAULT']['nlogm']), int(config['DEFAULT']['nr']), int(config['DEFAULT']['nlogz'])
+    interp_lnlike = config['DEFAULT']['interp_lnlike']
+    interp_ximodel = config['DEFAULT']['interp_ximodel']
+    lnlike_file_name = config['DEFAULT']['lnlike_file_name']
+    ximodel_file_name = config['DEFAULT']['ximodel_file_name']
+    nsteps = int(config['DEFAULT']['nsteps'])
+    burnin = int(config['DEFAULT']['burnin'])
+    nwalkers = int(config['DEFAULT']['nwalkers'])
+    linear_prior = config['DEFAULT']['linear_prior']
+    savefits_chain = config['DEFAULT']['savefits_chain']
+    ball_size = float(config['DEFAULT']['ball_size'])
+
+    # convert from string to bool
+    interp_lnlike = False if interp_lnlike == 'False' else True
+    interp_ximodel = False if interp_ximodel == 'False' else True
+    linear_prior = False if linear_prior == 'False' else True
+
+    init_out = init(modelfile, logM_guess, R_guess, logZ_guess, seed)
+
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, _, _, _ = init_out
+
+    lnlike_coarse, lnlike_fine, ximodel_fine, logM_fine, R_fine, logZ_fine = \
+        interp_likelihood(init_out, nlogM, nR, nlogZ, interp_lnlike=interp_lnlike, interp_ximodel=interp_ximodel)
+
+    ori_logM_fine = logM_fine
+    ori_R_fine = R_fine
+    ori_logZ_fine = logZ_fine
+
+    if interp_lnlike == False:
+        #lnlike_file_name = 'plots/enrichment/inference_enrichment_debug/seed_%d_%0.2f_%0.2f_%0.2f/' \
+        #                   % (seed, logM_guess, R_guess, logZ_guess) + 'finer_grid/lnlike_fine_arbinterp.npy'
+        print("Reading in pre-computed interpolated likelihood", lnlike_file_name)
+        lnlike_fine = np.load(lnlike_file_name)
+        logM_fine = logM_fine[10:240]
+        R_fine = R_fine[10:280]
+        logZ_fine = logZ_fine[10:240]
+
+    if interp_ximodel == False:
+        #ximodel_file_name = 'plots/enrichment/inference_enrichment_debug/seed_%d_%0.2f_%0.2f_%0.2f/' \
+        #                    % (seed, logM_guess, R_guess, logZ_guess) + 'finer_grid/xi_model_fine.npy'
+        print("Reading in pre-computed interpolated ximodel_fine", ximodel_file_name)
+        ximodel_fine = np.load(ximodel_file_name)
+
+    sampler, param_samples, bounds = mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, \
+                                                    lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, savefits_chain=savefits_chain)
+
+    params, _, _, _, _, _ = read_model_grid(modelfile)
+    # using ori_[param]_fine because consistent with shape of ximodel_fine and to avoid indexing error
+    plot_mcmc(sampler, param_samples, init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior,
+              seed=seed)
+
+    coarse_out = lnlike_coarse, logM_coarse, R_coarse, logZ_coarse
+    fine_out = lnlike_fine, ori_logM_fine, ori_R_fine, ori_logZ_fine, logM_fine, R_fine, logZ_fine, ximodel_fine
+    return init_out, coarse_out, fine_out, params, sampler, param_samples
+
+################ checking, debugging ################
 def interp_likelihood_fixedlogZ(init_out, ilogZ, nlogM_fine, nR_fine, interp_lnlike=False, interp_ximodel=False):
 
     # unpack input
@@ -241,28 +464,47 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
     ilogZ = find_closest(logZ_grid, logZ_data)
     print(ilogM, iR, ilogZ)
 
-    plt.figure(figsize=(10, 4))
-    plt.subplot(131)
-    plt.plot(logM_grid, lnlike[:, iR, ilogZ])
+    plt.figure(figsize=(12, 8))
+    # plot lnL
+    plt.subplot(231)
+    plt.plot(logM_grid, lnlike[:, iR, ilogZ], '.-')
     plt.axvline(logM_data, ls='--', c='k', label='logM_data=% 0.2f' % logM_data)
     plt.legend()
     plt.xlabel('logM', fontsize = 13)
     plt.ylabel('lnL', fontsize=13)
-    #plt.ylim([2400, 2800])
 
-    plt.subplot(132)
-    plt.plot(R_grid, lnlike[ilogM, :, ilogZ])
+    plt.subplot(232)
+    plt.plot(R_grid, lnlike[ilogM, :, ilogZ], '.-')
     plt.axvline(R_data, ls='--', c='k', label = 'R_data=%0.2f' % R_data)
     plt.legend()
     plt.xlabel('R (Mpc)', fontsize=13)
-    #plt.ylim([2400, 2800])
 
-    plt.subplot(133)
-    plt.plot(logZ_grid, lnlike[ilogM, iR])
+    plt.subplot(233)
+    plt.plot(logZ_grid, lnlike[ilogM, iR], '.-')
     plt.axvline(logZ_data, ls='--', c='k', label = 'logZ_data=%0.2f' % logZ_data)
     plt.legend()
     plt.xlabel('logZ', fontsize=13)
-    #plt.ylim([2400, 2800])
+
+    # plot prob
+    delta_lnL = lnlike - lnlike.max()
+    Prob = np.exp(delta_lnL)  # un-normalized
+    lnlike = Prob
+
+    plt.subplot(234)
+    plt.plot(logM_grid, lnlike[:, iR, ilogZ], '.-')
+    plt.axvline(logM_data, ls='--', c='k', label='logM_data=% 0.2f' % logM_data)
+    plt.xlabel('logM', fontsize=13)
+    plt.ylabel('Prob', fontsize=13)
+
+    plt.subplot(235)
+    plt.plot(R_grid, lnlike[ilogM, :, ilogZ], '.-')
+    plt.axvline(R_data, ls='--', c='k', label='R_data=%0.2f' % R_data)
+    plt.xlabel('R (Mpc)', fontsize=13)
+
+    plt.subplot(236)
+    plt.plot(logZ_grid, lnlike[ilogM, iR], '.-')
+    plt.axvline(logZ_data, ls='--', c='k', label='logZ_data=%0.2f' % logZ_data)
+    plt.xlabel('logZ', fontsize=13)
 
     plt.tight_layout()
 
@@ -271,90 +513,46 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
     else:
         plt.show()
 
-def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, seed=None):
+def prep_for_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, outtxt):
 
-    # TODO: save mcmc chains (https://emcee.readthedocs.io/en/stable/tutorials/monitor/)
-    if seed == None:
-        seed = np.random.randint(0, 10000000)
-        print("Using random seed", seed)
-    else:
-        print("Using random seed", seed)
+    field = np.zeros((len(logM_coarse) * len(R_coarse) * len(logZ_coarse), 4))
+    n = 0
+    for ilogZ, logZ in enumerate(logZ_coarse):
+        for iR, R in enumerate(R_coarse):
+            for ilogM, logM in enumerate(logM_coarse):
+                field[n] = [np.round(logM,2), np.round(R,2), np.round(logZ,2), lnlike_coarse[ilogM, iR, ilogZ]]
+                n += 1
 
-    rand = np.random.RandomState(seed)
+    np.savetxt(outtxt, field, fmt=['%0.2f', '%0.2f', '%0.2f', '%f'], delimiter=',')
 
-    # find optimal starting points for each walker
-    logM_fine_min, logM_fine_max = logM_fine.min(), logM_fine.max()
-    R_fine_min, R_fine_max = R_fine.min(), R_fine.max()
-    logZ_fine_min, logZ_fine_max = logZ_fine.min(), logZ_fine.max()
+def prep_for_arbinterp2(logM_coarse, R_coarse, logZ_coarse, logM_fine, R_fine, logZ_fine, outtxt):
 
-    # DOUBLE CHECK
-    bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
-        [(0, 10**logM_fine_max), (0, R_fine_max), (0, 10**logZ_fine_max)]
+    im_lo = np.argwhere(np.round(logM_fine,2)==np.round(logM_coarse[1],2))[0][0] # 2nd elem
+    im_hi = np.argwhere(np.round(logM_fine, 2) == np.round(logM_coarse[-2], 2))[0][0] # 2nd-to-last elem
 
-    chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
-    args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+    ir_lo = np.argwhere(np.round(R_fine, 2) == np.round(R_coarse[1], 2))[0][0]
+    ir_hi = np.argwhere(np.round(R_fine, 2) == np.round(R_coarse[-2], 2))[0][0]
 
-    result_opt = optimize.differential_evolution(chi2_func, bounds=bounds, popsize=25, recombination=0.7, disp=True, polish=True, args=args, seed=rand)
-    ndim = 3
+    iz_lo = np.argwhere(np.round(logZ_fine, 2) == np.round(logZ_coarse[1], 2))[0][0]
+    iz_hi = np.argwhere(np.round(logZ_fine, 2) == np.round(logZ_coarse[-2], 2))[0][0]
 
-    # initialize walkers
-    # for my own understanding #
-    pos = []
-    for i in range(nwalkers):
-        tmp = []
-        for j in range(ndim):
-            perturb_pos = result_opt.x[j] + (ball_size * (bounds[j][1] - bounds[j][0]) * rand.randn(1)[0])
-            tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
-        pos.append(tmp)
+    print(im_lo, im_hi, ir_lo, ir_hi, iz_lo, iz_hi)
 
-    #embed()
-    #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
-    #     for i in range(ndim)] for i in range(nwalkers)]
+    allpts = []
+    new_logM_fine = logM_fine[im_lo:im_hi]
+    new_R_fine = R_fine[ir_lo:ir_hi]
+    new_logZ_fine = logZ_fine[iz_lo:iz_hi]
+    print(len(new_logM_fine), len(new_R_fine), len(new_logZ_fine))
 
-    np.random.seed(rand.randint(0, seed, size=1)[0])
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
-    sampler.run_mcmc(pos, nsteps, progress=True)
+    for ilogM, logM_val in enumerate(new_logM_fine):
+        for iR, R_val in enumerate(new_R_fine):
+            for ilogZ, logZ_val in enumerate(new_logZ_fine):
+                pts = np.array([logM_val, R_val, logZ_val])
+                allpts.append(pts)
 
-    #tau = sampler.get_autocorr_time()
+    print(allpts[0])
+    print(allpts[-1])
+    print(len(allpts))
 
-    #print('Autocorrelation time')
-    #print('tau_logM = {:7.2f}, tau_R = {:7.2f}, tau_logZ = {:7.2f}'.format(tau[0], tau[1], tau[2]))
-
-    flat_samples = sampler.get_chain(discard=burnin, thin=250, flat=True) # numpy array
-
-    if linear_prior: # convert the samples to linear units
-        param_samples = flat_samples.copy()
-        param_samples[:, 0] = np.log10(param_samples[:, 0]) # logM
-        param_samples[:, 2] = np.log10(param_samples[:, 2]) # logZ
-    else:
-        param_samples = flat_samples
-
-    return sampler, param_samples, bounds
-
-def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, seed=None):
-
-    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
-    covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
-
-    ##### (1) Make the walker plot, use the true values in the chain
-    var_label = ['logM', 'R_Mpc', 'logZ']
-    truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
-    print("truths", truths)
-    chain = sampler.get_chain()
-    inference.walker_plot(chain, truths, var_label, walkerfile=None)
-
-    ##### (2) Make the corner plot, again use the true values in the chain
-    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k', \
-                        truth_color='darkgreen', \
-                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
-                        data_kwargs={'ms': 1.0, 'alpha': 0.1})
-    for ax in fig.get_axes():
-        # ax.tick_params(axis='both', which='major', labelsize=14)
-        # ax.tick_params(axis='both', which='minor', labelsize=12)
-        ax.tick_params(labelsize=12)
-    plt.show()
-    plt.close()
-
-    ##### (3) Make the corrfunc plot with mcmc realizations
-    inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
-                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, nrand=50, seed=seed)
+    np.savetxt(outtxt, allpts, fmt=['%0.2f', '%0.2f', '%0.2f'], delimiter=',')
+    return len(new_logM_fine), len(new_R_fine), len(new_logZ_fine)
