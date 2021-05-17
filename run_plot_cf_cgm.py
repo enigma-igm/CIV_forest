@@ -35,6 +35,9 @@ legend_fontsize = 14
 linewidth = 2
 scalefactor = 1e-5
 
+vmin, vmax = 0, 1250
+ymin, ymax = -0.1, 2.5
+
 ################
 skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
 par = Table.read(skewerfile, hdu=1)
@@ -59,7 +62,6 @@ logM_guess = 9.50 # set this as fiducial model
 R_guess = 0.80 # fiducial model
 logZ_guess = -3.50 # fiducial model
 
-"""
 init_out = inference_enrichment.init(modelfile, logM_guess, R_guess, logZ_guess, seed=None) #don't care which mock dataset is picked
 logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, covar_array, icovar_array, lndet_array, vel_corr, _, _, _ = init_out
 
@@ -67,6 +69,7 @@ theta = np.array([logM_guess, R_guess, logZ_guess])
 covar_mean = inference.covar_model_3d(theta, logM_coarse, R_coarse, logZ_coarse, covar_array)
 xi_err = np.sqrt(np.diag(covar_mean))
 
+"""
 plt.errorbar(vel_corr, xi_data/scalefactor, yerr=xi_err/scalefactor, marker='o', ms=3, color='black', ecolor='black', capthick=2, capsize=4, \
              alpha=0.8, mec='none', ls='none', label='mock data', zorder=20)
 """
@@ -75,7 +78,7 @@ vmin_corr = 10
 vmax_corr = 2000
 dv_corr = 10
 
-#ske = ske[0:100]
+#ske = ske[0:200]
 vel_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), vel_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
@@ -113,6 +116,18 @@ xi_mean_tot_fluxmask = np.mean(xi_tot_fluxmask, axis=0) # 2PCF from all the skew
 end = time.time()
 print("............ compute xi done in", (end-start)/60, "min")
 
+"""
+# igm + cgm + noise (flux mask)
+start = time.time()
+mask_want = (1 - flux_noise_tot_lores) < flux_decr_cutoff
+meanflux_tot_fluxmask_noise = np.mean(flux_noise_tot_lores[mask_want])
+deltaf_tot_fluxmask_noise = (flux_noise_tot_lores - meanflux_tot_fluxmask_noise) / meanflux_tot_fluxmask_noise
+vel_mid, xi_tot_fluxmask_noise, npix_tot_fluxmask_noise, _ = \
+    reion_utils.compute_xi(deltaf_tot_fluxmask_noise, vel_lores, vmin_corr, vmax_corr, dv_corr, gpm=mask_want)
+xi_mean_tot_fluxmask_noise = np.mean(xi_tot_fluxmask_noise, axis=0) # 2PCF from all the skewers
+end = time.time()
+print("............ compute xi done in", (end-start)/60, "min")
+
 # Compute cvariance for this masked model
 start = time.time()
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
@@ -120,17 +135,16 @@ params_xi, _, _, _, _, _ = read_model_grid(modelfile)
 npath = params_xi['npath'][0]
 nmock = params_xi['nmock'][0]
 ncovar = int(params_xi['ncovar'][0]/10)
-xi_mock, covar = mock_mean_covar(xi_tot_fluxmask, xi_mean_tot_fluxmask, npath, ncovar, nmock, seed=rand)
+xi_mock, covar = mock_mean_covar(xi_tot_fluxmask_noise, xi_mean_tot_fluxmask, npath, ncovar, nmock, seed=rand)
 xi_err = np.sqrt(np.diag(covar))
 end = time.time()
 print("............ compute covariance done in", (end-start)/60, "min")
-
+"""
 ################
-vmin, vmax = 0, 1250
-ymin, ymax = -0.1, 10
 plt.plot(vel_mid, xi_mean_igm/scalefactor, linewidth=linewidth, linestyle='-', c='tab:orange', label='IGM')
-plt.plot(vel_mid, xi_mean_tot/(scalefactor*10), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/10')
+plt.plot(vel_mid, xi_mean_tot/(scalefactor*50), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/50')
 plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM, masked')
+#plt.plot(vel_mid, xi_mean_tot_fluxmask_noise/scalefactor, linewidth=linewidth, linestyle='-', c='tab:green', label='IGM + CGM + noise, masked')
 plt.fill_between(vel_mid, (xi_mean_tot_fluxmask - xi_err)/scalefactor, (xi_mean_tot_fluxmask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
 
 plt.legend(fontsize=legend_fontsize)
