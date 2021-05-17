@@ -5,7 +5,7 @@ from astropy.table import Table
 from matplotlib.colors import LogNorm
 import cloudy_runs.cloudy_utils as cu
 from matplotlib.ticker import AutoMinorLocator
-from scipy.spatial import ConvexHull
+from matplotlib.colors import ListedColormap
 
 #TODO: plot shaded locus for each ion, show contours of CIV like Illustris paper
 #shading the region spanned by all grid points a single color and using transparency
@@ -49,7 +49,10 @@ N_temp_grid, temp_grid_lo, temp_grid_hi = len(np.unique(temp_grid)), np.unique(t
 print(N_temp_grid, temp_grid_lo, temp_grid_hi)
 
 # reshaping from 1d to 2d, for plt.imshow
-cmap = plt.cm.get_cmap('BuPu', len(set(domion))) # discrete colormap
+#cmap = plt.cm.get_cmap('BuPu', len(set(domion))) # discrete colormap
+cmap = ListedColormap(['aliceblue', 'lightsteelblue', 'darkviolet', 'mediumslateblue', 'cornflowerblue', 'white'])
+cmap = ListedColormap(['aliceblue', 'lightsteelblue', 'darkviolet', 'cornflowerblue', 'lightblue', 'white'])
+
 domion = np.reshape(domion, (N_nh_grid, N_temp_grid))
 
 ### plotting TDR using Nyx skewers
@@ -58,7 +61,7 @@ par = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau.fits', hdu=1)
 ske = Table.read('nyx_sim_data/rand_skewers_z45_ovt_tau.fits', hdu=2)
 nbins = 300 # number of bins for log(rho) and log(T)
 
-nH_bar = par['nH_bar']
+nH_bar = par['nH_bar'][0]
 oden = ske['ODEN'].flatten()
 temp = ske['T'].flatten()
 
@@ -76,11 +79,6 @@ mat2 = plt.pcolormesh(x_coord, y_coord, norm_hist2d.T, norm=LogNorm(), cmap=plt.
 cbar2 = plt.colorbar(mat2, fraction=0.047, pad=0.047)
 cbar2.ax.tick_params(labelsize=cbar_fontsize)
 #cbar2.set_label('Density', rotation=270, fontsize=cbar_fontsize, labelpad=15)
-
-plt.gca().tick_params(right=True, which='both')
-plt.gca().minorticks_on()
-plt.gca().set_xlim([nh_grid.min(), nh_grid.max()])
-plt.gca().set_ylim([temp_grid.min(), temp_grid.max()])
 
 # demarcating different IGM phases
 max_log_oden = 2.0 # maximum oden for diffuse IGM
@@ -101,9 +99,14 @@ mat = plt.imshow(domion.transpose(), cmap=cmap, vmin=np.min(domion) - 0.5, vmax=
 cbar1 = plt.colorbar(mat, ticks=np.arange(np.min(domion), np.max(domion)+1), fraction=0.047, pad=0.02)#, orientation='horizontal')
 cbar1.ax.set_yticklabels(title, fontsize=cbar_fontsize)
 
+plt.gca().tick_params(right=True, which='both')
+plt.gca().minorticks_on()
+plt.gca().set_xlim([-6, -1])
+plt.gca().set_ylim([temp_grid.min(), temp_grid.max()])
+
 # including ODEN on the top axis
-min_oden = np.log10((10**nh_grid.min())/nH_bar)
-max_oden = np.log10((10**nh_grid.max())/nH_bar)
+min_oden = np.log10((10**nh_grid_lo)/nH_bar)
+max_oden = np.log10((10**nh_grid_hi)/nH_bar)
 atwin = plt.gca().twiny()
 atwin.set_xlabel(r'log($\Delta$) [$\rho/\bar{\rho}$]', fontsize=xylabel_fontsize, labelpad=8)
 atwin.xaxis.tick_top()

@@ -254,7 +254,7 @@ def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment_m
     logM_all = np.round(fvfm['logM'], 2)
     R_all = np.round(np.array(fvfm['R_Mpc']), 2)
     k = np.where((logM_all == logM_want) & (R_all == R_want))[0]
-    fv_want = (fvfm['fv'][k])[0] # the [0] is just to extract the value from astropy column
+    fv_want = (fvfm['fv'][k])[0]  # the [0] is just to extract the value from astropy column
     fm_want = (fvfm['fm'][k])[0]
 
     return fv_want, fm_want

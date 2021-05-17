@@ -28,7 +28,7 @@ mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
 fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, figsize=(16, 13), sharex=True)
-fig.subplots_adjust(left=0.1, bottom=0.07, right=0.98, top=0.93, wspace=0, hspace=0.13)
+fig.subplots_adjust(left=0.1, bottom=0.07, right=0.98, top=0.93, wspace=0, hspace=0.)
 
 xytick_size = 16
 xylabel_fontsize = 20
@@ -163,7 +163,7 @@ ax4.set_xlim([vmin, vmax])
 ax5.plot(v_hires, ftot_hires[0], 'k', label='Perfect spectrum', drawstyle='steps-mid')#, alpha=0.6, zorder=10, color='red')
 ax5.plot(v_lores, ftot_lores_noise, label='FWHM=%0.1f km/s; SNR=%0.1f' % (fwhm, snr), c='r', alpha=alpha_data, zorder=1, drawstyle='steps-mid')
 ax5.annotate('log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + 'R={:5.2f} Mpc, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ), \
-             xy=(500, 1.08), xytext=(500, 1.08), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
+             xy=(500, 1.085), xytext=(500, 1.085), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
 ax5.set_xlabel('v [km/s]', fontsize=xylabel_fontsize)
 ax5.set_ylabel(r'F$_{\mathrm{CIV}}$', fontsize=xylabel_fontsize)
 ax5.legend(fontsize=legend_fontsize, ncol=2, loc=1)

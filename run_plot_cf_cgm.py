@@ -10,6 +10,7 @@ import matplotlib as mpl
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 from matplotlib.ticker import AutoMinorLocator
+from enigma.reion_forest.compute_model_grid_civ_new import mock_mean_covar, read_model_grid
 
 # setting the figure
 font = {'family' : 'serif', 'weight' : 'normal'}
@@ -35,7 +36,6 @@ linewidth = 2
 scalefactor = 1e-5
 
 ################
-savefig = 'paper_plots/cf_masking_cgm.pdf'
 skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
 par = Table.read(skewerfile, hdu=1)
 ske = Table.read(skewerfile, hdu=2)
@@ -43,17 +43,17 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-#snr = 50
+snr = 50
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
 
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_model = civ_cgm.init_metal_cgm_dict(alpha=-1.1, n_star=5) # rest are default
-flux_decr_cutoff = 0.10 # all pix with 1 - F > cutoff will be masked
+flux_decr_cutoff = 0.07 # all pix with 1 - F > cutoff will be masked (0.04 gets it closest)
+savefig = 'paper_plots/cf_masking_cgm_007.pdf'
 
 ################
-# TODO: Add mock data points
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
 logM_guess = 9.50 # set this as fiducial model
 R_guess = 0.80 # fiducial model
@@ -75,10 +75,16 @@ vmin_corr = 10
 vmax_corr = 2000
 dv_corr = 10
 
+#ske = ske[0:100]
 vel_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), vel_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
                                                                              metal_dndz_func=metal_dndz_func, seed=seed)
+noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores.shape)
+flux_noise_igm_lores = flux_igm_lores + noise
+flux_noise_cgm_lores = flux_cgm_lores + noise
+flux_noise_tot_lores = flux_tot_lores + noise
+
 # igm only
 start = time.time()
 meanflux_igm = np.mean(flux_igm_lores)
@@ -107,13 +113,28 @@ xi_mean_tot_fluxmask = np.mean(xi_tot_fluxmask, axis=0) # 2PCF from all the skew
 end = time.time()
 print("............ compute xi done in", (end-start)/60, "min")
 
+# Compute cvariance for this masked model
+start = time.time()
+modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+params_xi, _, _, _, _, _ = read_model_grid(modelfile)
+npath = params_xi['npath'][0]
+nmock = params_xi['nmock'][0]
+ncovar = int(params_xi['ncovar'][0]/10)
+xi_mock, covar = mock_mean_covar(xi_tot_fluxmask, xi_mean_tot_fluxmask, npath, ncovar, nmock, seed=rand)
+xi_err = np.sqrt(np.diag(covar))
+end = time.time()
+print("............ compute covariance done in", (end-start)/60, "min")
+
+################
 vmin, vmax = 0, 1250
 ymin, ymax = -0.1, 10
 plt.plot(vel_mid, xi_mean_igm/scalefactor, linewidth=linewidth, linestyle='-', c='tab:orange', label='IGM')
 plt.plot(vel_mid, xi_mean_tot/(scalefactor*10), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/10')
 plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM, masked')
+plt.fill_between(vel_mid, (xi_mean_tot_fluxmask - xi_err)/scalefactor, (xi_mean_tot_fluxmask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
+
 plt.legend(fontsize=legend_fontsize)
-plt.xlabel(r'$\Delta v$ (km/s)', fontsize=xylabel_fontsize)
+plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.xlim([vmin, vmax])
@@ -134,7 +155,7 @@ rmin = (vmin*u.km/u.s/a/Hz).to('Mpc').value
 rmax = (vmax*u.km/u.s/a/Hz).to('Mpc').value
 # Make the new upper x-axes
 atwin = plt.gca().twiny()
-atwin.set_xlabel('R (cMpc)', fontsize=xylabel_fontsize, labelpad=8)
+atwin.set_xlabel('R [cMpc]', fontsize=xylabel_fontsize, labelpad=8)
 atwin.xaxis.tick_top()
 # atwin.yaxis.tick_right()
 atwin.axis([rmin, rmax, ymin, ymax])
