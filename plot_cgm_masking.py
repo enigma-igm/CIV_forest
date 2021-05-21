@@ -60,8 +60,7 @@ start = time.time()
 v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
-                                                                             metal_dndz_func=metal_dndz_func, seed=seed)
-
+                                                                          metal_dndz_func=metal_dndz_func, seed=seed)
 end = time.time()
 print("............ creating metal forest done in", (end-start)/60, "min") # 2 min
 
@@ -80,7 +79,8 @@ _, pdf_noise = reion_utils.pdf_calc(-noise, oneminf_min, oneminf_max, nbins)
 mask_want = (1 - flux_noise_tot_lores) < flux_decr_cutoff  # checked
 _, pdf_tot_noise_mask = reion_utils.pdf_calc(1.0 - flux_noise_tot_lores[mask_want], oneminf_min, oneminf_max, nbins)
 
-print('...masked igm pixel fraction', len((flux_noise_igm_lores[mask_want]).flatten()), len(flux_noise_igm_lores.flatten()))
+mask_want_igm = (1 - flux_noise_igm_lores) < flux_decr_cutoff
+print('...masked igm pixel fraction', len((flux_noise_igm_lores[mask_want_igm]).flatten()), len(flux_noise_igm_lores.flatten()))
 
 # mc realizations to get errors on PDF
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'

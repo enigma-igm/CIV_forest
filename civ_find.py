@@ -38,12 +38,13 @@ v_mgII = v_mgII.value
 nu_mgII = wave_2796.to(u.Hz, equivalencies=u.spectral())
 print("v_CIV", v_mgII)
 
+# these are used if you use MgiiFinder.fit and mgii_fit
 logN_fid = 13.0
 N_fid = np.power(10.0, logN_fid)/u.cm/u.cm
 tau_c_2796_fid = (((np.pi * const.e.esu ** 2 * f_2796) / (const.m_e * nu_mgII) * N_fid).to('km/s')).value
 tau_c_2803_fid = tau_c_2796_fid * f_2803 / f_2796
-print("tau_c_2796_fid", tau_c_2796_fid)
-print("tau_c_2803_fid", tau_c_2803_fid)
+#print("tau_c_2796_fid", tau_c_2796_fid)
+#print("tau_c_2803_fid", tau_c_2803_fid)
 
 def mgii_kernel(vgrid, fwhm, logN=13.5):
     imid = np.round(vgrid.size/2).astype(int)
@@ -51,7 +52,9 @@ def mgii_kernel(vgrid, fwhm, logN=13.5):
     v_kern0 = vgrid - vgrid[imid]
     v_abs = np.array([0.0])
     bval = np.array([np.sqrt(2.0) * fwhm / 2.35])
-    logN_MgII = np.array([logN])
+    #bval *= 10
+    print("bval of kernel", bval)
+    logN_MgII = np.array([logN]) # according to b-logN plot (logN=13.5 ~ bval=15 km/s)
 
     tau_tot, W_2796 = utils.metal_voigt(v_kern0, v_abs, bval, logN_MgII, metal_ion='C IV') # utils.mgii_voigt(v_kern0, v_abs, bval, logN_MgII)
     kernel0 = 1.0 - np.exp(-tau_tot.flatten())

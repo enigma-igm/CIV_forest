@@ -194,11 +194,11 @@ def dwdn_theory(N_in=None):
 def reproduce_cooksey_w():
     # Cooksey+ (2013) claims W_1548 = 0.6A is saturated, which is logN ~ 14
     # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
-    # this gives b ~ 66 km/s and logN ~ 14.17
+    # this gives b ~ 66 km/s and logN ~ 14.17 (assuming tau=1.0)
 
     wrest_civ  = 1548 * u.Angstrom
     W_lambda_saturate = 0.6 * u.Angstrom
-    tau_saturate = 1.0
+    tau_saturate = 2.0 #1.0
 
     c = const.c.to('km/s')
     b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
