@@ -102,29 +102,42 @@ def cooksey_dndXdW(W):
 
     return dn_dXdW
 
+def hasan_ewd(W):
+    # 2.5 <= z <= 4.75
+    alpha, W_star, n_star = -0.91, 0.40, 2.39
+    dn_dXdW = n_star * np.power(W / W_star, alpha) * np.exp(-W / W_star)
+
+    return dn_dXdW
+
 def plot_alldata_raw():
     # plot data in their raw units as presented in the paper
     do_logN_CIV, do_logf, do_logf_err = dodorico2013_cddf_bosman()
     simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
-
-    Win = np.arange(0.6, 3.0, 0.01)
-    cooksey_datafit = cooksey_dndXdW(Win)
 
     plt.figure(figsize=(10,5))
     plt.subplot(121)
     plt.errorbar(do_logN_CIV, do_logf, yerr=do_logf_err, marker='x', color='k', mew=2, ms=8, label=r"D'Odorico xshooter data ($z_{med}$ = 4.8)")
     plt.errorbar(simcoe_logN_CIV, simcoe_logf, yerr=simcoe_logf_err, marker='+', color='b', mew=2, ms=10, label="Simcoe MIKE data (z=4.25)")
 
-    #plt.axvline(12.0, color='b', ls='--', alpha=0.7, label='Simcoe rough detection limit')
-    #plt.axvline(13.3, color='k', ls='--', alpha=0.7, label="D'Odorico 85% complete")
+    plt.axvline(12.0, color='b', ls=':', alpha=0.6, label='Simcoe rough detection limit')
+    plt.axvline(13.3, color='k', ls=':', alpha=0.6, label="D'Odorico 85% complete")
     plt.xlim([11, 15])
     plt.ylim([-17, -10])
     plt.xlabel('log N(CIV)', fontsize=13)
     plt.ylabel(r'log($d^2n/dN/dX$)', fontsize=13)
     plt.legend(loc=3)
 
+    Win1 = np.arange(0.6, 3.0 + 0.01, 0.01)
+    cooksey_datafit = cooksey_dndXdW(Win1)
+    Win2 = np.arange(0.01, 3.0 + 0.01, 0.01)
+    hasan_datafit = hasan_ewd(Win2)
+
     plt.subplot(122)
-    plt.plot(np.log10(Win), np.log10(cooksey_datafit), 'k-', label='Cooksey data fit ($<z>$=3.25)')
+    plt.plot(Win1, np.log10(cooksey_datafit), 'r-', label='Cooksey data fit ($<z>$=3.25)')
+    plt.plot(Win2, np.log10(hasan_datafit), 'b-', label='Hasan data fit (2.5 <= z <= 4.75)')
+    plt.axvline(0.6, color='r', ls=':', alpha=0.6, label="Cooksey 50% complete")
+    plt.axvline(0.06, color='b', ls=':', alpha=0.6, label="Hasan 50% complete")
+    plt.xscale('log')
     plt.xlabel('log (W)', fontsize=13)
     plt.ylabel(r'log($d^2n/dW/dX$)', fontsize=13)
     plt.legend()
@@ -294,6 +307,12 @@ def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
     dX_dz = convert_dXdz(3.25)
     cooksey_datafit = cooksey_datafit * dX_dz
 
+    # (5) Hasan data fit
+    W_hasan = np.arange(W_min, W_max + 0.01, 0.01)
+    hasan_datafit = hasan_ewd(W_hasan)
+    dX_dz = convert_dXdz(3.65) # mean redshift between 2.5-4.75
+    hasan_datafit = hasan_datafit * dX_dz
+
     ##### plotting (paper plot settings) #####
     font = {'family': 'serif', 'weight': 'normal'}  # , 'size': 11}
     plt.rc('font', **font)
@@ -317,6 +336,7 @@ def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
 
     plt.errorbar(DO_W_out, DO_logf_new, yerr=DO_logf_err_new, fmt='o', ms=6, label=r"D'Odorico et al. (2013), $z$ = 4.8")
     plt.errorbar(simcoe_W_out, simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='o', ms=6, label=r"Simcoe(2011), $z$ = 4.25")
+    plt.errorbar(W_hasan, np.log10(hasan_datafit), fmt='b:', lw=3.0, label=r'Hasan et al. (2020), $z$ = 3.65')
     plt.errorbar(W_cooksey, np.log10(cooksey_norm * cooksey_datafit), fmt='r--', lw=3.0, zorder=1, label=r'Cooksey et al. (2013), $z$ = 3.25')
     plt.errorbar(W_range, np.log10(d2n_dzdW_sch), fmt='k-', alpha=0.7, lw=linewidth, zorder=-1, label=r"Schechter fit ($\alpha=%0.2f, W*=%0.2f, n*=%0.2f$)" % (alpha, W_star, n_star))
 
@@ -326,6 +346,78 @@ def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
     plt.legend(fontsize=legend_fontsize, loc=3)
     plt.xlabel(r'W [$\AA$]', fontsize=xylabel_fontsize)
     plt.ylabel(r'log(d$^2$n/dW/dz)', fontsize=xylabel_fontsize)
+    plt.show()
+
+def fit_alldata_dW_dX(cgm_dict, cooksey_norm, use_theory=False):
+    # do fitting in terms of dW (and dz)
+
+    # (1) Schechter function fit
+    W_star, n_star, alpha = cgm_dict['W_star'], cgm_dict['n_star'], cgm_dict['alpha']
+    W_min, W_max = cgm_dict['W_min'], cgm_dict['W_max']
+    W_range = np.arange(W_min, W_max+0.01, 0.01)
+    d2n_dXdW_sch = civ_dndzdW_sch(W_range, W_star, n_star, alpha, z=4.5)
+
+    # (2) D'Odorico data (from Sarah Bosman)
+    DO_logN_CIV, DO_logf, DO_logf_err = dodorico2013_cddf_bosman()
+    #DO_logf, DO_logf_err = convert_data_dXtodz(DO_logf, DO_logf_err, 4.8) # converting data dX to dz
+    if use_theory:
+        DO_W_out, DO_logf_new, DO_logf_err_new = convert_data_dNtodW(DO_logN_CIV, DO_logf, DO_logf_err)
+    else:
+        DO_W_out, DO_logf_new, DO_logf_err_new = convert_data_dNtodW(DO_logN_CIV, DO_logf, DO_logf_err, W_range, cgm_dict) # converting data from dN to dW
+
+    # (3) Simcoe data
+    simcoe_logN_CIV, simcoe_logf, simcoe_logf_err = simcoe2011_cddf_bosman()
+    #simcoe_logf, simcoe_logf_err = convert_data_dXtodz(simcoe_logf, simcoe_logf_err, 4.25) # converting data dX to dz
+    if use_theory:
+        simcoe_W_out, simcoe_logf_new, simcoe_logf_err_new = convert_data_dNtodW(simcoe_logN_CIV, simcoe_logf, simcoe_logf_err)
+    else:
+        simcoe_W_out, simcoe_logf_new, simcoe_logf_err_new = convert_data_dNtodW(simcoe_logN_CIV, simcoe_logf, simcoe_logf_err, W_range, cgm_dict) # converting from dN to dW
+
+    # (4) Cooksey data fit
+    W_cooksey = np.arange(0.6, W_max+0.01, 0.01) # starting at 0.6 A where the fit is applicable
+    cooksey_datafit = cooksey_dndXdW(W_cooksey)
+    #dX_dz = convert_dXdz(3.25)
+    #cooksey_datafit = cooksey_datafit * dX_dz
+
+    # (5) Hasan data fit
+    W_hasan = np.arange(W_min, W_max + 0.01, 0.01)
+    hasan_datafit = hasan_ewd(W_hasan)
+    #dX_dz = convert_dXdz(3.65) # mean redshift between 2.5-4.75
+    #hasan_datafit = hasan_datafit * dX_dz
+
+    ##### plotting (paper plot settings) #####
+    font = {'family': 'serif', 'weight': 'normal'}  # , 'size': 11}
+    plt.rc('font', **font)
+    mpl.rcParams['axes.linewidth'] = 1.5
+    mpl.rcParams['xtick.major.width'] = 1.5
+    mpl.rcParams['ytick.major.width'] = 1.5
+    mpl.rcParams['xtick.minor.width'] = 1.5
+    mpl.rcParams['ytick.minor.width'] = 1.5
+    mpl.rcParams['xtick.major.size'] = 7
+    mpl.rcParams['xtick.minor.size'] = 4
+    mpl.rcParams['ytick.major.size'] = 7
+    mpl.rcParams['ytick.minor.size'] = 4
+
+    plt.figure(figsize=(8, 6))
+    plt.subplots_adjust(left=0.12, bottom=0.14, right=0.97, top=0.97)
+
+    xytick_size = 16
+    xylabel_fontsize = 20
+    legend_fontsize = 14
+    linewidth = 2.5
+
+    plt.errorbar(DO_W_out, DO_logf_new, yerr=DO_logf_err_new, fmt='o', ms=6, label=r"D'Odorico et al. (2013), $z$ = 4.8")
+    plt.errorbar(simcoe_W_out, simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='o', ms=6, label=r"Simcoe(2011), $z$ = 4.25")
+    plt.errorbar(W_hasan, np.log10(hasan_datafit), fmt='b:', lw=3.0, zorder=1, label=r'Hasan et al. (2020), $z$ = 3.65')
+    plt.errorbar(W_cooksey, np.log10(cooksey_norm * cooksey_datafit), fmt='r--', lw=3.0, zorder=1, label=r'Cooksey et al. (2013), $z$ = 3.25')
+    plt.errorbar(W_range, np.log10(d2n_dXdW_sch), fmt='k-', alpha=0.7, lw=linewidth, zorder=-1, label=r"Schechter fit ($\alpha=%0.2f, W*=%0.2f, n*=%0.2f$)" % (alpha, W_star, n_star))
+
+    plt.xscale('log')
+    plt.gca().minorticks_on()
+    plt.gca().tick_params(which='both', labelsize=xytick_size)
+    plt.legend(fontsize=legend_fontsize, loc=3)
+    plt.xlabel(r'W [$\AA$]', fontsize=xylabel_fontsize)
+    plt.ylabel(r'log(d$^2$n/dW/dX)', fontsize=xylabel_fontsize)
     plt.show()
 
 ########## cgm model dictionary ##########
@@ -343,7 +435,7 @@ def cgm_model1():
      out_dict = init_metal_cgm_dict() # default
      fit_alldata_dW(out_dict, 1.0)
 
-def cgm_model2():
+def cgm_model2(): # paper
     out_dict = init_metal_cgm_dict(alpha=-1.1, n_star=5)
     fit_alldata_dW(out_dict, 1.0)
 
