@@ -26,6 +26,7 @@ from astropy import constants as const
 from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
 import matplotlib.style as style
+from astropy.io import ascii
 style.use('tableau-colorblind10')
 
 ########## literature data ##########
@@ -102,12 +103,17 @@ def cooksey_dndXdW(W):
 
     return dn_dXdW
 
-def hasan_ewd(W):
+def hasan_ewd_highz(W):
     # 2.5 <= z <= 4.75
+    data = ascii.read('EWD_highz.tab')
+    bincenter, binlow, binhi = data['bincenter'], data['binlow'], data['binhi']
+    ewd, ewd_err = data['ewd'], data['ewderror']
+
+    # best fit
     alpha, W_star, n_star = -0.91, 0.40, 2.39
     dn_dXdW = n_star * np.power(W / W_star, alpha) * np.exp(-W / W_star)
 
-    return dn_dXdW
+    return bincenter, binlow, binhi, ewd, ewd_err, dn_dXdW
 
 def plot_alldata_raw():
     # plot data in their raw units as presented in the paper
@@ -130,16 +136,18 @@ def plot_alldata_raw():
     Win1 = np.arange(0.6, 3.0 + 0.01, 0.01)
     cooksey_datafit = cooksey_dndXdW(Win1)
     Win2 = np.arange(0.01, 3.0 + 0.01, 0.01)
-    hasan_datafit = hasan_ewd(Win2)
+    bincenter, binlow, binhi, ewd, ewd_err, hasan_datafit = hasan_ewd_highz(Win2)
 
     plt.subplot(122)
-    plt.plot(Win1, np.log10(cooksey_datafit), 'r-', label='Cooksey data fit ($<z>$=3.25)')
-    plt.plot(Win2, np.log10(hasan_datafit), 'b-', label='Hasan data fit (2.5 <= z <= 4.75)')
+    plt.plot(Win1, cooksey_datafit, 'r--', label='Cooksey data fit ($<z>$=3.25)')
+    plt.plot(Win2, hasan_datafit, 'b--')
+    plt.errorbar(bincenter, ewd, xerr=[bincenter-binlow, binhi-bincenter], yerr=ewd_err, fmt='bo', label='Hasan (2.5 <= z <= 4.75)')
     plt.axvline(0.6, color='r', ls=':', alpha=0.6, label="Cooksey 50% complete")
     plt.axvline(0.06, color='b', ls=':', alpha=0.6, label="Hasan 50% complete")
     plt.xscale('log')
-    plt.xlabel('log (W)', fontsize=13)
-    plt.ylabel(r'log($d^2n/dW/dX$)', fontsize=13)
+    plt.yscale('log')
+    plt.xlabel('W', fontsize=13)
+    plt.ylabel(r'$d^2n/dW/dX$', fontsize=13)
     plt.legend()
 
     plt.tight_layout()
@@ -307,11 +315,16 @@ def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
     dX_dz = convert_dXdz(3.25)
     cooksey_datafit = cooksey_datafit * dX_dz
 
-    # (5) Hasan data fit
+    # (5) Hasan data
     W_hasan = np.arange(W_min, W_max + 0.01, 0.01)
-    hasan_datafit = hasan_ewd(W_hasan)
+    bincenter, binlow, binhi, ewd, ewd_err, hasan_datafit = hasan_ewd_highz(W_hasan)
+    ewd_low, ewd_hi = ewd - ewd_err, ewd + ewd_err
     dX_dz = convert_dXdz(3.65) # mean redshift between 2.5-4.75
-    hasan_datafit = hasan_datafit * dX_dz
+    hasan_datafit *= dX_dz
+    ewd *= dX_dz
+    ewd_hi *= dX_dz
+    ewd_low *= dX_dz
+    ewd_err *= dX_dz
 
     ##### plotting (paper plot settings) #####
     font = {'family': 'serif', 'weight': 'normal'}  # , 'size': 11}
@@ -332,13 +345,18 @@ def fit_alldata_dW(cgm_dict, cooksey_norm, use_theory=False):
     xytick_size = 16
     xylabel_fontsize = 20
     legend_fontsize = 14
-    linewidth = 2.5
+    linewidth = 2
+    markersize = 7
 
-    plt.errorbar(DO_W_out, DO_logf_new, yerr=DO_logf_err_new, fmt='o', ms=6, label=r"D'Odorico et al. (2013), $z$ = 4.8")
-    plt.errorbar(simcoe_W_out, simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='o', ms=6, label=r"Simcoe(2011), $z$ = 4.25")
-    plt.errorbar(W_hasan, np.log10(hasan_datafit), fmt='b:', lw=3.0, label=r'Hasan et al. (2020), $z$ = 3.65')
-    plt.errorbar(W_cooksey, np.log10(cooksey_norm * cooksey_datafit), fmt='r--', lw=3.0, zorder=1, label=r'Cooksey et al. (2013), $z$ = 3.25')
-    plt.errorbar(W_range, np.log10(d2n_dzdW_sch), fmt='k-', alpha=0.7, lw=linewidth, zorder=-1, label=r"Schechter fit ($\alpha=%0.2f, W*=%0.2f, n*=%0.2f$)" % (alpha, W_star, n_star))
+    plt.errorbar(DO_W_out, DO_logf_new, yerr=DO_logf_err_new, fmt='o', ms=markersize, label=r"D'Odorico et al. (2013), $z$ = 4.8")
+    plt.errorbar(simcoe_W_out, simcoe_logf_new, yerr=simcoe_logf_err_new, fmt='s', ms=markersize, label=r"Simcoe(2011), $z$ = 4.25")
+    plt.errorbar(bincenter, np.log10(ewd), xerr=[bincenter-binlow, binhi-bincenter], \
+                 yerr=[np.log10(ewd)-np.log10(ewd_low), np.log10(ewd_hi)-np.log10(ewd)], fmt='m^', ms=markersize+1, label=r"Hasan et al. (2020), $2.5 \leq z \leq 4.75$")
+    #plt.errorbar(W_hasan, np.log10(hasan_datafit), fmt='m-', lw=linewidth, zorder=-1, label=r'Hasan et al. (2020) best fit')
+    plt.errorbar(W_hasan, np.log10(hasan_datafit), fmt='m-', alpha=0.7, lw=linewidth, zorder=-10, label=r'Hasan et al. (2020) best fit')
+    plt.errorbar(W_cooksey, np.log10(cooksey_norm * cooksey_datafit), fmt='r--', lw=linewidth+0.5, zorder=1, label=r'Cooksey et al. (2013), $z$ = 3.25')
+    plt.errorbar(W_range, np.log10(d2n_dzdW_sch), fmt='k-', alpha=0.9, lw=linewidth+1, zorder=-10, label=r"Schechter fit ($\alpha=%0.2f, W*=%0.2f, n*=%0.2f$)" % (alpha, W_star, n_star))
+
 
     plt.xscale('log')
     plt.gca().minorticks_on()
@@ -436,7 +454,7 @@ def cgm_model1():
      fit_alldata_dW(out_dict, 1.0)
 
 def cgm_model2(): # paper
-    out_dict = init_metal_cgm_dict(alpha=-1.1, n_star=5)
+    out_dict = init_metal_cgm_dict(alpha=-1.1, n_star=5, W_star = 0.45)
     fit_alldata_dW(out_dict, 1.0)
 
 def cgm_model3():

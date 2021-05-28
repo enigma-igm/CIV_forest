@@ -113,7 +113,8 @@ civ_frac2d = np.reshape(civ_frac, (N_nh_grid, N_temp_grid))
 nh_2d = np.reshape(nh_grid, (N_nh_grid, N_temp_grid))
 temp_2d = np.reshape(temp_grid, (N_nh_grid, N_temp_grid))
 cs = plt.contour(nh_2d, temp_2d, civ_frac2d, levels=[0.3, 0.5], colors=('y',), linestyles=('-',), linewidths=(2.,))
-plt.clabel(cs, fmt = '%0.2f', colors = 'y', fontsize=annotate_text_size)
+manual_locations = [(-5.8, 3), (-5.2, 3)]
+plt.clabel(cs, fmt = '%0.2f', colors = 'k', fontsize=annotate_text_size, manual=manual_locations)
 
 plt.gca().tick_params(right=True, which='both')
 plt.gca().minorticks_on()

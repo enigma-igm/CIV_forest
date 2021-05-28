@@ -66,20 +66,32 @@ for ilogM, logMval in enumerate(logM_min_ls):
         if Rval == 0.1:
             alpha = 1.0
             ec = 'r'
+            vmax = 7
+
         elif Rval == 0.5:
             alpha = 0.5
             ec = None
+            vmax = 7
         elif logMval == 9.0:
             ec = None
-            if Rval == 1.5: alpha = 0.09
-            elif Rval == 3.0: alpha = 0.05
+            if Rval == 1.5:
+                alpha = 0.09
+                vmax = 7
+            elif Rval == 3.0:
+                alpha = 0.07
+                vmax = 5
         elif logMval == 10.0:
             ec = None
-            if Rval == 1.5: alpha = 0.15
-            elif Rval == 3.0: alpha = 0.08
+            if Rval == 1.5:
+                alpha = 0.15
+                vmax = 7
+            elif Rval == 3.0:
+                alpha = 0.08
+                vmax = 7
         else:
             alpha = 0.35
             ec = None
+            vmax = 7
 
         slice = (halos['ZHALO'] >= Zmin) * (halos['ZHALO'] < Zmax) * (np.log10(halos['MASS']) >= logMval)
         halo_slice = halos[slice]
@@ -92,7 +104,7 @@ for ilogM, logMval in enumerate(logM_min_ls):
         #plt.imshow(np.transpose(bs), vmin=0, vmax=7, cmap='gray_r', origin='lower', extent=[0, Lbox, 0, Lbox])
         ax_want = ax_ls[subplot_counter-1]
         ax_want.add_collection(coll)
-        ax_want.imshow(np.transpose(bs), vmin=0, vmax=7, cmap='gray_r', origin='lower', extent=[0, Lbox, 0, Lbox])
+        ax_want.imshow(np.transpose(bs), vmin=0, vmax=vmax, cmap='gray_r', origin='lower', extent=[0, Lbox, 0, Lbox])
 
         text = r'$f_v = %0.3f$' % fv + '\n' + r'$f_m = %0.3f$' % fm
         ax_want.text(20, 54, text, fontsize=13, bbox=dict(facecolor='white'))
@@ -118,4 +130,4 @@ for ilogM, logMval in enumerate(logM_min_ls):
             ax_want.axes.yaxis.set_visible(False)
 
 plt.savefig(outfig)
-plt.show()
+#plt.show()
