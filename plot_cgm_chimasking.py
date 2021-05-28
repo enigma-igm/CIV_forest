@@ -27,15 +27,14 @@ mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
-plt.figure(figsize=(10, 8))
-plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
+#plt.figure(figsize=(10, 8))
+#plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
 
 xytick_size = 16
 annotate_text_size = 16
 xylabel_fontsize = 20
 legend_fontsize = 14
 linewidth = 2
-
 ################
 skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
 par = Table.read(skewerfile, hdu=1)
@@ -56,8 +55,8 @@ cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # re
 
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
 sig_min, sig_max = 1e-2, 100.0
-signif_mask_nsigma = 10
-one_minF_thresh = 0.05
+signif_mask_nsigma = 6
+one_minF_thresh = 0.07
 signif_thresh = 4.0
 #signif_mask_dv = 300.0
 
@@ -68,7 +67,6 @@ bval_igm = 150 # default
 ################
 start = time.time()
 
-ske = ske[0:1000]
 v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
@@ -83,6 +81,7 @@ flux_noise_tot_lores = flux_tot_lores + noise
 ivar = np.full_like(noise, snr**2) # returns an array with same shape as ‘noise’ and filled with values ‘snr**2’
 
 ################
+
 # PDF
 civ_tot = civ_find.MgiiFinder(v_lores, flux_noise_tot_lores, ivar, fwhm, signif_thresh, signif_mask_nsigma=signif_mask_nsigma, \
                               signif_mask_dv=signif_mask_dv, one_minF_thresh=one_minF_thresh, W_2796_igm=W_2796_igm, bval_igm=bval_igm)
@@ -93,24 +92,28 @@ civ_cgm = civ_find.MgiiFinder(v_lores, flux_noise_cgm_lores, ivar, fwhm, signif_
 civ_noise = civ_find.MgiiFinder(v_lores, 1.0 + noise, ivar, fwhm, signif_thresh, signif_mask_nsigma=signif_mask_nsigma, \
                               signif_mask_dv=signif_mask_dv, one_minF_thresh=one_minF_thresh, W_2796_igm=W_2796_igm, bval_igm=bval_igm)
 
+# Compute PDFs
 sig_bins, sig_pdf_igm = reion_utils.pdf_calc(civ_igm.signif, sig_min, sig_max, nbins)
 _, sig_pdf_cgm = reion_utils.pdf_calc(civ_cgm.signif, sig_min, sig_max, nbins)
 _, sig_pdf_tot = reion_utils.pdf_calc(civ_tot.signif, sig_min, sig_max, nbins)
 _, sig_pdf_noise = reion_utils.pdf_calc(civ_noise.signif, sig_min, sig_max, nbins)
 
-"""
 # Compute PDFs of masked arrays
-_, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
+#_, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
 _, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.fit_gpm], sig_min, sig_max, nbins)
 
-# Compute the PDF for mock dataset
+# mc realizations to get errors on PDF
+modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+params_xi, _, _, _, _, _ = read_model_grid(modelfile)
+npath = params_xi['npath'][0]
+#nmocks = params_xi['nmock'][0]
 nmocks = 1000
-sig_bins_mc, sig_pdf_mc, sig_pdf_tot_mock = utils.pdf_calc_mc(mgii_tot.signif, sig_min, sig_max, nbins,
-                                                                 npath, nmocks, rand=rand)
+print('npath', npath, 'nmocks', nmocks)
+sig_bins_mc, sig_pdf_mc, sig_pdf_tot_mock = reion_utils.pdf_calc_mc(civ_tot.signif, sig_min, sig_max, nbins, npath, nmocks, rand=rand)
+
 # Upper and lower limits on PDf from percentiles
 sig_pdf_tot_mock_lo = np.percentile(sig_pdf_mc, 100.0*norm.cdf(-1.0), axis=0)
 sig_pdf_tot_mock_hi = np.percentile(sig_pdf_mc, 100.0*norm.cdf(1.0), axis=0)
-"""
 
 ################
 # 2PCF
@@ -147,7 +150,7 @@ end = time.time()
 print("............ compute xi done in", (end-start)/60, "min")
 n_gpm = np.count_nonzero(mask_want)
 ntot = len(flux_tot_lores.flatten())
-print(n_gpm, ntot, n_gpm/ntot)
+print("flux mask:", n_gpm, ntot, n_gpm/ntot)
 
 # igm + cgm (flux + chi mask)
 meanflux_tot_chimask = np.mean(flux_tot_lores[civ_tot.fit_gpm])
@@ -158,7 +161,7 @@ end = time.time()
 print("............ compute xi done in", (end-start)/60, "min")
 n_gpm = np.count_nonzero(civ_tot.fit_gpm)
 ntot = len(flux_tot_lores.flatten())
-print(n_gpm, ntot, n_gpm/ntot)
+print("flux+chi mask:", n_gpm, ntot, n_gpm/ntot)
 
 # getting errors
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
@@ -173,34 +176,55 @@ theta = np.array([logM_guess, R_guess, logZ_guess])
 covar_mean = inference.covar_model_3d(theta, logM_coarse, R_coarse, logZ_coarse, covar_array)
 xi_err = np.sqrt(np.diag(covar_mean))
 
-################ plotting
+################ plotting PDF
+plt.figure(figsize=(10, 8))
+plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
+
 plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
 plt.plot(sig_bins, sig_pdf_igm, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(sig_bins, sig_pdf_cgm, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
+plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
+plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label='IGM + CGM + noise + mask')
 plt.axvline(signif_mask_nsigma, color='k', ls='--', lw=linewidth)
 
-#xlim = 1e-4
-#ymin, ymax = 1e-3, 3.0
+xlim = 1e-2
+ymin, ymax = 1e-3, 3.0
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel(r'$\chi$', fontsize=xylabel_fontsize)
 plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
-#plt.gca().set_xlim(left=xlim)
-#plt.ylim([ymin, ymax])
+plt.gca().set_xlim(left=xlim)
+plt.ylim([ymin, ymax])
 plt.legend(fontsize=legend_fontsize, loc=2)
 
-plt.figure()
+strong_lines = LineList('Strong', verbose=False)
+wave_1548 = strong_lines['CIV 1548']['wrest']
+Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
+Wmin_top, Wmax_top = Wfactor * oneminf_min, Wfactor * oneminf_max  # top axis
+
+atwin = plt.twiny()
+atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}$ [$\mathrm{{\AA}}]$', fontsize=xylabel_fontsize, labelpad=10)
+atwin.xaxis.tick_top()
+atwin.set_xscale('log')
+atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
+atwin.tick_params(top=True)
+atwin.tick_params(axis="both", labelsize=xytick_size)
+
+################ plotting 2PCF
+plt.figure(figsize=(10, 8))
+plt.subplots_adjust(left=0.1, bottom=0.1, right=0.96, top=0.89)
+
 scalefactor = 1e-5
 plt.plot(vel_mid, xi_mean_igm/scalefactor, linewidth=linewidth, linestyle='-', c='tab:orange', label='IGM')
 plt.plot(vel_mid, xi_mean_tot/(scalefactor*50), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/50')
 plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='--', c='tab:blue', label='IGM + CGM, flux masked')
-plt.plot(vel_mid, xi_mean_tot_chimask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM, flux+chi masked')
+plt.plot(vel_mid, xi_mean_tot_chimask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='rIGM + CGM, flux+$\chi$ masked')
 plt.fill_between(vel_mid, (xi_mean_tot_chimask - xi_err)/scalefactor, (xi_mean_tot_chimask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
 
-vmin, vmax = 0, 1250
-ymin, ymax = -0.1, 2.5
+vmin, vmax = 0, 1000
+ymin, ymax = -0.1, 2.0
 plt.legend(fontsize=legend_fontsize)
 plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)
@@ -208,5 +232,17 @@ plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.xlim([vmin, vmax])
 plt.ylim([ymin, ymax])
 
+strong_lines = LineList('Strong', verbose=False)
+wave_1548 = strong_lines['CIV 1548']['wrest']
+Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
+Wmin_top, Wmax_top = Wfactor * oneminf_min, Wfactor * oneminf_max  # top axis
+
+atwin = plt.twiny()
+atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}$ [$\mathrm{{\AA}}]$', fontsize=xylabel_fontsize, labelpad=10)
+atwin.xaxis.tick_top()
+atwin.set_xscale('log')
+atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
+atwin.tick_params(top=True)
+atwin.tick_params(axis="both", labelsize=xytick_size)
 
 plt.show()
