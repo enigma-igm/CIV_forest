@@ -520,3 +520,41 @@ def varying_fv(outfig, snr=50):
 
     plt.legend(fontsize=10)
     plt.savefig(outfig)
+
+def compare_enrichment_vs_uniform_igm(skewerfile_uni, skewerfile_en):
+
+    logZ = -3.5
+    metal_ion = 'C IV'
+    fwhm = 10
+    snr = 50
+    sampling = 3.0
+    seed = 3429381  # random seeds for drawing CGM absorbers
+    rand = np.random.RandomState(seed)
+    nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0
+
+    par = Table.read(skewerfile_uni, hdu=1)
+    ske = Table.read(skewerfile_uni, hdu=2)
+    z = par['z'][0]
+
+    ske = ske[0:1000]
+    v_lores_uni, (flux_tot_lores_uni, flux_igm_lores_uni, flux_cgm_lores_uni), v_hires, (
+    flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
+    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
+                                                                         sampling=sampling, seed=seed)
+
+    par = Table.read(skewerfile_en, hdu=1)
+    ske = Table.read(skewerfile_en, hdu=2)
+    z = par['z'][0]
+
+    ske = ske[0:1000]
+    v_lores_en, (flux_tot_lores_en, flux_igm_lores_en, flux_cgm_lores_en), v_hires, (
+        flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
+    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
+                                                                         sampling=sampling, seed=seed)
+
+    return flux_igm_lores_uni, flux_igm_lores_en
+
+    flux_bins_uni, pdf_igm_uni = reion_utils.pdf_calc(1.0 - flux_igm_lores_uni, oneminf_min, oneminf_max, nbins)
+    flux_bins_en, pdf_igm_en = reion_utils.pdf_calc(1.0 - flux_igm_lores_en, oneminf_min, oneminf_max, nbins)
+
+    return flux_bins_uni, pdf_igm_uni, flux_bins_en, pdf_igm_en
