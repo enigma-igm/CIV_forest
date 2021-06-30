@@ -66,7 +66,7 @@ ymin, ymax = -0.1, 3.0
 plt.axvline(vel_doublet.value, color='black', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
 plt.text(150, 0.9*ymax, '[C/H] = $%0.2f$' % logZ_fid[0], fontsize=xytick_size)
 plt.legend(fontsize=legend_fontsize)
-plt.xlabel(r'$\Delta v$ (km/s)', fontsize=xylabel_fontsize)
+plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.xlim([vmin, vmax])
@@ -82,7 +82,7 @@ rmin = (vmin*u.km/u.s/a/Hz).to('Mpc').value
 rmax = (vmax*u.km/u.s/a/Hz).to('Mpc').value
 # Make the new upper x-axes
 atwin = plt.gca().twiny()
-atwin.set_xlabel('R (cMpc)', fontsize=xylabel_fontsize, labelpad=8)
+atwin.set_xlabel('R [cMpc]', fontsize=xylabel_fontsize, labelpad=8)
 atwin.xaxis.tick_top()
 # atwin.yaxis.tick_right()
 atwin.axis([rmin, rmax, ymin, ymax])
