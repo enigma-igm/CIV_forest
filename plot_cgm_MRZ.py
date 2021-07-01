@@ -122,7 +122,7 @@ for ifile, skewerfile in enumerate(skewerfile_ls):
 
 ax1.set_xscale('log')
 ax1.set_yscale('log')
-ax1.set_xlabel('1-F', fontsize=xylabel_fontsize)
+ax1.set_xlabel('1$-$F', fontsize=xylabel_fontsize)
 ax1.set_ylabel('PDF', fontsize=xylabel_fontsize)
 ax1.set_ylim([ymin, ymax])
 ax1.legend(loc=2, fontsize=legend_fontsize, frameon=False)
@@ -162,7 +162,7 @@ for ifile, skewerfile in enumerate(skewerfile_ls):
 
 ax2.set_xscale('log')
 ax2.set_yscale('log')
-ax2.set_xlabel('1-F', fontsize=xylabel_fontsize)
+ax2.set_xlabel('1$-$F', fontsize=xylabel_fontsize)
 ax2.set_ylim([ymin, ymax])
 ax2.legend(loc=2, fontsize=legend_fontsize, frameon=False)
 ax2.tick_params(axis="both", labelsize=xytick_size)
@@ -198,7 +198,7 @@ for ilogZ, logZ in enumerate(logZ_ls):
 
 ax3.set_xscale('log')
 ax3.set_yscale('log')
-ax3.set_xlabel('1-F', fontsize=xylabel_fontsize)
+ax3.set_xlabel('1$-$F', fontsize=xylabel_fontsize)
 ax3.set_ylim([ymin, ymax])
 ax3.legend(loc=2, fontsize=legend_fontsize, frameon=False)
 ax3.tick_params(axis="both", labelsize=xytick_size)

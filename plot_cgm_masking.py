@@ -108,7 +108,7 @@ xlim = 1e-4
 ymin, ymax = 1e-3, 3.0
 plt.xscale('log')
 plt.yscale('log')
-plt.xlabel('1-F', fontsize=xylabel_fontsize)
+plt.xlabel(r'1$-$F', fontsize=xylabel_fontsize)
 plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.gca().set_xlim(left=xlim)

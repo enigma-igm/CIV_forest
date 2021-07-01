@@ -133,7 +133,7 @@ for iW, W_range in enumerate(W_range_ls):
 ymin, ymax = 1e-3, 3.0
 plt.xscale('log')
 plt.yscale('log')
-plt.xlabel('1-F', fontsize=xylabel_fontsize)
+plt.xlabel(r'1$-$F', fontsize=xylabel_fontsize)
 plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.ylim([ymin, ymax])
 plt.legend(loc=2, fontsize=legend_fontsize, frameon=False)
