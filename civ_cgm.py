@@ -450,7 +450,7 @@ def init_metal_cgm_dict(alpha=-0.50, W_star = 0.45, n_star = 28.0, \
 
 ########## various presets ##########
 def cgm_model1():
-     out_dict = init_metal_cgm_dict() # default
+     out_dict = init_metal_cgm_dict()
      fit_alldata_dW(out_dict, 1.0)
 
 def cgm_model2(): # paper
