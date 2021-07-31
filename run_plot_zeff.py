@@ -25,7 +25,7 @@ legend_fontsize = 14
 linewidth = 2.5
 
 ### files
-outfig = 'paper_plots/logZeff.pdf'
+outfig = 'paper_plots/logZeff_new.pdf'
 
 fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
 fvfm_master_logM = np.round(fvfm_master['logM'], 2)
@@ -49,7 +49,8 @@ for i_R, Rval in enumerate(R):
     ax1.plot(fvfm_master['logM'][want_iR], logZ_eff, '-', lw=2, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f Mpc' % Rval)
 
 ax1.set_xlabel(r'log(M) [M$_{\odot}$]', fontsize=xylabel_fontsize)
-ax1.set_ylabel(r'log(Z$_{\mathrm{eff}}$)', fontsize=xylabel_fontsize)
+#ax1.set_ylabel(r'log(Z$_{\mathrm{eff}}$)', fontsize=xylabel_fontsize)
+ax1.set_ylabel(r'[C/H]$_{\mathrm{eff}}$', fontsize=xylabel_fontsize)
 ax1.legend(fontsize=legend_fontsize, ncol=2)
 ax1.tick_params(axis="both", labelsize=xytick_size)
 
@@ -58,13 +59,13 @@ for i_logM, logMval in enumerate(logM):
     logZ_eff = halos_skewers.calc_igm_Zeff(fvfm_master['fm'][want_ilogM], logZ_fid=logZ_fid)
     ax2.plot(fvfm_master['R_Mpc'][want_ilogM], logZ_eff, '-', lw=2, color=plt.cm.viridis(color_idx_logM[i_logM]), label=r'log(M) = %0.2f M$_{\odot}$' % logMval)
 
-ax2.set_xlabel('R (Mpc)', fontsize=xylabel_fontsize)
+ax2.set_xlabel('R [Mpc]', fontsize=xylabel_fontsize)
 ax2.legend(fontsize=legend_fontsize)
 ax2.tick_params(axis="both", labelsize=xytick_size)
 
 plt.tight_layout()
 plt.savefig(outfig)
-#plt.show()
+plt.show()
 
 """
 plot_vs_R = False # if False, then plot vs logM (at fixed R)
