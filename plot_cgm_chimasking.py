@@ -81,7 +81,6 @@ flux_noise_tot_lores = flux_tot_lores + noise
 ivar = np.full_like(noise, snr**2) # returns an array with same shape as ‘noise’ and filled with values ‘snr**2’
 
 ################
-
 # PDF
 civ_tot = civ_find.MgiiFinder(v_lores, flux_noise_tot_lores, ivar, fwhm, signif_thresh, signif_mask_nsigma=signif_mask_nsigma, \
                               signif_mask_dv=signif_mask_dv, one_minF_thresh=one_minF_thresh, W_2796_igm=W_2796_igm, bval_igm=bval_igm)
@@ -99,7 +98,7 @@ _, sig_pdf_tot = reion_utils.pdf_calc(civ_tot.signif, sig_min, sig_max, nbins)
 _, sig_pdf_noise = reion_utils.pdf_calc(civ_noise.signif, sig_min, sig_max, nbins)
 
 # Compute PDFs of masked arrays
-#_, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
+_, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
 _, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.fit_gpm], sig_min, sig_max, nbins)
 
 # mc realizations to get errors on PDF
@@ -114,6 +113,45 @@ sig_bins_mc, sig_pdf_mc, sig_pdf_tot_mock = reion_utils.pdf_calc_mc(civ_tot.sign
 # Upper and lower limits on PDf from percentiles
 sig_pdf_tot_mock_lo = np.percentile(sig_pdf_mc, 100.0*norm.cdf(-1.0), axis=0)
 sig_pdf_tot_mock_hi = np.percentile(sig_pdf_mc, 100.0*norm.cdf(1.0), axis=0)
+
+################ plotting PDF
+plt.figure(figsize=(10, 8))
+plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
+
+plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
+plt.plot(sig_bins, sig_pdf_igm, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
+plt.plot(sig_bins, sig_pdf_cgm, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
+plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
+plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
+plt.plot(sig_bins, sig_pdf_flu_mask, drawstyle='steps-mid', lw=linewidth, alpha=0.75, c='r', label='IGM + CGM + noise + flux mask')
+plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label=r'IGM + CGM + noise + $\chi$ mask')
+plt.axvline(signif_mask_nsigma, color='k', ls='--', lw=linewidth)
+
+xlim = 1e-2
+ymin, ymax = 1e-3, 3.0
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel(r'$\chi$', fontsize=xylabel_fontsize)
+plt.ylabel('PDF', fontsize=xylabel_fontsize)
+plt.gca().tick_params(axis="both", labelsize=xytick_size)
+plt.gca().set_xlim(left=xlim)
+plt.ylim([ymin, ymax])
+plt.legend(fontsize=legend_fontsize, loc=2)
+
+strong_lines = LineList('Strong', verbose=False)
+wave_1548 = strong_lines['CIV 1548']['wrest']
+Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
+Wmin_top, Wmax_top = Wfactor * oneminf_min, Wfactor * oneminf_max  # top axis
+
+atwin = plt.twiny()
+atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}$ [$\mathrm{{\AA}}]$', fontsize=xylabel_fontsize, labelpad=10)
+atwin.xaxis.tick_top()
+atwin.set_xscale('log')
+atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
+atwin.tick_params(top=True)
+atwin.tick_params(axis="both", labelsize=xytick_size)
+plt.show()
+exit()
 
 ################
 # 2PCF
@@ -175,42 +213,6 @@ logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_ma
 theta = np.array([logM_guess, R_guess, logZ_guess])
 covar_mean = inference.covar_model_3d(theta, logM_coarse, R_coarse, logZ_coarse, covar_array)
 xi_err = np.sqrt(np.diag(covar_mean))
-
-################ plotting PDF
-plt.figure(figsize=(10, 8))
-plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
-
-plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
-plt.plot(sig_bins, sig_pdf_igm, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
-plt.plot(sig_bins, sig_pdf_cgm, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
-plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
-plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
-plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label='IGM + CGM + noise + mask')
-plt.axvline(signif_mask_nsigma, color='k', ls='--', lw=linewidth)
-
-xlim = 1e-2
-ymin, ymax = 1e-3, 3.0
-plt.xscale('log')
-plt.yscale('log')
-plt.xlabel(r'$\chi$', fontsize=xylabel_fontsize)
-plt.ylabel('PDF', fontsize=xylabel_fontsize)
-plt.gca().tick_params(axis="both", labelsize=xytick_size)
-plt.gca().set_xlim(left=xlim)
-plt.ylim([ymin, ymax])
-plt.legend(fontsize=legend_fontsize, loc=2)
-
-strong_lines = LineList('Strong', verbose=False)
-wave_1548 = strong_lines['CIV 1548']['wrest']
-Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
-Wmin_top, Wmax_top = Wfactor * oneminf_min, Wfactor * oneminf_max  # top axis
-
-atwin = plt.twiny()
-atwin.set_xlabel(r'$W_{{\lambda, \mathrm{{pix}}}}$ [$\mathrm{{\AA}}]$', fontsize=xylabel_fontsize, labelpad=10)
-atwin.xaxis.tick_top()
-atwin.set_xscale('log')
-atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
-atwin.tick_params(top=True)
-atwin.tick_params(axis="both", labelsize=xytick_size)
 
 ################ plotting 2PCF
 plt.figure(figsize=(10, 8))
