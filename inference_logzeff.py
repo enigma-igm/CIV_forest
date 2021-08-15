@@ -23,7 +23,7 @@ def logzeff_coarse(outtxt=None):
 
     fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
     fm_all = np.reshape(fvfm_master['fm'], (nlogM, nR))
-
+    return fm_all
     field = []
     for ilogZ, logZval in enumerate(logZ_vec):
         for iR, Rval in enumerate(R):
@@ -58,7 +58,8 @@ def do_all(mcmc_chain_fitsfile, new_param_samples_savefilename=None):
 
     field = logzeff_coarse()
     mcmc_chain = fits.open(mcmc_chain_fitsfile)
-    param_samples = mcmc_chain['param_samples'].data
+    #param_samples = mcmc_chain['param_samples'].data
+    param_samples = mcmc_chain['ALL_CHAIN_DISCARD_BURNIN'].data
 
     interp_zeff_out = interp_logzeff(field, param_samples)
 

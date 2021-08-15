@@ -225,6 +225,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
     covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
 
+    """
     ##### (1) Make the walker plot, use the true values in the chain
     var_label = ['log(M)', 'R', '[C/H]']
     truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
@@ -244,7 +245,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
 
     plt.show()
     plt.close()
-
+    """
     ##### (3) Make the corrfunc plot with mcmc realizations
     fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
@@ -319,6 +320,7 @@ def do_all(config_file):
     interp_lnlike = False if interp_lnlike == 'False' else True
     interp_ximodel = False if interp_ximodel == 'False' else True
     linear_prior = False if linear_prior == 'False' else True
+    print("interp_lnlike, interp_ximodel, linear_prior", interp_lnlike, interp_ximodel, linear_prior)
 
     init_out = init(modelfile, logM_guess, R_guess, logZ_guess, seed)
 
@@ -351,6 +353,9 @@ def do_all(config_file):
                                                     lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, savefits_chain=savefits_chain)
 
     params, _, _, _, _, _ = read_model_grid(modelfile)
+
+    #return init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed
+
     # using ori_[param]_fine because consistent with shape of ximodel_fine and to avoid indexing error
     plot_mcmc(sampler, param_samples, init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior,
               seed=seed)
@@ -556,3 +561,28 @@ def prep_for_arbinterp2(logM_coarse, R_coarse, logZ_coarse, logM_fine, R_fine, l
 
     np.savetxt(outtxt, allpts, fmt=['%0.2f', '%0.2f', '%0.2f'], delimiter=',')
     return len(new_logM_fine), len(new_R_fine), len(new_logZ_fine)
+
+def plot_corner_nonthinned(mcmc_chain_filename, config_file, linear_prior=False):
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    modelfile = config['DEFAULT']['modelfile']
+    seed = int(config['DEFAULT']['seed'])
+    logM_guess, R_guess, logZ_guess = float(config['DEFAULT']['logm_guess']), float(
+        config['DEFAULT']['r_guess']), float(config['DEFAULT']['logz_guess'])
+
+    init_out = init(modelfile, logM_guess, R_guess, logZ_guess, seed)
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, _, _, _ = init_out
+
+    mcmc = fits.open(mcmc_chain_filename)
+    param_samples = mcmc['ALL_CHAIN_DISCARD_BURNIN'].data
+    var_label = ['log(M)', 'R', '[C/H]']
+    truths = [10 ** (logM_data), R_data, 10 ** (logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
+
+    corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k', \
+                        truth_color='darkgreen', \
+                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
+                        data_kwargs={'ms': 1.0, 'alpha': 0.1})
+
+    plt.show()
