@@ -43,7 +43,7 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-snr = 50
+snr = 50 #20
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
@@ -55,11 +55,13 @@ cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # re
 
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
 sig_min, sig_max = 1e-2, 100.0
-signif_mask_nsigma = 6
-one_minF_thresh = 0.07
 signif_thresh = 4.0
-#signif_mask_dv = 300.0
 
+# masking cutoffs to change
+signif_mask_nsigma = 6 #3
+one_minF_thresh = 0.07 #0.06
+
+#signif_mask_dv = 300.0
 signif_mask_dv = 200.0 # b-strong=150 km/s; CF after masking practically same as dv=300
 W_2796_igm = 1.0 # default
 bval_igm = 150 # default
@@ -67,6 +69,7 @@ bval_igm = 150 # default
 ################
 start = time.time()
 
+#ske = ske[0:100]
 v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
@@ -122,10 +125,15 @@ plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gr
 plt.plot(sig_bins, sig_pdf_igm, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(sig_bins, sig_pdf_cgm, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
-plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
+if snr != 20:
+    plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
+
 plt.plot(sig_bins, sig_pdf_flu_mask, drawstyle='steps-mid', lw=linewidth, alpha=0.75, c='r', label='IGM + CGM + noise + flux mask')
 plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label=r'IGM + CGM + noise + $\chi$ mask')
 plt.axvline(signif_mask_nsigma, color='k', ls='--', lw=linewidth)
+
+if snr == 20:
+    plt.axvline(3, color='m', ls=':', lw=linewidth) # for snr = 20 plot only
 
 xlim = 1e-2
 ymin, ymax = 1e-3, 3.0
@@ -151,7 +159,6 @@ atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
 plt.show()
-exit()
 
 ################
 # 2PCF
@@ -177,7 +184,7 @@ xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF from all the skewers
 end = time.time()
 print("............ compute xi done in", (end-start)/60, "min")
 
-# igm + cgm (flux mask)
+# igm + cgm (flux mask only)
 start = time.time()
 mask_want = (1 - flux_tot_lores) < one_minF_thresh
 meanflux_tot_fluxmask = np.mean(flux_tot_lores[mask_want])
@@ -189,6 +196,21 @@ print("............ compute xi done in", (end-start)/60, "min")
 n_gpm = np.count_nonzero(mask_want)
 ntot = len(flux_tot_lores.flatten())
 print("flux mask:", n_gpm, ntot, n_gpm/ntot)
+
+# igm + cgm (chi mask only)
+# one_minF_thresh = 1.0, which means accepting all pixels
+civ_tot_chimaskonly = civ_find.MgiiFinder(v_lores, flux_noise_tot_lores, ivar, fwhm, signif_thresh, signif_mask_nsigma=signif_mask_nsigma, \
+                              signif_mask_dv=signif_mask_dv, one_minF_thresh=1.0, W_2796_igm=W_2796_igm, bval_igm=bval_igm)
+
+meanflux_tot_chimask_only = np.mean(flux_tot_lores[civ_tot_chimaskonly.fit_gpm])
+deltaf_tot_chimask_only = (flux_tot_lores - meanflux_tot_chimask_only) / meanflux_tot_chimask_only
+vel_mid, xi_tot_chimask_only, npix_tot_chimask_only, _ = reion_utils.compute_xi(deltaf_tot_chimask_only, v_lores, vmin_corr, vmax_corr, dv_corr, gpm=civ_tot_chimaskonly.fit_gpm)
+xi_mean_tot_chimask_only = np.mean(xi_tot_chimask_only, axis=0) # 2PCF from all the skewers
+end = time.time()
+print("............ compute xi done in", (end-start)/60, "min")
+n_gpm = np.count_nonzero(civ_tot_chimaskonly.fit_gpm)
+ntot = len(flux_tot_lores.flatten())
+print("chi mask:", n_gpm, ntot, n_gpm/ntot)
 
 # igm + cgm (flux + chi mask)
 meanflux_tot_chimask = np.mean(flux_tot_lores[civ_tot.fit_gpm])
@@ -221,9 +243,12 @@ plt.subplots_adjust(left=0.1, bottom=0.1, right=0.96, top=0.89)
 scalefactor = 1e-5
 plt.plot(vel_mid, xi_mean_igm/scalefactor, linewidth=linewidth, linestyle='-', c='tab:orange', label='IGM')
 plt.plot(vel_mid, xi_mean_tot/(scalefactor*50), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/50')
-plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='--', c='tab:blue', label='IGM + CGM, flux masked')
 plt.plot(vel_mid, xi_mean_tot_chimask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM, flux+$\chi$ masked')
-plt.fill_between(vel_mid, (xi_mean_tot_chimask - xi_err)/scalefactor, (xi_mean_tot_chimask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
+if snr != 20:
+    plt.fill_between(vel_mid, (xi_mean_tot_chimask - xi_err)/scalefactor, (xi_mean_tot_chimask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
+
+plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='--', c='tab:pink', label='IGM + CGM, flux masked')
+plt.plot(vel_mid, xi_mean_tot_chimask_only/scalefactor, linewidth=linewidth, linestyle='--', c='tab:green', label='IGM + CGM, $\chi$ masked', zorder=20)
 
 vmin, vmax = 0, 1000
 ymin, ymax = -0.1, 2.0

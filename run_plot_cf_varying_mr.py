@@ -61,7 +61,7 @@ for ilogZ, logZval in enumerate(logZ_fid):
             plt.plot(vel_mid, xi_model/divbyfactor, linewidth=linewidth, color=colorls[ilogM], linestyle=linestyle_ls[iR], label=label)
 
 vmin, vmax = 0, 1250
-ymin, ymax = -0.1, 3.0
+ymin, ymax = -0.1, 2.1
 
 plt.axvline(vel_doublet.value, color='black', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
 plt.text(150, 0.9*ymax, '[C/H] = $%0.2f$' % logZ_fid[0], fontsize=xytick_size)
@@ -90,6 +90,6 @@ atwin.tick_params(top=True)
 atwin.xaxis.set_minor_locator(AutoMinorLocator())
 atwin.tick_params(axis="x", labelsize=xytick_size)
 
-plt.savefig(outfig)
+#plt.savefig(outfig)
 plt.show()
 plt.close()
