@@ -11,7 +11,7 @@ if seed == None:
     seed = np.random.randint(0, 10000000)
 
 nlogM, nR, nlogZ = 251, 201, 161
-modelfile = 'nyx_sim_data/igm_cluster/enrichment/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
 
 logM_guess_ls = [9.5, 10.5]
 R_guess_ls = [0.3, 1.5]
@@ -26,7 +26,8 @@ for ilogM, logM_guess in enumerate(logM_guess_ls):
 
             print("==========", logM_guess, R_guess, logZ_guess, "==========")
             init_out = infen.init(modelfile, logM_guess, R_guess, logZ_guess, seed)
-            logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, lndet_array, icovar_array = init_out
+            logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+            covar_array, icovar_array, lndet_array, vel_corr, _, _, _ = init_out
             lnlike_coarse, lnlike_fine, _, logM_fine, R_fine, logZ_fine = infen.interp_likelihood(init_out, nlogM, nR, nlogZ, True)
 
             ilogZ_fine = find_closest(logZ_fine, logZ_data)

@@ -27,7 +27,7 @@ from enigma.reion_forest.compute_model_grid_civ import read_model_grid
 import halos_skewers
 
 def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, \
-                   cgm_dict=None, metal_dndz_func=None, cgm_seed=None):
+                   cgm_dict=None, metal_dndz_func=None, cgm_seed=None, want_hires=False):
 
     # similar as enigma.reion_forest.fig_corrfunc.py
     # if sampling not provided, then default to sampling=3
@@ -36,6 +36,12 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
     vel_hires, (flux_hires_tot, flux_hires_igm, flux_hires_cgm), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(params, skewers, logZ, fwhm, metal_ion, sampling=sampling, \
                                                                          cgm_dict=cgm_dict, metal_dndz_func=metal_dndz_func, seed=cgm_seed)
+
+    if want_hires:
+        print("Want hires")
+        flux_lores_tot = flux_hires_tot
+        vel_lores = vel_hires
+        dv_corr = 5
 
     # Add noise if snr is provided
     if snr != None:

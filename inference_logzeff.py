@@ -15,6 +15,7 @@ from astropy.io import fits
 from astropy.table import Table
 import halos_skewers
 import inference_enrichment as infen
+from scipy.interpolate import RegularGridInterpolator
 
 def logzeff_coarse(outtxt=None):
     logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1)
@@ -23,7 +24,7 @@ def logzeff_coarse(outtxt=None):
 
     fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
     fm_all = np.reshape(fvfm_master['fm'], (nlogM, nR))
-    return fm_all
+
     field = []
     for ilogZ, logZval in enumerate(logZ_vec):
         for iR, Rval in enumerate(R):
@@ -54,12 +55,34 @@ def interp_logzeff(coarse_field, interp_pts):
 
     return out_norm[:,0]
 
-def do_all(mcmc_chain_fitsfile, new_param_samples_savefilename=None):
+def interp_logzeff2(param_samples):
+    # In progress - 8/16/21
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1)
+    logZ_vec = np.linspace(-4.5, -2.0, 26)  # logZ_vec = np.linspace(-4.5, -2.0, 26)
+    nlogM, nR, nlogZ = len(logM), len(R), len(logZ_vec)
 
+    fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
+    fm_all = np.reshape(fvfm_master['fm'], (nlogM, nR))
+    logZ_eff = []
+
+    for ilogZ, logZval in enumerate(logZ_vec):
+        logZ_eff.append(np.log10(10 ** (logZval) * fm_all))
+
+    logZ_eff_func = RegularGridInterpolator((logZ_vec, logM, R), logZ_eff)
+
+    pts = np.zeros(np.shape(param_samples))
+    pts[:,0] = param_samples[:,-1]
+    pts[:,1] = param_samples[:,0]
+    pts[:,2] = param_samples[:,1]
+
+    out = logZ_eff_func(pts)
+    return out
+
+def do_all(mcmc_chain_fitsfile, new_param_samples_savefilename=None):
     field = logzeff_coarse()
     mcmc_chain = fits.open(mcmc_chain_fitsfile)
-    #param_samples = mcmc_chain['param_samples'].data
-    param_samples = mcmc_chain['ALL_CHAIN_DISCARD_BURNIN'].data
+    param_samples = mcmc_chain['param_samples'].data
+    #param_samples = mcmc_chain['ALL_CHAIN_DISCARD_BURNIN'].data
 
     interp_zeff_out = interp_logzeff(field, param_samples)
 
@@ -101,6 +124,27 @@ def plot_corrfunc_mcmc_hack(config_file, param_samples):
                                R_coarse, logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZeff_data, nrand=50, seed=seed)
 
     plt.show()
+
+#############################
+def interp_fm(mcmc_fitsfilename):
+
+    logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1)
+    nlogM, nR = len(logM), len(R)
+
+    fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
+    fm_all = np.reshape(fvfm_master['fm'], (nlogM, nR))
+    fm_func = RegularGridInterpolator((logM, R), fm_all)
+
+    mcmc_chain = fits.open(mcmc_fitsfilename)
+    param_samples = mcmc_chain['param_samples'].data
+    interp_pts = np.zeros((len(param_samples), 2))
+    interp_pts[:,0] = param_samples[:,0]
+    interp_pts[:,1] = param_samples[:,1]
+
+    print(np.min(param_samples[:,0]), np.max(param_samples[:,0]))
+    print(np.min(param_samples[:,1]), np.max(param_samples[:,1]))
+
+    fm_out = fm_func(interp_pts)
 
 
 

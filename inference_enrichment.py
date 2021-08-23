@@ -169,8 +169,15 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     logZ_fine_min, logZ_fine_max = logZ_fine.min(), logZ_fine.max()
 
     # DOUBLE CHECK
+    #bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
+    #    [(0, 10**logM_fine_max), (0, R_fine_max), (0, 10**logZ_fine_max)]
+
+    # (8/16/21) linear_prior only on logZ
     bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
-        [(0, 10**logM_fine_max), (0, R_fine_max), (0, 10**logZ_fine_max)]
+        [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (0, 10**logZ_fine_max)]
+
+    print(bounds)
+    exit()
 
     chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
     args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
@@ -204,7 +211,7 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     if linear_prior: # convert the samples to linear units
         param_samples = flat_samples.copy()
-        param_samples[:, 0] = np.log10(param_samples[:, 0]) # logM
+        #param_samples[:, 0] = np.log10(param_samples[:, 0]) # logM  # (8/16/21) linear_prior only on logZ
         param_samples[:, 2] = np.log10(param_samples[:, 2]) # logZ
     else:
         param_samples = flat_samples
@@ -225,10 +232,10 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
     covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
 
-    """
     ##### (1) Make the walker plot, use the true values in the chain
     var_label = ['log(M)', 'R', '[C/H]']
-    truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
+    #truths = [10**(logM_data), R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data]
+    truths = [logM_data, R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data] # (8/16/21) linear_prior only on logZ
     print("truths", truths)
     chain = sampler.get_chain()
     inference.walker_plot(chain, truths, var_label, walkerfile=None)
@@ -245,7 +252,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
 
     plt.show()
     plt.close()
-    """
+
     ##### (3) Make the corrfunc plot with mcmc realizations
     fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)

@@ -15,11 +15,19 @@ import inference_enrichment as infen
 
 ############## Setting up ##############
 modelfile = 'nyx_sim_data/igm_cluster/enrichment/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
+
 seed = 5382029
+#seed = 8808697
+#seed=None
+
 logM_guess, R_guess, logZ_guess = 9.89, 0.98, -3.57
+#logM_guess, R_guess, logZ_guess = 9.09, 0.35, -3.3
+
 nlogM_fine, nR_fine, nlogZ_fine = 251, 251, 251
+nlogM_fine, nR_fine, nlogZ_fine = 251, 291, 251 # for finer grid, giving increment of 0.01 for each param
+
 fixedpar = ['logM', 'R', 'logZ']
-#fixedpar = 'logZ'
 spline_order_x, spline_order_y = 2, 2
 
 ############## Reading in ##############

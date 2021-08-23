@@ -41,7 +41,7 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-snr = 50
+snr = 20 #50
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
@@ -51,7 +51,7 @@ cgm_n_star = 5
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # rest are default
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
-flux_decr_cutoff = 0.07
+flux_decr_cutoff = 0.15 #0.07
 savefig = 'paper_plots/flux_pdf_masking_007.pdf'
 
 ################
@@ -100,9 +100,10 @@ plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray'
 plt.plot(flux_bins, pdf_igm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(flux_bins, pdf_cgm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(flux_bins, pdf_tot_noise, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
-plt.fill_between(flux_bins, flux_pdf_tot_mock_lo, flux_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
+#plt.fill_between(flux_bins, flux_pdf_tot_mock_lo, flux_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
 plt.plot(flux_bins, pdf_tot_noise_mask, drawstyle='steps-mid', lw=linewidth, c='k', label='IGM + CGM + noise + mask')
 plt.axvline(flux_decr_cutoff, color='k', ls='--', lw=linewidth)
+plt.axvline(0.06, color='m', ls=':', lw=linewidth) # for snr = 20 plot only
 
 xlim = 1e-4
 ymin, ymax = 1e-3, 3.0
@@ -128,6 +129,6 @@ atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
 
-plt.savefig(savefig)
+#plt.savefig(savefig)
 plt.show()
 
