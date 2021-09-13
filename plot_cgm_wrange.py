@@ -38,7 +38,7 @@ linewidth = 2
 alpha = 0.75
 
 savefig = 'paper_plots/flux_pdf_wrange.pdf'
-logZ = -3.5
+logZ = -3.5 # (9/13/21) input metallicity for non-uniform model; logZ for uniform model defined below
 metal_ion = 'C IV'
 fwhm = 10
 snr = 50
@@ -51,7 +51,7 @@ cgm_n_star = 5
 metal_dndz_func = civ_cgm.civ_dndz_sch
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
 
-def init_one_model(skewerfile, Wmin, Wmax):
+def init_one_model(skewerfile, Wmin, Wmax, logZ):
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     z = par['z'][0]
@@ -93,17 +93,18 @@ def init_one_model(skewerfile, Wmin, Wmax):
 ##### plot uniform IGM as reference
 Wmin, Wmax = 0.001, 0.05 # placeholder values, since we just want the uniform IGM pdf
 skewerfile = 'nyx_sim_data/rand_skewers_z45_ovt_tau_xciv_flux.fits' # uniformly enriched
-flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax)
+uniform_logZ = -3.97 # (9/13/21) uniform logZ = effective logZ for non-uniform model
+flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax, uniform_logZ)
 pdf_igm, pdf_cgm, pdf_tot, pdf_noise = out_pdf_no_noise
 
-plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM, uniform', lw=linewidth + 0.5, c='tab:red', alpha=alpha)
+plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM, uniform, [C/H]=${:5.2f}$'.format(uniform_logZ), lw=linewidth + 0.5, c='tab:red', alpha=alpha)
 
 ##### plot fiducial IGM model
 skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
 logM = float(skewerfile.split('logM_')[-1].split('.fits')[0])
 R_Mpc = float(skewerfile.split('R_')[-1].split('_logM')[0])
 #text = 'log(M)={:4.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:4.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ)
-text = 'log(M)={:4.2f} '.format(logM) + 'R={:4.2f}, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ)
+text = 'log(M)={:4.2f}, '.format(logM) + 'R={:4.2f}, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ) + '; [C/H]$_{\mathrm{eff}}$' + '=${:5.2f}$'.format(uniform_logZ)
 
 W_range_ls = [[0.001, 5.0], [0.001, 0.05], [0.05, 0.5], [0.5, 5.0]]
 #W_range_ls = [[0.001, 5.0], [0.5, 5.0],  [0.1, 0.5], [0.01, 0.1], [0.001, 0.01]]
@@ -111,20 +112,24 @@ alpha_ls = np.linspace(1, 0.4, len(W_range_ls))
 
 for iW, W_range in enumerate(W_range_ls):
     Wmin, Wmax = W_range[0], W_range[1]
-    flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax)
+    flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, Wmin, Wmax, logZ)
     pdf_igm, pdf_cgm, pdf_tot, pdf_noise = out_pdf_no_noise
 
     if iW == 0: # entire W-range
         plt.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label='IGM, %s' % text, lw=linewidth + 0.5, c='tab:orange')
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM', lw=linewidth + 0.5, c='tab:blue')
-        plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)
+        #plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)
 
     else: # sub W-range
         if iW == 1:
-            label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.3f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
+            #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.3f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
+            label = r'CGM, $W$=[{:5.3f}'.format(Wmin) + '$-${:4.2f}]'.format(Wmax)
         else:
-            label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.2f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
+            #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.2f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
+            label = r'CGM, $W$=[{:4.2f}'.format(Wmin) + '$-${:4.2f}]'.format(Wmax)
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label=label, lw=linewidth, alpha=alpha_ls[iW], c='tab:blue')
+
+plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)
 
 #plt.gca().annotate('log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:5.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ), \
 #             xy=(2.5e-3, 1.0), xytext=(2.5e-3, 1.0), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
