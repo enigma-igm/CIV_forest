@@ -56,7 +56,7 @@ def init_one_model(skewerfile, logZ_in):
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     z = par['z'][0]
-    #ske = ske[0:100]
+    #ske = ske[0:50]
 
     start = time.time()
     v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
@@ -99,10 +99,11 @@ ymin, ymax = 1e-3, 4.0
 
 ############### varying logM plot ###############
 logZ = -3.5
-file1 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
-file2 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_10.50.fits'
-skewerfile_ls = [file1, file2]
-igm_color_ls = ['gold', 'tab:orange']
+file1 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_8.50.fits' # (9/13/21) added
+file2 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
+file3 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_10.50.fits'
+skewerfile_ls = [file1, file2, file3]
+igm_color_ls = ['gold', 'tab:orange', 'tab:red']
 
 for ifile, skewerfile in enumerate(skewerfile_ls):
     flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, logZ)
@@ -116,7 +117,7 @@ for ifile, skewerfile in enumerate(skewerfile_ls):
     igm_label = 'IGM (logM={:5.2f} Mpc, '.format(logM) + r'[C/H]$_{\mathrm{eff}}$=' + '${:5.2f}$)'.format(logZ_eff_want)
     ax1.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label=igm_label, lw=linewidth, color=igm_color_ls[ifile])
 
-    if ifile == 1:
+    if ifile == 2:
         ax1.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label='CGM', lw=linewidth, c='tab:blue', alpha=alpha)
         ax1.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth, c='tab:gray', alpha=alpha)
 
