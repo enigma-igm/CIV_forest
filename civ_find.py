@@ -46,8 +46,11 @@ tau_c_2803_fid = tau_c_2796_fid * f_2803 / f_2796
 #print("tau_c_2796_fid", tau_c_2796_fid)
 #print("tau_c_2803_fid", tau_c_2803_fid)
 
+import pdb
+
 def mgii_kernel(vgrid, fwhm, logN=13.5):
     imid = np.round(vgrid.size/2).astype(int)
+    #pdb.set_trace()
     dv_pix = np.median(np.diff(vgrid))
     v_kern0 = vgrid - vgrid[imid]
     v_abs = np.array([0.0])
@@ -61,6 +64,7 @@ def mgii_kernel(vgrid, fwhm, logN=13.5):
 
     # Center the kernel about zero
     nkern = 2 * np.ceil((bval[0] / dv_pix) * 20).astype(int)
+    nkern += 100 # SST: hack to see the 2nd doublet peak
     kernel = kernel0[imid - nkern:imid + nkern + 1]
     v_kern = v_kern0[imid - nkern:imid + nkern + 1]
     # kernel = kernel[::-1]/np.sum(kernel)

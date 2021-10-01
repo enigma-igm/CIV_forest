@@ -190,8 +190,21 @@ def civ_dndz_sch(n_star, alpha, W_star, W_min, W_max):
     return dn_dz
 
 ########## COG and dW/dN ##########
+def dwdn_theory_mgii(N_in):
+    wrest_mgii = 2796 * u.Angstrom
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.497
+
+    N_in = N_in / (u.cm ** 2)
+    w_lambda = N_in * f * np.pi * (ec ** 2) / (me * c ** 2) * (wrest_mgii.to('cm') ** 2)  # unit is cm
+    w_lambda = w_lambda.to('Angstrom')
+
+    return w_lambda
+
 def dwdn_theory(N_in=None):
-    # calculate theoretical value of dW/dN on the linear part of the COG
+    # calculate theoretical value of dW/dN on the linear part of the COG (Joe's ISM class note 6, eqn 20)
 
     wrest_civ = 1548 * u.Angstrom
     ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
@@ -217,13 +230,14 @@ def reproduce_cooksey_w():
     # Here trying to estimate what b value is required to get W=0.6A, assuming linear COG.
     # this gives b ~ 66 km/s and logN ~ 14.17 (assuming tau=1.0)
 
+    # see Joe's ISM class note 6, eqn 15
     wrest_civ  = 1548 * u.Angstrom
     W_lambda_saturate = 0.6 * u.Angstrom
-    tau_saturate = 2.0 #1.0
+    tau_saturate = 1.5
 
     c = const.c.to('km/s')
     b_linear_out = (W_lambda_saturate/tau_saturate) * c/np.sqrt(np.pi) * 1/wrest_civ # km/s
-
+    print(b_linear_out)
     # getting N now
     ec = const.e.esu # cgs
     ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
@@ -234,6 +248,35 @@ def reproduce_cooksey_w():
     logN = np.log10(N.value)
 
     return logN, b_linear_out
+
+def reproduce_cooksey_w2(N_in, b_in):
+    # draft
+    wrest_civ = 1548 * u.Angstrom
+    ec = (const.e.esu.value) * (u.cm) ** (3 / 2) * (u.g) ** (1 / 2) / u.s
+    me = const.m_e.to('g')
+    c = const.c.to('cm/s')
+    f = 0.1899  # oscillator strength for CIV 1548
+
+    N_in = N_in / (u.cm ** 2)
+    b_in = b_in * (u.km/u.second)
+    W_lambda_saturate = 0.6 * u.Angstrom
+    tau_saturate = N_in/((b_in.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2))# 1/cm2)
+    print(tau_saturate)
+
+def plot_multiple_cog(W=np.arange(0.001, 5.0, 0.01) , b_list=np.array([6, 15, 30, 60, 100]) , cgm_dict=init_metal_cgm_dict(alpha=-1.1, n_star=5)):
+    # plotting multiple COG at various b-values
+
+    for b in b_list:
+        logN_out, _ = reion_utils.metal_W2bN(W, cgm_dict=cgm_dict, b_in=b)
+        plt.plot(logN_out, np.log10(W), label='b = %d km/s' % b)
+
+    plt.axhline(np.log10(0.6), c='r', ls='--')
+    plt.xlabel(r'log($N_{CIV}$)', fontsize=13)
+    plt.ylabel(r'log($W_{1548 \AA}$)', fontsize=13)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 ########## converting functions
 def convert_dXdz(z, omega_m=0.3, omega_lambda=0.7):
