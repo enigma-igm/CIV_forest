@@ -263,7 +263,7 @@ def reproduce_cooksey_w2(N_in, b_in):
     tau_saturate = N_in/((b_in.to('cm/s')) / (f * wrest_civ.to('cm')) * me * c / (np.sqrt(np.pi) * ec**2))# 1/cm2)
     print(tau_saturate)
 
-def plot_multiple_cog(W=np.arange(0.001, 5.0, 0.01) , b_list=np.array([6, 15, 30, 60, 100]) , cgm_dict=init_metal_cgm_dict(alpha=-1.1, n_star=5)):
+def plot_multiple_cog(cgm_dict, W=np.arange(0.001, 5.0, 0.01) , b_list=np.array([6, 15, 30, 60, 100])):
     # plotting multiple COG at various b-values
 
     for b in b_list:

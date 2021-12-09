@@ -61,6 +61,7 @@ v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hi
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
                                                                           metal_dndz_func=metal_dndz_func, seed=seed)
+
 end = time.time()
 print("............ creating metal forest done in", (end-start)/60, "min") # 2 min
 noise = rand.normal(0.0, 1.0 / snr, flux_cgm_lores.shape)

@@ -148,12 +148,13 @@ ax3.set_ylim([-0.05, 0.5])
 #### N_CIV plot
 nH_bar = 3.1315263992114194e-05 # from other skewerfile
 vscale = np.ediff1d(v_hires)[0]
-#pixscale = (vscale*u.km/u.s/a/Hz).to('cm').value # equals 35.6 ckpc
-pixscale = ((100/4096)*u.Mpc).to(u.cm) # equals 24 h^-1 ckpc (9/8/21)
+pixscale = (vscale*u.km/u.s/a/Hz).to('cm').value # equals 35.6 ckpc
+#pixscale = ((100/4096)*u.Mpc).to(u.cm) # equals 24 h^-1 ckpc (9/8/21)
+pixscale *= a # proper distance
 N_civ = halos_skewers.get_Nciv(oden[0], x_metal[0], logZ, nH_bar, pixscale)
 
-ax4.plot(v_hires, N_civ/1e11, c='k')
-ax4.set_ylabel(r'N$_{\mathrm{CIV}}$' + '\n' + r'[10$^{11}$ cm$^{-2}$]', fontsize=xylabel_fontsize)
+ax4.plot(v_hires, N_civ/1e10, c='k')
+ax4.set_ylabel(r'N$_{\mathrm{CIV}}$' + '\n' + r'[10$^{10}$ cm$^{-2}$]', fontsize=xylabel_fontsize)
 ax4.tick_params(top=True, which='both', labelsize=xytick_size)
 ax4.xaxis.set_minor_locator(AutoMinorLocator())
 ax4.yaxis.set_minor_locator(AutoMinorLocator())

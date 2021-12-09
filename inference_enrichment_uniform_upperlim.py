@@ -18,8 +18,8 @@ import random
 from scipy.stats import norm
 
 ######## Setting up #########
-seed = 2182061 # random seed to pick the mock data set
-seed = None
+seed = 5646579 # random seed to pick the mock data set
+#seed = None
 
 if seed == None:
     seed = np.random.randint(0, 10000000)
@@ -77,15 +77,21 @@ for iZ, logZ in enumerate(logZ_coarse):
     lnlike_coarse[iZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ixhi, iZ, :], lndet_array[ixhi, iZ], \
                                               icovar_array[ixhi, iZ, :, :])
 
-
 lnlike_fine = interp_lnlike_1d(logZ_fine, logZ_coarse, lnlike_coarse, interptype=0) # cubic interpolation
 
+""""
 x = np.power(10, logZ_fine)
 lnprior = 1/x # uninformative prior
 lnprob_fine = lnprior + lnlike_fine # ln(posterior) = ln(prior) + ln(likelihood)
                                                       # where ln(prior) is flat in linear scale
-
 lnprob_fine_new = lnprob_fine - lnprob_fine.max()
+"""
+
+lp_fine = np.ones(lnlike_fine.shape) # flat prior (no actually needed since just a constant)
+lnprob_fine = lp_fine + lnlike_fine
+lnprob_fine_new = lnprob_fine - lnprob_fine.max() #
+
+x = np.power(10, logZ_fine)
 lnprob_norm = integrate.trapz(np.exp(lnprob_fine_new), x) # summing L
 prob = np.exp(lnprob_fine_new) / lnprob_norm
 
@@ -94,6 +100,18 @@ cdf_interp = interpolate.interp1d(cdf_prob, x)
 cdf95 = cdf_interp(0.95)
 print("95-percentile: logZ <", np.log10(cdf95))
 
+
+lp_fine = np.ones(lnlike_fine.shape) # flat prior (no actually needed since just a constant)
+lnprob_fine = lp_fine + lnlike_fine
+lnprob_fine_new = lnprob_fine - lnprob_fine.max()
+
+lnprob_norm = integrate.trapz(np.exp(lnprob_fine_new), logZ_fine) # summing L
+prob = np.exp(lnprob_fine_new) / lnprob_norm
+
+cdf_prob = integrate.cumtrapz(prob, logZ_fine, initial=0)
+cdf_interp = interpolate.interp1d(cdf_prob, logZ_fine)
+cdf95 = cdf_interp(0.95)
+print(cdf95)
 
 
 

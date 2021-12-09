@@ -103,7 +103,7 @@ file1 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xci
 file2 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
 file3 = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_10.50.fits'
 skewerfile_ls = [file1, file2, file3]
-igm_color_ls = ['gold', 'tab:orange', 'tab:red']
+igm_color_ls = ['tab:red', 'tab:orange', 'gold']
 
 for ifile, skewerfile in enumerate(skewerfile_ls):
     flux_bins, out_pdf_no_noise, out_pdf_with_noise = init_one_model(skewerfile, logZ)

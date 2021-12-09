@@ -65,7 +65,7 @@ def civ_W_b_Ngrid(nN, cgm_dict):
     return logN_MgII, b_val, W_2796
 
 
-def omega_civ(cgm_dict, z, cosmo=Planck15, X=0.76, logN_ref=12.0):
+def omega_civ(cgm_dict, z, cosmo=Planck15, X=0.76, logN_ref=12.0, f_civ=None):
     """
     Args:
         cgm_dict (dict):
@@ -112,6 +112,9 @@ def omega_civ(cgm_dict, z, cosmo=Planck15, X=0.76, logN_ref=12.0):
     nMgII_out = ((np.power(10.0,logN_ref)/u.cm/u.cm)*nMg_int/dXdz/D_H).to('1/cm3')
     # (SS) logN_ref and nMg_int cancels each other out, such that nNgII_out is invariant to value of logN_ref
 
+    if f_civ != None:
+        nMgII_out = nMgII_out / f_civ
+
     # mass fraction of Mg atoms as traced by MgII
     omega_MgII = ((12.0 * const.m_p) * nMgII_out/rho_crit0).decompose()
 
@@ -155,9 +158,18 @@ cgm_dict = civ_cgm.init_metal_cgm_dict(alpha=-1.1, n_star=5, W_star = 0.45)
 #cgm_dict['logN_MgII_min'] = 8.0
 
 logN_ref_ls = np.array([11.0, 12.0, 13.0])
+f_civ = 0.5
 for logN_ref in logN_ref_ls:
-    omega_MgII, nMgII, logZ = omega_civ(cgm_dict, z, cosmo=cosmo, logN_ref=logN_ref)
-    print(logN_ref, omega_MgII, logZ)
+    omega_MgII, nMgII, logZ = omega_civ(cgm_dict, z, cosmo=cosmo, logN_ref=logN_ref, f_civ=f_civ)
+    print("==== logN_ref", logN_ref)
+
+    if f_civ != None:
+        print("==== omega_C", omega_MgII)
+        print("==== logZ_C", logZ)
+    else:
+        print("==== omega_CIV", omega_MgII)
+        print("==== logZ_CIV", logZ)
+
 
 """
 # What about Carbon

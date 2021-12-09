@@ -1,3 +1,14 @@
+'''
+Functions here:
+    - logzeff_coarse
+    - interp_logzeff
+    - interp_logzeff2
+    - do_all
+    - plot_corner_hack
+    - plot_corrfunc_mcmc_hack
+    - interp_fm
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os

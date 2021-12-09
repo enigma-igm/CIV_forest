@@ -1,3 +1,21 @@
+'''
+Functions here:
+    - init
+    - interp_likelihood
+    - mcmc_inference
+    - plot_mcmc
+    - do_arbinterp
+    - do_all
+    - interp_likelihood_fixedlogZ
+    - plot_marginal_likelihood
+    - plot_single_likelihood
+    - plot_likelihoods
+    - plot_likelihood_data
+    - prep_for_arbinterp
+    - prep_for_arbinterp2
+    - plot_corner_nonthinned
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -176,9 +194,6 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     bounds = [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (logZ_fine_min, logZ_fine_max)] if not linear_prior else \
         [(logM_fine_min, logM_fine_max), (R_fine_min, R_fine_max), (0, 10**logZ_fine_max)]
 
-    print(bounds)
-    exit()
-
     chi2_func = lambda *args: -2 * inference.lnprob_3d(*args)
     args = (lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
 
@@ -195,7 +210,6 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
             tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
         pos.append(tmp)
 
-    #embed()
     #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
     #     for i in range(ndim)] for i in range(nwalkers)]
 
@@ -321,6 +335,7 @@ def do_all(config_file):
     nwalkers = int(config['DEFAULT']['nwalkers'])
     linear_prior = config['DEFAULT']['linear_prior']
     savefits_chain = config['DEFAULT']['savefits_chain']
+    #savefits_chain = None
     ball_size = float(config['DEFAULT']['ball_size'])
 
     # convert from string to bool
@@ -357,7 +372,8 @@ def do_all(config_file):
         ximodel_fine = np.load(ximodel_file_name)
 
     sampler, param_samples, bounds = mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, \
-                                                    lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, savefits_chain=savefits_chain)
+                                                    lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, \
+                                                    savefits_chain=savefits_chain)
 
     params, _, _, _, _, _ = read_model_grid(modelfile)
 
@@ -593,3 +609,52 @@ def plot_corner_nonthinned(mcmc_chain_filename, config_file, linear_prior=False)
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
 
     plt.show()
+
+def mcmc_upperlim_boundary():
+
+    savefits_chain = 'plots/enrichment/inference_enrichment_debug/seed_5377192_10.89_0.20_-4.40/mcmc_chain_linearprior.fits'
+    chain = fits.open(savefits_chain)
+    ps = chain['param_samples'].data
+    allchain_noburn = chain['ALL_CHAIN_DISCARD_BURNIN'].data
+    logM_ps, R_ps, logZ_ps = ps[:, 0], ps[:, 1], ps[:, 2]
+    logM_all, R_all, logZ_all = allchain_noburn[:, 0], allchain_noburn[:, 1], np.log10(allchain_noburn[:, 2])
+
+    # model boundaries
+    logM_min, logM_max = 8.5, 11
+    R_min, R_max = 0.1, 3.0
+    logZ_min, logZ_max = -4.5, -2
+
+    # param samples
+    plt.subplot(231)
+    plt.hist(logM_ps, color='k', bins=50, histtype='step')
+    plt.axvline(logM_min)
+    plt.axvline(logM_max)
+
+    plt.subplot(232)
+    plt.hist(R_ps, color='k', bins=50, histtype='step')
+    plt.axvline(R_min)
+    plt.axvline(R_max)
+
+    plt.subplot(233)
+    plt.hist(10**logZ_ps, color='k', bins=50, histtype='step')
+    plt.axvline(10**logZ_min)
+    plt.axvline(10**logZ_max)
+
+    # all chain
+    plt.subplot(234)
+    plt.hist(logM_all, color='k', bins=50, histtype='step')
+    plt.axvline(logM_min)
+    plt.axvline(logM_max)
+
+    plt.subplot(235)
+    plt.hist(R_all, color='k', bins=50, histtype='step')
+    plt.axvline(R_min)
+    plt.axvline(R_max)
+
+    plt.subplot(236)
+    plt.hist(10**logZ_all, color='k', bins=50, histtype='step')
+    plt.axvline(10**logZ_min)
+    plt.axvline(10**logZ_max)
+
+    plt.show()
+
