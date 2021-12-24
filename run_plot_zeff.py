@@ -46,7 +46,7 @@ color_idx_R = color_idx_R[::-1] # reversing order so lighter color corresponds t
 for i_R, Rval in enumerate(R):
     want_iR = np.where(fvfm_master_R == Rval)[0]
     logZ_eff = halos_skewers.calc_igm_Zeff(fvfm_master['fm'][want_iR], logZ_fid=logZ_fid)
-    ax1.plot(fvfm_master['logM'][want_iR], logZ_eff, '-', lw=2, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f Mpc' % Rval)
+    ax1.plot(fvfm_master['logM'][want_iR], logZ_eff, '-', lw=2, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f cMpc' % Rval)
 
 ax1.set_xlabel(r'log(M) [M$_{\odot}$]', fontsize=xylabel_fontsize)
 #ax1.set_ylabel(r'log(Z$_{\mathrm{eff}}$)', fontsize=xylabel_fontsize)
@@ -59,7 +59,7 @@ for i_logM, logMval in enumerate(logM):
     logZ_eff = halos_skewers.calc_igm_Zeff(fvfm_master['fm'][want_ilogM], logZ_fid=logZ_fid)
     ax2.plot(fvfm_master['R_Mpc'][want_ilogM], logZ_eff, '-', lw=2, color=plt.cm.viridis(color_idx_logM[i_logM]), label=r'log(M) = %0.2f M$_{\odot}$' % logMval)
 
-ax2.set_xlabel('R [Mpc]', fontsize=xylabel_fontsize)
+ax2.set_xlabel('R [cMpc]', fontsize=xylabel_fontsize)
 ax2.legend(fontsize=legend_fontsize)
 ax2.tick_params(axis="both", labelsize=xytick_size)
 

@@ -51,7 +51,7 @@ fvfm_master_R = np.round(fvfm_master['R_Mpc'], 2)
 
 for i_R, Rval in enumerate(R):
     want_i = np.where(fvfm_master_R == Rval)[0]
-    ax1.plot(fvfm_master['logM'][want_i], fvfm_master['fm'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f' % Rval)
+    ax1.plot(fvfm_master['logM'][want_i], fvfm_master['fm'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f cMpc' % Rval)
 ax1.legend(fontsize=legend_fontsize)
 ax1.set_ylabel(r'f$_\mathrm{m}$', fontsize=ylabel_fontsize)
 ax1.tick_params(axis="both", labelsize=xytick_size)
@@ -59,14 +59,14 @@ ax1.xaxis.set_tick_params(labelbottom=True)
 
 for i_logM, logMval in enumerate(logM):
     want_i = np.where(fvfm_master_logM == logMval)[0]
-    ax2.plot(fvfm_master['R_Mpc'][want_i], fvfm_master['fm'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_logM[i_logM]), label='log(M) = %0.2f' % logMval)
+    ax2.plot(fvfm_master['R_Mpc'][want_i], fvfm_master['fm'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_logM[i_logM]), label='log(M) = %0.2f M$_{\odot}$' % logMval)
 ax2.legend(fontsize=legend_fontsize)
 ax2.tick_params(axis="both", labelsize=xytick_size)
 ax2.xaxis.set_tick_params(labelbottom=True)
 
 for i_R, Rval in enumerate(R):
     want_i = np.where(fvfm_master_R == Rval)[0]
-    ax3.plot(fvfm_master['logM'][want_i], fvfm_master['fv'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f' % Rval)
+    ax3.plot(fvfm_master['logM'][want_i], fvfm_master['fv'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_R[i_R]), label='R = %0.2f cMpc' % Rval)
 ax3.legend(fontsize=legend_fontsize)
 ax3.set_xlabel(r'log(M) [M$_{\odot}$]', fontsize=xlabel_fontsize)
 ax3.set_ylabel(r'f$_\mathrm{v}$', fontsize=ylabel_fontsize)
@@ -74,9 +74,9 @@ ax3.tick_params(axis="both", labelsize=xytick_size)
 
 for i_logM, logMval in enumerate(logM):
     want_i = np.where(fvfm_master_logM == logMval)[0]
-    ax4.plot(fvfm_master['R_Mpc'][want_i], fvfm_master['fv'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_logM[i_logM]), label=r'log(M) = %0.2f' % logMval)
+    ax4.plot(fvfm_master['R_Mpc'][want_i], fvfm_master['fv'][want_i], '-', lw=linewidth, color=plt.cm.viridis(color_idx_logM[i_logM]), label=r'log(M) = %0.2f M$_{\odot}$' % logMval)
 ax4.legend(fontsize=legend_fontsize)
-ax4.set_xlabel('R [Mpc]', fontsize=xlabel_fontsize)
+ax4.set_xlabel('R [cMpc]', fontsize=xlabel_fontsize)
 ax4.tick_params(axis="both", labelsize=xytick_size)
 ax4.xaxis.set_tick_params(labelbottom=True)
 

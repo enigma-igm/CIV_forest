@@ -29,7 +29,7 @@ outfig = 'paper_plots/enriched_halos_paper_new.pdf'
 
 ##########################
 
-slice_thickness = 1.0 # Mpc
+slice_thickness = 1.0 # cMpc
 Zc = 50
 logM_min_ls = [9.0, 10.0, 11.0]
 R_ls = [0.1, 0.5, 1.5, 3.0] # [0.5, 1.5, 2.7]
@@ -39,7 +39,7 @@ halos = Table.read(halofile)
 fvfm_master = Table.read('nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits')
 baryon_slice = 'bslice_Z_50.npy'
 bs = np.load(baryon_slice)
-Lbox = 145.985401459854 # Mpc
+Lbox = 145.985401459854 # cMpc
 
 Zmin = Zc - slice_thickness/2.
 Zmax = Zc + slice_thickness/2.
@@ -115,15 +115,15 @@ for ilogM, logMval in enumerate(logM_min_ls):
         ax_want.set_aspect('equal')
 
         if subplot_counter <= ncol:
-            ax_want.set_title('R = %0.2f Mpc' % Rval, fontsize=xylabel_fontsize)
+            ax_want.set_title('R = %0.2f cMpc' % Rval, fontsize=xylabel_fontsize)
         if subplot_counter > (tot_subplot - ncol):
-            ax_want.set_xlabel('X [Mpc]', fontsize=xylabel_fontsize)
+            ax_want.set_xlabel('X [cMpc]', fontsize=xylabel_fontsize)
             ax_want.tick_params(axis="x", labelsize=xytick_size)
         else:
             ax_want.axes.xaxis.set_visible(False)
 
         if subplot_counter % ncol == 1:
-            ylabel = r'log(M/M$_{\odot}$)' + '={:4.2f}'.format(logMval) + '\n\nY [Mpc]'
+            ylabel = r'log(M/M$_{\odot}$)' + '={:4.2f}'.format(logMval) + '\n\nY [cMpc]'
             ax_want.set_ylabel(ylabel, fontsize=xylabel_fontsize)
             ax_want.tick_params(axis="y", labelsize=xytick_size)
         else:

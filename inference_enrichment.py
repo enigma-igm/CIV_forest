@@ -299,7 +299,7 @@ def do_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, coarse_outcs
     end = time.time()
     print((end - start) / 60.)
 
-def do_all(config_file):
+def do_all(config_file, run_mcmc=True):
     """
     modelfile_path = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/'
     modelfile = modelfile_path + 'fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
@@ -371,21 +371,24 @@ def do_all(config_file):
         print("Reading in pre-computed interpolated ximodel_fine", ximodel_file_name)
         ximodel_fine = np.load(ximodel_file_name)
 
-    sampler, param_samples, bounds = mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, \
-                                                    lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, \
-                                                    savefits_chain=savefits_chain)
-
     params, _, _, _, _, _ = read_model_grid(modelfile)
 
-    #return init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed
+    if run_mcmc:
+        sampler, param_samples, bounds = mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, \
+                                                        lnlike_fine, linear_prior, ball_size=ball_size, seed=seed, \
+                                                        savefits_chain=savefits_chain)
 
-    # using ori_[param]_fine because consistent with shape of ximodel_fine and to avoid indexing error
-    plot_mcmc(sampler, param_samples, init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior,
-              seed=seed)
+        # using ori_[param]_fine because consistent with shape of ximodel_fine and to avoid indexing error
+        plot_mcmc(sampler, param_samples, init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior,
+                  seed=seed)
 
-    coarse_out = lnlike_coarse, logM_coarse, R_coarse, logZ_coarse
-    fine_out = lnlike_fine, ori_logM_fine, ori_R_fine, ori_logZ_fine, logM_fine, R_fine, logZ_fine, ximodel_fine
-    return init_out, coarse_out, fine_out, params, sampler, param_samples
+
+        coarse_out = lnlike_coarse, logM_coarse, R_coarse, logZ_coarse
+        fine_out = lnlike_fine, ori_logM_fine, ori_R_fine, ori_logZ_fine, logM_fine, R_fine, logZ_fine, ximodel_fine
+        return init_out, coarse_out, fine_out, params, sampler, param_samples
+
+    else:
+        return init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed
 
 ################ checking, debugging ################
 def interp_likelihood_fixedlogZ(init_out, ilogZ, nlogM_fine, nR_fine, interp_lnlike=False, interp_ximodel=False):

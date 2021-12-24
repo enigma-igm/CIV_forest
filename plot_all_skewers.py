@@ -99,7 +99,8 @@ ftot_lores_noise = ftot_lores[0] + noise
 
 #### oden plot ####
 ax1.plot(v_hires, oden[0], c='k')
-ax1.set_ylabel('Overdensity', fontsize=xylabel_fontsize)
+#ax1.set_ylabel('Overdensity', fontsize=xylabel_fontsize)
+ax1.set_ylabel(r'$\Delta$ [$\rho/\bar{\rho}$]', fontsize=xylabel_fontsize)
 ax1.tick_params(top=True, which='both', labelsize=xytick_size)
 ax1.xaxis.set_minor_locator(AutoMinorLocator())
 ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -164,7 +165,7 @@ ax4.set_xlim([vmin, vmax])
 #ax3.plot(ori_v_hires, ori_ftot_hires[0], alpha=0.7, label='hires (uniform Z)')#, drawstyle='steps-mid', alpha=0.6, zorder=10, color='red')
 ax5.plot(v_hires, ftot_hires[0], 'k', label='Perfect spectrum', drawstyle='steps-mid')#, alpha=0.6, zorder=10, color='red')
 ax5.plot(v_lores, ftot_lores_noise, label='FWHM=%0.1f km/s; SNR=%0.1f' % (fwhm, snr), c='r', alpha=alpha_data, zorder=1, drawstyle='steps-mid')
-ax5.annotate('log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + 'R={:5.2f} Mpc, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ), \
+ax5.annotate('log(M)={:5.2f} '.format(logM) + r'M$_{\odot}$, ' + 'R={:5.2f} cMpc, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ), \
              xy=(500, 1.085), xytext=(500, 1.085), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
 ax5.set_xlabel('v [km/s]', fontsize=xylabel_fontsize)
 ax5.set_ylabel(r'F$_{\mathrm{CIV}}$', fontsize=xylabel_fontsize)

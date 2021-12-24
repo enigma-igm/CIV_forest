@@ -121,7 +121,7 @@ def plot_corner_hack(new_param_samples, logM_data, R_data, logZ_data, logZeff_da
     plt.show()
 
 def plot_corrfunc_mcmc_hack(config_file, param_samples):
-    init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed = infen.do_all(config_file)
+    init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed = infen.do_all(config_file, run_mcmc=False)
 
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
     covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
@@ -129,7 +129,6 @@ def plot_corrfunc_mcmc_hack(config_file, param_samples):
     fv, fm = halos_skewers.get_fvfm(np.round(logM_data, 2), np.round(R_data, 2))
     logZeff_data = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
     print("logZeff_data", logZeff_data)
-
 
     inference.corrfunc_plot_3d(xi_data, param_samples, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, logM_coarse,
                                R_coarse, logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZeff_data, nrand=50, seed=seed)

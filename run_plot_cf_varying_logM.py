@@ -56,14 +56,14 @@ for ilogM, logMval in enumerate(logM):
     fv, fm = halos_skewers.get_fvfm(logMval, R)
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_fid)
 
-    label = r'log(M)=%0.2f (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (logMval, fm, fv)
+    label = r'log(M)=%0.2f M$_{\odot}$ (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (logMval, fm, fv)
     plt.plot(vel_mid, xi_model / divbyfactor, linewidth=linewidth, color=colorls[ilogM], label=label)
 
 vmin, vmax = 0, 1250
 ymin, ymax = -0.02, 0.7
 
 plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-plt.text(160, 0.82*ymax, r'[C/H] = $%0.2f$' % logZ_fid + '\n' + 'R = %0.2f Mpc' % R, fontsize=xytick_size, linespacing=1.8)
+plt.text(160, 0.82*ymax, r'[C/H] = $%0.2f$' % logZ_fid + '\n' + 'R = %0.2f cMpc' % R, fontsize=xytick_size, linespacing=1.8)
 plt.legend(fontsize=legend_fontsize)
 plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)

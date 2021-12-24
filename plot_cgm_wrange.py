@@ -104,7 +104,7 @@ skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ov
 logM = float(skewerfile.split('logM_')[-1].split('.fits')[0])
 R_Mpc = float(skewerfile.split('R_')[-1].split('_logM')[0])
 #text = 'log(M)={:4.2f} '.format(logM) + r'M$_{\odot}$, ' + '\nR={:4.2f} Mpc, '.format(R_Mpc) + '\n[C/H]=${:5.2f}$'.format(logZ)
-text = 'log(M)={:4.2f}, '.format(logM) + 'R={:4.2f}, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ) + '; [C/H]$_{\mathrm{eff}}$' + '=${:5.2f}$'.format(uniform_logZ)
+text = 'log(M)={:4.2f}'.format(logM) + r' $M_{\odot}$, ' + 'R={:4.2f} cMpc, '.format(R_Mpc) + '[C/H]=${:5.2f}$'.format(logZ) + '; [C/H]$_{\mathrm{eff}}$' + '=${:5.2f}$'.format(uniform_logZ)
 
 W_range_ls = [[0.001, 5.0], [0.001, 0.05], [0.05, 0.5], [0.5, 5.0]]
 #W_range_ls = [[0.001, 5.0], [0.5, 5.0],  [0.1, 0.5], [0.01, 0.1], [0.001, 0.01]]
@@ -123,10 +123,10 @@ for iW, W_range in enumerate(W_range_ls):
     else: # sub W-range
         if iW == 1:
             #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.3f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
-            label = r'CGM, $W$=[{:5.3f}'.format(Wmin) + '$-${:4.2f}]'.format(Wmax)
+            label = r'CGM, $W$ = ' '[{:5.3f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
         else:
             #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.2f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
-            label = r'CGM, $W$=[{:4.2f}'.format(Wmin) + '$-${:4.2f}]'.format(Wmax)
+            label = r'CGM, $W$ = ' + '[{:4.2f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label=label, lw=linewidth, alpha=alpha_ls[iW], c='tab:blue')
 
 plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)

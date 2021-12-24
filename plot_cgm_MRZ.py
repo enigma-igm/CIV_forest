@@ -114,7 +114,7 @@ for ifile, skewerfile in enumerate(skewerfile_ls):
     fv_want, fm_want = halos_skewers.get_fvfm(logM, R_Mpc, fvfm_file=fvfm_master)
     logZ_eff_want = halos_skewers.calc_igm_Zeff(fm_want, logZ_fid=logZ)
 
-    igm_label = 'IGM (logM={:5.2f} Mpc, '.format(logM) + r'[C/H]$_{\mathrm{eff}}$=' + '${:5.2f}$)'.format(logZ_eff_want)
+    igm_label = 'IGM (logM={:5.2f}'.format(logM) + 'M$_{\odot}$, ' + r'[C/H]$_{\mathrm{eff}}$=' + '${:5.2f}$)'.format(logZ_eff_want)
     ax1.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label=igm_label, lw=linewidth, color=igm_color_ls[ifile])
 
     if ifile == 2:
@@ -154,7 +154,7 @@ for ifile, skewerfile in enumerate(skewerfile_ls):
     fv_want, fm_want = halos_skewers.get_fvfm(logM, R_Mpc, fvfm_file=fvfm_master)
     logZ_eff_want = halos_skewers.calc_igm_Zeff(fm_want, logZ_fid=logZ)
 
-    igm_label = 'IGM (R={:4.2f} Mpc, '.format(R_Mpc) + r'[C/H]$_{\mathrm{eff}}$=' + '${:5.2f}$)'.format(logZ_eff_want)
+    igm_label = 'IGM (R={:4.2f} cMpc, '.format(R_Mpc) + r'[C/H]$_{\mathrm{eff}}$=' + '${:5.2f}$)'.format(logZ_eff_want)
     ax2.plot(flux_bins, pdf_igm, drawstyle='steps-mid', label=igm_label, lw=linewidth, color=igm_color_ls[ifile])
 
     if ifile == 2:

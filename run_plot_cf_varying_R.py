@@ -56,7 +56,7 @@ for iR, Rval in enumerate(R):
     fv, fm = halos_skewers.get_fvfm(logM, Rval)
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_fid)
 
-    label = 'R=%0.2f Mpc (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (Rval, fm, fv)
+    label = 'R=%0.2f cMpc (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (Rval, fm, fv)
     plt.plot(vel_mid, xi_model / divbyfactor, linewidth=linewidth, color=colorls[iR], label=label)
 
 vmin, vmax = 0, 1250

@@ -52,6 +52,7 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
     # Compute mean flux and delta_flux
     mean_flux_tot = np.mean(flux_lores_tot)
     delta_f_tot = (flux_lores_tot - mean_flux_tot)/mean_flux_tot
+    print('want_hires', want_hires, dv_corr)
     print('mean flux:', mean_flux_tot)
     print('mean delta_flux:', np.mean(delta_f_tot))
 

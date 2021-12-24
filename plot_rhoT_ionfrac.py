@@ -22,11 +22,11 @@ mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
-plt.figure(figsize=(12., 8))
+plt.figure(figsize=(13., 8))
 plt.subplots_adjust(left=0.07, bottom=0.1, right=0.95, top=0.9, wspace=0, hspace=0)
 savefig = 'paper_plots/rhoT_ionfrac.png'
 
-cbar_fontsize = 12
+cbar_fontsize = 14
 xytick_size = 16
 annotate_text_size = 16
 xylabel_fontsize = 20
@@ -81,7 +81,8 @@ mat2 = plt.pcolor(x_coord, y_coord, norm_hist2d.T, norm=LogNorm(), cmap=plt.cm.g
 
 cbar2 = plt.colorbar(mat2, fraction=0.047, pad=0.047)
 cbar2.ax.tick_params(labelsize=cbar_fontsize)
-#cbar2.set_label('Density', rotation=270, fontsize=cbar_fontsize, labelpad=15)
+#cbar2.set_label('Density', rotation=90, fontsize=cbar_fontsize, labelpad=10)
+cbar2.ax.set_xlabel('Density', fontsize=cbar_fontsize)
 
 cbar2.set_alpha(1) # hack to remove white lines from being rendered in colorbar
 cbar2.draw_all()
