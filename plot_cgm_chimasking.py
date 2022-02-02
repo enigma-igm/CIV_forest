@@ -116,7 +116,7 @@ _, sig_pdf_noise = reion_utils.pdf_calc(civ_noise.signif, sig_min, sig_max, nbin
 _, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
 _, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.fit_gpm], sig_min, sig_max, nbins)
 
-# mc realizations to get errors on PDF
+# mc realizations of nmocks (1000 here) to get errors on PDF
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
 params_xi, _, _, _, _, _ = read_model_grid(modelfile)
 npath = params_xi['npath'][0]
