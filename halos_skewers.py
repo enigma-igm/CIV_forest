@@ -26,7 +26,10 @@ from matplotlib import pyplot as plt
 import cloudy_runs.cloudy_utils as cloudy_utils
 from astropy.io import fits
 from astropy.table import Table
-import enigma.reion_forest.utils as reion_utils
+
+import utils as reion_utils
+
+#import enigma.reion_forest.utils as reion_utils
 from scipy.spatial import distance # v14.0 syntax
 from linetools.abund import solar as labsol
 import os
@@ -379,4 +382,3 @@ def plot_common_cell(halos, par, ske, halo_ind, ske_ind, index):
     plt.xlim(zhalo - 0.25, zhalo + 0.25)
     plt.grid()
     plt.show()
-

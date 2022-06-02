@@ -57,7 +57,42 @@ def compute_xi_all(params, skewers, logZ, fwhm, metal_ion, vmin_corr, vmax_corr,
     print('mean delta_flux:', np.mean(delta_f_tot))
 
     # xi_tot is an array of 2PCF of each skewer
-    (vel_mid, xi_tot, npix_tot, xi_zero_lag_tot) = reion_utils.compute_xi(delta_f_tot, vel_lores, vmin_corr, vmax_corr, dv_corr)
+    (vel_mid, xi_tot, npix_tot, xi_zero_lag_tot) = reion_utils.compute_xi(delta_f_tot, vel_hires, vmin_corr, vmax_corr, dv_corr)
+    xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF averaged from all the skewers, i.e the final quoted 2PCF
+
+    return vel_mid, xi_mean_tot, xi_tot, npix_tot
+
+
+def compute_xi_all_CIV_lya(params_CIV, skewers_CIV,params_lya, skewers_lya, logZ, fwhm, metal_ion, vmin_corr, vmax_corr, dv_corr, snr=None, sampling=None, \
+                   cgm_dict=None, metal_dndz_func=None, cgm_seed=None, want_hires=True):
+
+    # similar as enigma.reion_forest.fig_corrfunc.py
+    # if sampling not provided, then default to sampling=3
+
+    vel_lores_CIV, (flux_lores_tot_CIV, flux_lores_igm_CIV, flux_lores_cgm_CIV), \
+    vel_hires_CIV, (flux_hires_tot_CIV, flux_hires_igm_CIV, flux_hires_cgm_CIV), \
+    (oden_CIV, v_los_CIV, T_CIV, x_metal_CIV), cgm_tup_CIV = reion_utils.create_metal_forest(params_CIV, skewers_CIV, logZ, fwhm, metal_ion, sampling=sampling, \
+                                                                         cgm_dict=cgm_dict, metal_dndz_func=metal_dndz_func, seed=cgm_seed)
+
+    vel_lores_lya, (flux_lores_tot_lya, flux_lores_igm_lya, flux_lores_cgm_lya), \
+    vel_hires_lya, (flux_hires_tot_lya, flux_hires_igm_lya, flux_hires_cgm_lya), \
+    (oden_lya, T_lya, x_metal_lya), cgm_tup_lya, tau_igm_lya = reion_utils.create_lya_forest(params_lya, skewers_lya, fwhm, sampling=sampling)
+
+
+
+    # Compute mean flux and delta_flux
+    mean_flux_tot_CIV = np.mean(flux_hires_tot_CIV)
+    delta_f_tot_CIV = (flux_hires_tot_CIV - mean_flux_tot_CIV)/mean_flux_tot_CIV
+    print('mean flux of CIV:', mean_flux_tot_CIV)
+    print('mean delta_flux of CIV:', np.mean(delta_f_tot_CIV))
+
+    mean_flux_tot_lya = np.mean(flux_hires_tot_lya)
+    delta_f_tot_lya = (flux_hires_tot_lya - mean_flux_tot_lya)/mean_flux_tot_lya
+    print('mean flux of lya:', mean_flux_tot_lya)
+    print('mean delta_flux of lya:', np.mean(delta_f_tot_lya))
+
+    # xi_tot is an array of 2PCF of each skewer
+    (vel_mid, xi_tot, npix_tot, xi_zero_lag_tot) = reion_utils.compute_xi_CIV_lya(delta_f_tot_CIV, delta_f_tot_lya, vel_hires_CIV, vmin_corr, vmax_corr, dv_corr)
     xi_mean_tot = np.mean(xi_tot, axis=0) # 2PCF averaged from all the skewers, i.e the final quoted 2PCF
 
     return vel_mid, xi_mean_tot, xi_tot, npix_tot
