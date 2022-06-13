@@ -27,8 +27,8 @@ fig.subplots_adjust(left=0.12, bottom=0.1, right=0.97, top=0.88)
 
 xytick_size = 16
 annotate_text_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 18 #14
 linewidth = 2
 ################
 skewerfile = '/Users/suksientie/Research/CIV_forest/nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.30_logM_9.50.fits'
@@ -82,9 +82,9 @@ ymin, ymax = -0.1, 1.0
 
 print("Done")
 
-plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-plt.text(140, 0.75*ymax, r'log(M) = %0.2f M$_{\odot}$' % 9.50 + '\n' + 'R = $%0.2f$ cMpc' % 0.30 + \
-         '\n' + '[C/H] = $%0.2f$' % -3.50, fontsize=xytick_size, linespacing=1.8)
+plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation' + '\n' + '(%0.1f km/s)' % vel_doublet.value)
+plt.text(120, 0.75*ymax, r'log(M) = %0.2f M$_{\odot}$' % 9.50 + '\n' + 'R = $%0.2f$ cMpc' % 0.30 + \
+         '\n' + '[C/H] = $%0.2f$' % -3.50, fontsize=legend_fontsize, linespacing=1.8)
 plt.legend(fontsize=legend_fontsize)
 plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-6}]$', fontsize=xylabel_fontsize)

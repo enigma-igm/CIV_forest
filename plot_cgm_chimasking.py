@@ -10,7 +10,7 @@ import civ_cgm # new version
 import time
 from scipy.stats import norm
 from enigma.reion_forest.compute_model_grid import read_model_grid
-import civ_find
+import civ_find_new as civ_find
 from enigma.reion_forest import inference
 import inference_enrichment
 
@@ -32,8 +32,8 @@ mpl.rcParams['ytick.minor.size'] = 4
 
 xytick_size = 16
 annotate_text_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 17 #14
 linewidth = 2
 ################
 skewerfile = 'nyx_sim_data/igm_cluster/enrichment_models/tau/rand_skewers_z45_ovt_xciv_tau_R_0.80_logM_9.50.fits'
@@ -43,7 +43,7 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-snr = 20 #50
+snr = 50 #20
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
@@ -58,8 +58,8 @@ sig_min, sig_max = 1e-2, 100.0
 signif_thresh = 4.0
 
 # masking cutoffs to change
-signif_mask_nsigma = 4 #6
-one_minF_thresh = 0.15 #0.07 #0.06
+signif_mask_nsigma = 6 #4
+one_minF_thresh = 0.07 #0.15 #0.06
 
 #signif_mask_dv = 300.0
 signif_mask_dv = 200.0 # b-strong=150 km/s; CF after masking practically same as dv=300
@@ -114,7 +114,8 @@ _, sig_pdf_noise = reion_utils.pdf_calc(civ_noise.signif, sig_min, sig_max, nbin
 
 # Compute PDFs of masked arrays
 _, sig_pdf_flu_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.flux_gpm], sig_min, sig_max, nbins)
-_, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.fit_gpm], sig_min, sig_max, nbins)
+#_, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.fit_gpm], sig_min, sig_max, nbins)
+_, sig_pdf_fit_mask = reion_utils.pdf_calc(civ_tot.signif[civ_tot.signif_gpm], sig_min, sig_max, nbins) # 6/9/2022
 
 # mc realizations of nmocks (1000 here) to get errors on PDF
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
@@ -133,7 +134,7 @@ sig_pdf_tot_mock_hi = np.percentile(sig_pdf_mc, 100.0*norm.cdf(1.0), axis=0)
 plt.figure(figsize=(10, 8))
 plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
 
-plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
+
 plt.plot(sig_bins, sig_pdf_igm, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(sig_bins, sig_pdf_cgm, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
@@ -141,14 +142,15 @@ plt.plot(sig_bins, sig_pdf_tot, drawstyle='steps-mid',  lw=linewidth, c='tab:gre
 plt.fill_between(sig_bins, sig_pdf_tot_mock_lo, sig_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
 
 plt.plot(sig_bins, sig_pdf_flu_mask, drawstyle='steps-mid', lw=linewidth, alpha=0.75, c='r', label='IGM + CGM + noise + flux mask')
-plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label=r'IGM + CGM + noise + chi mask')
+plt.plot(sig_bins, sig_pdf_fit_mask, drawstyle='steps-mid', lw=linewidth, c='k', label='IGM + CGM + noise + chi mask')
+plt.plot(sig_bins, sig_pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
 plt.axvline(signif_mask_nsigma, color='k', ls='--', lw=linewidth)
 
 if snr == 20:
     plt.axvline(3, color='m', ls=':', lw=linewidth) # for snr = 20 plot only
 
 xlim = 1e-2
-ymin, ymax = 1e-3, 3.0
+ymin, ymax = 1e-3, 4.0 #3.0
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel(r'$\chi$', fontsize=xylabel_fontsize)
@@ -156,7 +158,7 @@ plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.gca().set_xlim(left=xlim)
 plt.ylim([ymin, ymax])
-plt.legend(fontsize=legend_fontsize, loc=2)
+plt.legend(fontsize=legend_fontsize, loc=2, ncol=2)
 
 strong_lines = LineList('Strong', verbose=False)
 wave_1548 = strong_lines['CIV 1548']['wrest']
@@ -267,13 +269,13 @@ plt.subplots_adjust(left=0.1, bottom=0.1, right=0.96, top=0.89)
 
 scalefactor = 1e-5
 plt.plot(vel_mid, xi_mean_igm/scalefactor, linewidth=linewidth, linestyle='-', c='tab:orange', label='IGM')
-plt.plot(vel_mid, xi_mean_tot/(scalefactor*50), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM, unmasked/50')
-plt.plot(vel_mid, xi_mean_tot_chimask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM, flux + chi mask')
+plt.plot(vel_mid, xi_mean_tot/(scalefactor*50), linewidth=linewidth, linestyle='-', c='tab:gray', label='IGM + CGM,\n unmasked/50')
+plt.plot(vel_mid, xi_mean_tot_chimask/scalefactor, linewidth=linewidth, linestyle='-', c='tab:blue', label='IGM + CGM,\n flux + chi mask')
 #if snr != 20:
 plt.fill_between(vel_mid, (xi_mean_tot_chimask - xi_err)/scalefactor, (xi_mean_tot_chimask + xi_err)/scalefactor, facecolor='tab:blue', step='mid', alpha=0.5, zorder=1)
 
-plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='--', c='tab:pink', label='IGM + CGM, flux mask')
-plt.plot(vel_mid, xi_mean_tot_chimask_only/scalefactor, linewidth=linewidth, linestyle='--', c='tab:green', label='IGM + CGM, chi mask', zorder=20)
+plt.plot(vel_mid, xi_mean_tot_fluxmask/scalefactor, linewidth=linewidth, linestyle='--', c='tab:pink', label='IGM + CGM,\n flux mask')
+plt.plot(vel_mid, xi_mean_tot_chimask_only/scalefactor, linewidth=linewidth, linestyle='--', c='tab:green', label='IGM + CGM,\n chi mask', zorder=20)
 
 vmin, vmax = 0, 1000
 ymin, ymax = -0.1, 2.0
@@ -296,5 +298,6 @@ atwin.set_xscale('log')
 atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
+plt.tight_layout()
 
 plt.show()

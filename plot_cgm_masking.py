@@ -29,8 +29,8 @@ plt.subplots_adjust(left=0.11, bottom=0.09, right=0.98, top=0.89)
 
 xytick_size = 16
 annotate_text_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 18 #14
 linewidth = 2
 
 ################
@@ -52,11 +52,11 @@ metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # rest are default
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
 flux_decr_cutoff = 0.07 #0.15 #0.07
-savefig = 'paper_plots/flux_pdf_masking_007.pdf'
+savefig = 'paper_plots/flux_pdf_masking_007_refreport.pdf'
 
 ################
 start = time.time()
-
+#ske = ske[0:100]
 v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
     (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(par, ske, logZ, fwhm, metal_ion, z=z, \
                                                                              sampling=sampling, cgm_dict=cgm_model, \
@@ -97,17 +97,19 @@ flux_pdf_tot_mock_lo = np.percentile(flux_pdf_mc, 100.0*norm.cdf(-1.0), axis=0)
 flux_pdf_tot_mock_hi = np.percentile(flux_pdf_mc, 100.0*norm.cdf(1.0), axis=0)
 
 ################ plotting
-plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
+#plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
 plt.plot(flux_bins, pdf_igm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:orange', label='IGM + noise')
 plt.plot(flux_bins, pdf_cgm_noise, drawstyle='steps-mid', lw=linewidth, c='tab:blue', label='CGM + noise')
 plt.plot(flux_bins, pdf_tot_noise, drawstyle='steps-mid',  lw=linewidth, c='tab:green', label='IGM + CGM + noise')
 #plt.fill_between(flux_bins, flux_pdf_tot_mock_lo, flux_pdf_tot_mock_hi, facecolor='gray', step='mid', alpha=0.5, zorder=1)
 plt.plot(flux_bins, pdf_tot_noise_mask, drawstyle='steps-mid', lw=linewidth, c='k', label='IGM + CGM + noise + mask')
+plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', lw=linewidth, c='tab:gray', alpha=0.8, label='noise')
 plt.axvline(flux_decr_cutoff, color='k', ls='--', lw=linewidth)
-plt.axvline(0.06, color='m', ls=':', lw=linewidth) # for snr = 20 plot only
+if snr == 20:
+    plt.axvline(0.06, color='m', ls=':', lw=linewidth) # for snr = 20 plot only
 
 xlim = 1e-4
-ymin, ymax = 1e-3, 3.0
+ymin, ymax = 1e-3, 3.0 #3.0
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel(r'1$-$F', fontsize=xylabel_fontsize)
@@ -115,7 +117,7 @@ plt.ylabel('PDF', fontsize=xylabel_fontsize)
 plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.gca().set_xlim(left=xlim)
 plt.ylim([ymin, ymax])
-plt.legend(fontsize=legend_fontsize, loc=2)
+plt.legend(fontsize=legend_fontsize, loc=2, ncol=2)
 
 strong_lines = LineList('Strong', verbose=False)
 wave_1548 = strong_lines['CIV 1548']['wrest']
@@ -130,6 +132,6 @@ atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
 
-#plt.savefig(savefig)
+plt.savefig(savefig)
 plt.show()
 

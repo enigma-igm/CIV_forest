@@ -32,12 +32,12 @@ plt.subplots_adjust(left=0.11, bottom=0.1, right=0.98, top=0.89)
 
 xytick_size = 16
 annotate_text_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 18 #14
 linewidth = 2
 alpha = 0.75
 
-savefig = 'paper_plots/flux_pdf_wrange.pdf'
+savefig = 'paper_plots/flux_pdf_wrange_refreport.pdf'
 logZ = -3.5 # (9/13/21) input metallicity for non-uniform model; logZ for uniform model defined below
 metal_ion = 'C IV'
 fwhm = 10
@@ -122,11 +122,10 @@ for iW, W_range in enumerate(W_range_ls):
 
     else: # sub W-range
         if iW == 1:
-            #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.3f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
-            label = r'CGM, $W$ = ' '[{:5.3f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
+            #label = r'CGM, $W$ = ' + '[{:5.3f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
+            label = r'$W$ = ' + '[{:5.3f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
         else:
-            #label = r'CGM ($W_{\mathrm{min}}$=' + '{:5.2f}'.format(Wmin) + r', $W_{\mathrm{max}}$=' + '{:5.2f})'.format(Wmax)
-            label = r'CGM, $W$ = ' + '[{:4.2f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
+            label = r'$W$ = ' + '[{:4.2f}'.format(Wmin) + r'$-$' + '{:4.2f}]'.format(Wmax) + r' $\mathrm{{\AA}}$'
         plt.plot(flux_bins, pdf_cgm, drawstyle='steps-mid', label=label, lw=linewidth, alpha=alpha_ls[iW], c='tab:blue')
 
 plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidth + 0.5, c='tab:gray', alpha=alpha)
@@ -135,7 +134,7 @@ plt.plot(flux_bins, pdf_noise, drawstyle='steps-mid', label='noise', lw=linewidt
 #             xy=(2.5e-3, 1.0), xytext=(2.5e-3, 1.0), textcoords='data', xycoords='data', annotation_clip=False, fontsize=legend_fontsize)
 #plt.text(0.07, 0.83, text, fontsize=legend_fontsize, linespacing=1.5)
 
-ymin, ymax = 1e-3, 3.0
+ymin, ymax = 1e-3, 4.0 #3.0
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel(r'1$-$F', fontsize=xylabel_fontsize)
@@ -159,6 +158,7 @@ atwin.tick_params(axis="both", labelsize=xytick_size)
 
 plt.savefig(savefig)
 plt.show()
+
 
 
 

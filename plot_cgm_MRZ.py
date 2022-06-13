@@ -27,17 +27,17 @@ mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.minor.size'] = 4
 
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 7.5), sharey=True)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 7.5), sharey=True)
 fig.subplots_adjust(left=0.07, bottom=0.1, right=0.98, top=0.89, wspace=0)
 
 xytick_size = 16
 annotate_text_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 18 #14
 linewidth = 2
 alpha = 0.6
 
-savefig = 'paper_plots/flux_pdf_MRZ.pdf'
+savefig = 'paper_plots/flux_pdf_MRZ_refreport.pdf'
 metal_ion = 'C IV'
 fwhm = 10
 snr = 50
@@ -56,7 +56,6 @@ def init_one_model(skewerfile, logZ_in):
     par = Table.read(skewerfile, hdu=1)
     ske = Table.read(skewerfile, hdu=2)
     z = par['z'][0]
-    #ske = ske[0:50]
 
     start = time.time()
     v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \

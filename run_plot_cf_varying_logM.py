@@ -28,11 +28,11 @@ fig = plt.figure(figsize=(9, 7.5))
 fig.subplots_adjust(left=0.12, bottom=0.1, right=0.97, top=0.88)
 
 xytick_size = 16
-xylabel_fontsize = 20
-legend_fontsize = 14
+xylabel_fontsize = 23 #20
+legend_fontsize = 18 #14
 linewidth = 2
 
-outfig = 'paper_plots/cf_varying_logM_only.pdf'
+outfig = 'paper_plots/cf_varying_logM_only_refreport.pdf'
 modelfile = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
 params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
 
@@ -56,14 +56,15 @@ for ilogM, logMval in enumerate(logM):
     fv, fm = halos_skewers.get_fvfm(logMval, R)
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_fid)
 
-    label = r'log(M)=%0.2f M$_{\odot}$ (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (logMval, fm, fv)
+    #label = r'log(M)=%0.2f M$_{\odot}$ (f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (logMval, fm, fv)
+    label = r'log(M)=%0.2f M$_{\odot}$' % logMval + '\n' + r'(f$_\mathrm{m}$=%0.2f, f$_\mathrm{v}$=%0.2f)' % (fm, fv)
     plt.plot(vel_mid, xi_model / divbyfactor, linewidth=linewidth, color=colorls[ilogM], label=label)
 
 vmin, vmax = 0, 1250
 ymin, ymax = -0.02, 0.7
 
-plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation (%0.1f km/s)' % vel_doublet.value)
-plt.text(160, 0.82*ymax, r'[C/H] = $%0.2f$' % logZ_fid + '\n' + 'R = %0.2f cMpc' % R, fontsize=xytick_size, linespacing=1.8)
+plt.axvline(vel_doublet.value, color='red', linestyle=':', linewidth=linewidth, label='Doublet separation' + '\n' + '(%0.1f km/s)' % vel_doublet.value)
+plt.text(160, 0.82*ymax, r'[C/H] = $%0.2f$' % logZ_fid + '\n' + 'R = %0.2f cMpc' % R, fontsize=legend_fontsize, linespacing=1.8)
 plt.legend(fontsize=legend_fontsize)
 plt.xlabel(r'$\Delta v$ [km/s]', fontsize=xylabel_fontsize)
 plt.ylabel(r'$\xi(\Delta v)$ $[10^{-5}]$', fontsize=xylabel_fontsize)
