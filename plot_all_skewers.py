@@ -78,7 +78,6 @@ v_lores, (ftot_lores, figm_lores, fcgm_lores), \
 v_hires, (ftot_hires, figm_hires, fcgm_hires), \
 (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(metal_par, metal_ske[[i]], logZ, fwhm, metal_ion, sampling=sampling)
 # # ~0.00014 sec to generate one skewer
-
 #### uniformly enriched ####
 
 ori_skewerfile = data_path + 'rand_skewers_z45_ovt_tau_xciv_flux.fits' # uniformly enriched

@@ -76,7 +76,7 @@ class MgiiFinder(object):
     def __init__(self, vgrid, flux, ivar, fwhm, signif_thresh, gpm=None,
                  signif_mask_nsigma=None, signif_mask_dv=300.0, one_minF_thresh=np.inf, model_fit_thresh=1e-4,
                  find_alias=False, logN=13.5, Pfit_min=-3.0, LR_max=-10.0, prob_cuts=True, trim_igm=True,
-                 bval_igm=150.0, W_2796_igm=1.0, debug=False, diffevol=False):
+                 bval_igm=150.0, W_2796_igm=1.0, debug=False, diffevol=False, min_peak_dist=None):
         """
 
         Args:
@@ -167,8 +167,12 @@ class MgiiFinder(object):
         # self.signif = conv_out / np.sqrt(np.median(conv_noise))
 
         # Now loop over skewers, find peaks in the significance
-        dv_pix = np.median(np.diff(self.vgrid))
-        min_peak_dist = self.fwhm / dv_pix
+        if min_peak_dist == None:
+            dv_pix = np.median(np.diff(self.vgrid))
+            min_peak_dist = self.fwhm / dv_pix
+        else:
+            print("using input min_peak_dist of", min_peak_dist)
+
         pbar = tqdm(total=self.nskew, desc="Peak Finding Skewers")
         peak_pix0 = []
         peak_signif0 = []

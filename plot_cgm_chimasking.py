@@ -13,6 +13,9 @@ from enigma.reion_forest.compute_model_grid import read_model_grid
 import civ_find_new as civ_find
 from enigma.reion_forest import inference
 import inference_enrichment
+from astropy.cosmology import FlatLambdaCDM
+from astropy import units as u
+from matplotlib.ticker import AutoMinorLocator
 
 # setting the figure
 font = {'family' : 'serif', 'weight' : 'normal'}
@@ -43,7 +46,7 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-snr = 50 #20
+snr = 20 #50
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
@@ -58,8 +61,8 @@ sig_min, sig_max = 1e-2, 100.0
 signif_thresh = 4.0
 
 # masking cutoffs to change
-signif_mask_nsigma = 6 #4
-one_minF_thresh = 0.07 #0.15 #0.06
+signif_mask_nsigma = 3 #4 #6
+one_minF_thresh = 0.06 #0.15 #0.07 #0.06
 
 #signif_mask_dv = 300.0
 signif_mask_dv = 200.0 # b-strong=150 km/s; CF after masking practically same as dv=300
@@ -286,6 +289,7 @@ plt.gca().tick_params(axis="both", labelsize=xytick_size)
 plt.xlim([vmin, vmax])
 plt.ylim([ymin, ymax])
 
+"""
 strong_lines = LineList('Strong', verbose=False)
 wave_1548 = strong_lines['CIV 1548']['wrest']
 Wfactor = ((fwhm / sampling) * u.km / u.s / const.c).decompose() * wave_1548.value
@@ -298,6 +302,24 @@ atwin.set_xscale('log')
 atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
-plt.tight_layout()
+"""
 
+# Create upper axis in cMpc
+cosmo = FlatLambdaCDM(H0=100.0 * par['lit_h'][0], Om0=par['Om0'][0], Ob0=par['Ob0'][0])
+z = par['z'][0]
+Hz = (cosmo.H(z))
+a = 1.0 / (1.0 + z)
+rmin = (vmin*u.km/u.s/a/Hz).to('Mpc').value
+rmax = (vmax*u.km/u.s/a/Hz).to('Mpc').value
+# Make the new upper x-axes
+atwin = plt.gca().twiny()
+atwin.set_xlabel('R [cMpc]', fontsize=xylabel_fontsize, labelpad=8)
+atwin.xaxis.tick_top()
+# atwin.yaxis.tick_right()
+atwin.axis([rmin, rmax, ymin, ymax])
+atwin.tick_params(top=True)
+atwin.xaxis.set_minor_locator(AutoMinorLocator())
+atwin.tick_params(axis="x", labelsize=xytick_size)
+
+plt.tight_layout()
 plt.show()

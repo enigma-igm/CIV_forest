@@ -27,7 +27,9 @@ from astropy import units as u
 import enigma.reion_forest.utils as reion_utils
 import matplotlib.style as style
 from astropy.io import ascii
+from astropy.table import Table
 style.use('tableau-colorblind10')
+import civ_find
 
 ########## literature data ##########
 def dodorico2013_cddf_bosman():
@@ -503,3 +505,192 @@ def cgm_model2(): # paper
 def cgm_model3():
     out_dict = init_metal_cgm_dict(alpha=-0.95, n_star=5)
     fit_alldata_dW(out_dict, 1.0)
+
+########## referee report ##########
+def igm_abs_init(skewerfile, logZ, fwhm=10, snr=50, seed=None, signif_thresh=3.0, min_peak_dist=10):
+
+    if seed == None:
+        rand = np.random.RandomState()
+    else:
+        rand = np.random.RandomState(seed)
+
+    metal_par = Table.read(skewerfile, hdu=1)
+    metal_ske = Table.read(skewerfile, hdu=2)
+    #metal_ske = metal_ske[0:100]
+
+    v_lores, (flux_tot_lores, flux_igm_lores, flux_cgm_lores), \
+    v_hires, (flux_tot_hires, flux_igm_hires, flux_cgm_hires), \
+    (oden, v_los, T, x_metal), cgm_tup = reion_utils.create_metal_forest(metal_par, metal_ske, logZ, fwhm, 'C IV')
+
+    noise = rand.normal(0.0, 1.0 / snr, flux_tot_lores.shape)
+    flux_noise_igm_lores = flux_igm_lores + noise
+    ivar = np.full_like(noise, snr ** 2)  # returns an array with same shape as ‘noise’ and filled with values ‘snr**2’
+
+    ################
+    civ_igm = civ_find.MgiiFinder(v_lores, flux_noise_igm_lores, ivar, fwhm, signif_thresh=signif_thresh, min_peak_dist=min_peak_dist)
+
+    return civ_igm, v_lores
+
+def igm_abs(civ_igm, v_lores, cgm_model, z, seed):
+
+    chi_all = civ_igm.signif
+    (nskew, npix) = chi_all.shape
+
+    """
+    cgm_alpha = -1.1
+    cgm_n_star = 5
+    metal_dndz_func = civ_dndz_sch
+    cgm_model = init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star)  # rest are default
+    """
+    metal_dndz_func = civ_dndz_sch
+    W_draws, dNdz, dz_tot, N_abs = reion_utils.metal_W_draw(v_lores, nskew, z, cgm_model, metal_dndz_func, seed=seed)
+
+    ################
+    peak_skew = civ_igm.peak_skew
+    peak_pix = civ_igm.peak_pix
+    peak_vel = civ_igm.peak_vel
+    peak_signif = civ_igm.peak_signif
+    npeak = len(peak_skew)
+
+    if npeak >= N_abs:
+        peak_ind_sorted = np.argsort(peak_signif)[::-1]  # highest to lowest
+        ipix_abs = peak_pix[peak_ind_sorted][:N_abs]
+        iskew_abs = peak_skew[peak_ind_sorted][:N_abs]
+        v_draws = peak_vel[peak_ind_sorted][:N_abs]
+        signif_abs = peak_signif[peak_ind_sorted][:N_abs]
+
+    else:
+        ValueError("Number of peaks < N_abs. Try peak find again.")
+
+    return W_draws, v_draws, iskew_abs, ipix_abs, signif_abs
+
+def tau_cgm_test(W_draws, v_draws, iskew_abs, ipix_abs, v_lores, seed, nskew):
+
+    cgm_alpha = -1.1
+    cgm_n_star = 5
+    metal_dndz_func = civ_dndz_sch
+    cgm_model = init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star)  # rest are default
+
+    tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws = \
+        reion_utils.create_metal_cgm(v_lores, nskew, 4.5, cgm_model, metal_dndz_func, metal_ion='C IV', seed=seed,
+                                     W_draws=W_draws, v_draws=v_draws, iskew_abs=iskew_abs)
+
+    tau_cgm_r, logN_draws_r, b_draws_r, v_draws_r, W_blue_draws_r, iskew_abs_r, tau_draws_r = \
+        reion_utils.create_metal_cgm(v_lores, nskew, 4.5, cgm_model, metal_dndz_func, metal_ion='C IV', seed=seed)
+
+    return tau_cgm_r, tau_cgm, tau_draws_r, tau_draws, iskew_abs_r, iskew_abs
+
+def plot_cgm_abs(v_lores, tau_cgm_r, tau_cgm_c, tau_draws_r, tau_draws_c, iskew_abs_r, iskew_abs_c, iwant):#, chi_all):
+
+    # iwant=1001
+    plt.subplot(121)
+    for iabs, iskew in enumerate(iskew_abs_r):
+        if iskew == iwant:
+            plt.plot(v_lores, tau_draws_r[iabs], 'k', alpha=0.5)
+
+    plt.plot(v_lores, tau_cgm_r[iwant], 'k', label='tau cgm (random)')
+    plt.legend()
+    plt.xlabel('v (km/s)')
+    plt.ylabel('tau CGM')
+
+    plt.subplot(122)
+    for iabs, iskew in enumerate(iskew_abs_c):
+        if iskew == iwant:
+            plt.plot(v_lores, tau_draws_c[iabs], 'r', alpha=0.6)
+
+    #plt.plot(v_lores, chi_all[iwant], alpha=0.5, label='chi value')
+    plt.plot(v_lores, tau_cgm_c[iwant], 'r', label='tau cgm (clustered)')
+    plt.legend()
+    plt.xlabel('v (km/s)')
+    plt.ylabel('tau CGM')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def igm_abs_old(civ_igm, v_lores, seed):
+
+    chi_all = civ_igm.signif
+    (nskew, npix) = chi_all.shape
+
+    ################
+    cgm_alpha = -1.1
+    cgm_n_star = 5
+    metal_dndz_func = civ_dndz_sch
+    cgm_model = init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star)  # rest are default
+    W_draws, dNdz, dz_tot, N_abs = reion_utils.metal_W_draw(v_lores, nskew, 4.5, cgm_model, metal_dndz_func, seed=seed)
+
+    ################
+    chi_all_flat = chi_all.flatten()
+    sorted_chi_ind = np.argsort(chi_all_flat)
+    rank_ind_abs = sorted_chi_ind[-N_abs:]
+    min_chi = np.sort(chi_all_flat)[-N_abs]
+    print(min_chi)
+
+    # skewer and pixel indices
+    ipix_abs = rank_ind_abs % npix
+    iskew_abs = rank_ind_abs // npix
+
+    v_draws = v_lores[ipix_abs]
+
+    ################
+    for iabs in range(N_abs):
+        assert chi_all_flat[rank_ind_abs[iabs]] == chi_all[iskew_abs[iabs]][ipix_abs[iabs]]
+
+    ################
+    tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws = \
+        reion_utils.create_metal_cgm(v_lores, nskew, 4.5, cgm_model, metal_dndz_func, metal_ion='C IV', seed=seed, W_draws=W_draws, v_draws=v_draws, iskew_abs=iskew_abs)
+
+    return W_draws, v_draws, iskew_abs, ipix_abs, v_lores, chi_all, tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws
+
+def plot_peak(v_lores, civ_igm, i):
+
+    f_mask = np.invert(civ_igm.flux_gpm[0])
+    s_mask = np.invert(civ_igm.signif_gpm[0])
+    fs_mask = np.invert(civ_igm.fit_gpm[0])
+
+    neg = np.zeros_like(v_lores) - 100
+    plt.plot(v_lores, civ_igm.signif[i], drawstyle='steps-mid', color='k')
+    plt.axhline(y=signif_mask_nsigma, color='magenta', linestyle='dashed', linewidth=1.5)
+    plt.fill_between(v_lores, neg, civ_igm.signif[i], where=s_mask, step='mid', facecolor='magenta', alpha=0.5)
+    plt.xlabel('v (km/s)', fontsize=18)
+    plt.ylabel(r'$\chi$', fontsize=18)
+    plt.ylim([-3, 8])
+    plt.show()
+
+
+def compare_cgm(skewerfile):
+
+    logZ = -3.5
+    metal_ion = 'C IV'
+    fwhm = 10
+    snr = 50
+    sampling = 3.0
+    seed = 3429381  # random seeds for drawing CGM absorbers
+    rand = np.random.RandomState(seed)
+
+    cgm_alpha = -1.1
+    cgm_n_star = 5
+    metal_dndz_func = civ_dndz_sch
+    cgm_model = init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star)  # rest are default
+
+    civ_igm, v_lores = igm_abs_init(skewerfile, logZ, fwhm, snr, seed)
+    W_draws, v_draws, iskew_abs, ipix_abs, v_lores, chi_all = igm_abs(civ_igm, v_lores, seed)
+
+    nskew = 10000
+    z = 4.5
+    tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws = reion_utils.create_metal_cgm(v_lores, nskew, z, cgm_model, metal_dndz_func, metal_ion='C IV', seed=seed, W_draws=W_draws,
+                     v_draws=v_draws, iskew_abs=iskew_abs)
+
+    clus_out = (tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws)
+
+    tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws = reion_utils.create_metal_cgm(v_lores, nskew, z, cgm_model, metal_dndz_func, metal_ion='C IV', seed=seed)
+
+    rand_out = (tau_cgm, logN_draws, b_draws, v_draws, W_blue_draws, iskew_abs, tau_draws)
+
+    return clus_out, rand_out
+
+    # logN_draws and b_draws same for clustered and random
+    # tau_draws and W_draws are almost exactly equal, just that tau_draws are placed at v_draws
+
+

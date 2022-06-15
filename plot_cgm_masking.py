@@ -41,7 +41,7 @@ z = par['z'][0]
 logZ = -3.5
 metal_ion = 'C IV'
 fwhm = 10
-snr = 50 #20
+snr = 20 #50
 sampling = 3.0
 seed = 3429381 # random seeds for drawing CGM absorbers
 rand = np.random.RandomState(seed)
@@ -51,7 +51,7 @@ cgm_n_star = 5
 metal_dndz_func = civ_cgm.civ_dndz_sch
 cgm_model = civ_cgm.init_metal_cgm_dict(alpha=cgm_alpha, n_star=cgm_n_star) # rest are default
 nbins, oneminf_min, oneminf_max = 101, 1e-5, 1.0 # gives d(oneminf) = 0.01
-flux_decr_cutoff = 0.07 #0.15 #0.07
+flux_decr_cutoff = 0.15 #0.07
 savefig = 'paper_plots/flux_pdf_masking_007_refreport.pdf'
 
 ################
@@ -132,6 +132,6 @@ atwin.axis([Wmin_top, Wmax_top, ymin, ymax])
 atwin.tick_params(top=True)
 atwin.tick_params(axis="both", labelsize=xytick_size)
 
-plt.savefig(savefig)
+#plt.savefig(savefig)
 plt.show()
 
