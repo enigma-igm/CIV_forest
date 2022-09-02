@@ -30,6 +30,7 @@ from enigma.reion_forest import inference
 import halos_skewers
 import time
 from astropy.io import fits
+from scipy.ndimage import map_coordinates
 
 ######## Setting up #########
 
@@ -267,59 +268,45 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     plt.show()
     plt.close()
 
+    """
     ##### (3) Make the corrfunc plot with mcmc realizations
     fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
     print("logZ_eff", logZ_eff)
     inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
                      logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, nrand=50, seed=seed)
-
+    """
 ################ run all the driver functions leading to mcmc ################
 import configparser
 
 def do_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, coarse_outcsv, \
                  logM_fine, R_fine, logZ_fine, want_fine_outcsv, arbinterp_outnpy):
 
+    # prepares the input coarse grids into a format that arbinterp accepts and writes it out to a csv file
     prep_for_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, coarse_outcsv)
+
+    # prepares the fine grid at which to interpolate onto and writes out this fine grid to a csv file
     trunc_nlogM, trunc_nR, trunc_nlogZ = prep_for_arbinterp2(logM_coarse, R_coarse, logZ_coarse, logM_fine, R_fine, logZ_fine, want_fine_outcsv)
 
     from ARBTools.ARBInterp import tricubic
 
     start = time.time()
     field = np.genfromtxt(coarse_outcsv, delimiter=',')
-    Run = tricubic(field)
-    allpts = np.genfromtxt(want_fine_outcsv, delimiter=',')
+    Run = tricubic(field) # generates the tricubic field using the coarse grid
+    allpts = np.genfromtxt(want_fine_outcsv, delimiter=',') # extracts the fine grid
 
     print("########## starting interpolation ########## ")
     out_norm, out_grad = Run.Query(allpts)  # ~10 min compute time
     out_norm2 = out_norm[:, 0]
     out_norm2 = np.reshape(out_norm2, (trunc_nlogM, trunc_nR, trunc_nlogZ))
 
-    np.save(arbinterp_outnpy, out_norm2)
+    np.save(arbinterp_outnpy, out_norm2) # save the interpated likelihood as np binary file
     end = time.time()
     print((end - start) / 60.)
 
 def do_all(config_file, run_mcmc=True):
-    """
-    modelfile_path = 'nyx_sim_data/igm_cluster/enrichment_models/corrfunc_models/'
-    modelfile = modelfile_path + 'fine_corr_func_models_fwhm_10.000_samp_3.000_SNR_50.000_nqsos_20.fits'
 
-
-    #seed = 4355455  # using the incorrect nmock=26
-    #logM_guess, R_guess, logZ_guess = 9.12, 0.45, -3.50
-
-    seed = 5382029
-    logM_guess, R_guess, logZ_guess = 9.89, 0.98, -3.57
-
-    nlogM, nR, nlogZ = 251, 291, 251
-    interp_lnlike = False  # If False, need to provide filename containing pre-interpolated lnlikelihood;
-                           # if True, then interpolate here
-    interp_ximodel = False  # Same
-    nsteps = 150000
-    burnin = 1000
-    nwalkers = 30
-    linear_prior = False
-    """
+    # run the initialization and mcmc in one go using parameter sets by input config_file
     config = configparser.ConfigParser()
     config.read(config_file)
     modelfile = config['DEFAULT']['modelfile']
@@ -361,6 +348,10 @@ def do_all(config_file, run_mcmc=True):
         #                   % (seed, logM_guess, R_guess, logZ_guess) + 'finer_grid/lnlike_fine_arbinterp.npy'
         print("Reading in pre-computed interpolated likelihood", lnlike_file_name)
         lnlike_fine = np.load(lnlike_file_name)
+
+        # this smaller grid corresponds to the truncated grid from prep_for_arbinterp2,
+        # obtained from the printouts from prep_for_arbinterp2
+        # should be modified so it's not fixed (one way is to include the indices value in the config file)
         logM_fine = logM_fine[10:240]
         R_fine = R_fine[10:280]
         logZ_fine = logZ_fine[10:240]
@@ -546,6 +537,7 @@ def plot_likelihood_data(lnlike, logM_grid, R_grid, logZ_grid, logM_data, R_data
 
 def prep_for_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, outtxt):
 
+    # prepares the input coarse grids into a format that arbinterp accepts and writes it out
     field = np.zeros((len(logM_coarse) * len(R_coarse) * len(logZ_coarse), 4))
     n = 0
     for ilogZ, logZ in enumerate(logZ_coarse):
@@ -557,6 +549,15 @@ def prep_for_arbinterp(logM_coarse, R_coarse, logZ_coarse, lnlike_coarse, outtxt
     np.savetxt(outtxt, field, fmt=['%0.2f', '%0.2f', '%0.2f', '%f'], delimiter=',')
 
 def prep_for_arbinterp2(logM_coarse, R_coarse, logZ_coarse, logM_fine, R_fine, logZ_fine, outtxt):
+
+    # prepares the fine grid at which to interpolate onto
+    # because the arbinterp code does not interpolate at the edges, this script creates a smaller 'fine' grid
+    # at which to interpolate onto (i.e. the 'new_XX_fine' variables)
+
+    # from the arbinterp github page (as of Oct 2021):
+    # Note: Due to the boundary conditions the interpolatable volume is slightly smaller than the input field.
+    # A query at the edge will return a ‘nan’. Further work will implement boundary conditions of the
+    # Neumann or Dirichlet types.
 
     im_lo = np.argwhere(np.round(logM_fine,2)==np.round(logM_coarse[1],2))[0][0] # 2nd elem
     im_hi = np.argwhere(np.round(logM_fine, 2) == np.round(logM_coarse[-2], 2))[0][0] # 2nd-to-last elem
@@ -660,4 +661,30 @@ def mcmc_upperlim_boundary():
     plt.axvline(10**logZ_max)
 
     plt.show()
+
+def interp_lnlike_mapcoor(lnlike_coarse, logM_coarse, R_coarse, logZ_coarse, nlogM, nR, nlogZ):
+
+    logM_fine = np.linspace(logM_coarse.min(), logM_coarse.max(), nlogM)
+    R_fine = np.linspace(R_coarse.min(), R_coarse.max(), nR)
+    logZ_fine = np.linspace(logZ_coarse.min(), logZ_coarse.max(), nlogZ)
+
+    ind_logM_fine = np.linspace(0, len(logM_coarse), nlogM)
+    ind_R_fine = np.linspace(0, len(R_coarse), nR)
+    ind_logZ_fine = np.linspace(0, len(logZ_coarse), nlogZ)
+
+    lnlike_fine = np.zeros((nlogM, nR, nlogZ))
+
+    start = time.time()
+    for jlogM, ilogM_fine in enumerate(ind_logM_fine):
+        for jR, iR_fine in enumerate(ind_R_fine):
+            for jlogZ, ilogZ_fine in enumerate(ind_logZ_fine):
+                out = map_coordinates(lnlike_coarse, [[ilogM_fine], [iR_fine], [ilogZ_fine]], order=3)[0]
+                lnlike_fine[jlogM,jR,jlogZ] = out
+
+    end = time.time()
+    print((end-start)/60, "min") # 21 min for nlogM=251, nR=201, nlogZ=161
+
+    # saved to "lnlike_fine_mapcoor.npy"
+    return lnlike_fine, logM_fine, R_fine, logZ_fine
+
 
