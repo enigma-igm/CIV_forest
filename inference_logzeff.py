@@ -27,6 +27,7 @@ from astropy.table import Table
 import halos_skewers
 import inference_enrichment as infen
 from scipy.interpolate import RegularGridInterpolator
+import matplotlib as mpl
 
 def logzeff_coarse(outtxt=None):
     logM, R = halos_skewers.init_halo_grids(8.5, 11.0, 0.10, 0.1, 3, 0.1)
@@ -108,17 +109,35 @@ def do_all(mcmc_chain_fitsfile, new_param_samples_savefilename=None):
 
     return new_param_samples
 
-def plot_corner_hack(new_param_samples, logM_data, R_data, logZ_data, logZeff_data):
+def plot_corner_hack(new_param_samples, logM_data, R_data, logZ_data, logZeff_data, savefig=None):
     var_label = ['log(M)', 'R', '[C/H]', r'[C/H]$_\mathrm{eff}$']
     truths = [logM_data, R_data, logZ_data, logZeff_data]
 
+    mpl.rcParams['axes.linewidth'] = 1.5
+    mpl.rcParams['xtick.major.width'] = 1.5
+    mpl.rcParams['ytick.major.width'] = 1.5
+    mpl.rcParams['xtick.minor.width'] = 1.5
+    mpl.rcParams['ytick.minor.width'] = 1.5
+    mpl.rcParams['xtick.major.size'] = 7
+    mpl.rcParams['xtick.minor.size'] = 4
+    mpl.rcParams['ytick.major.size'] = 7
+    mpl.rcParams['ytick.minor.size'] = 4
+    label_fontsize = 22
+    title_fontsize = 20
+    figsize = 13
+    tick_fontsize = 18
+
     fig = corner.corner(new_param_samples, labels=var_label, truths=truths, levels=(0.68,), color='k', \
                         truth_color='darkgreen', \
-                        show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
-                        data_kwargs={'ms': 1.0, 'alpha': 0.1})
+                        show_titles=True, title_kwargs={"fontsize": title_fontsize}, label_kwargs={'fontsize': label_fontsize}, \
+                        data_kwargs={'ms': 1.0, 'alpha': 0.1}, hist_kwargs={'lw': 1.5}, fig=plt.figure(figsize=(figsize, figsize)))
 
-    plt.gca().tick_params(labelsize=12)
-    plt.show()
+    for ax in fig.axes:
+        ax.tick_params(which='both', labelsize=tick_fontsize)
+
+    if savefig != None:
+        fig.savefig(savefig)
+    fig.show()
 
 def plot_corrfunc_mcmc_hack(config_file, param_samples):
     init_out, params, ori_logM_fine, ori_R_fine, ori_logZ_fine, ximodel_fine, linear_prior, seed = infen.do_all(config_file, run_mcmc=False)

@@ -91,18 +91,18 @@ def get_nqsos(z, delta_z, npath):
     print(dz_side)
     print("Nqso:", nqsos) # Nqso ~ 20 for delta_z=1.0 and npath=100
 
-def civ_pathlength(z, l_rest_min, l_rest_max):
+def line_pathlength(z, l_rest_min, l_rest_max, l_line=1549):
 
     # limits from Blomqvist et al. (2018) are 1420 < l_rest < 1520
     # range is bracketed by the emission peaks of the SiIV doublet (with wavelengths 1394 A and 1403 A)
 
-    l_civ = 1549.
+    #l_civ = 1549.
     l_obs_min = l_rest_min * (1 + z)
     l_obs_max = l_rest_max * (1 + z)
     print(l_obs_min, l_obs_max)
 
-    zmin = l_obs_min / l_civ - 1
-    zmax = l_obs_max / l_civ - 1
+    zmin = l_obs_min / l_line - 1
+    zmax = l_obs_max / l_line - 1
     dz = zmax - zmin
 
     return zmin, zmax, dz

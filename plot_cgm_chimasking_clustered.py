@@ -73,6 +73,8 @@ bval_igm = 150 # default
 civ_igm, v_lores = civ_cgm.igm_abs_init(skewerfile, logZ, fwhm, snr, seed, signif_thresh=3.0, min_peak_dist=100)
 W_draws, v_draws, iskew_abs, ipix_abs, signif_abs = civ_cgm.igm_abs(civ_igm, v_lores, cgm_model, z, seed)
 
+cgm_model = None
+metal_dndz_func = None
 ################
 start = time.time()
 #ske = ske[0:100]
