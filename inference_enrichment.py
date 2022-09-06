@@ -30,6 +30,7 @@ from enigma.reion_forest import inference
 import halos_skewers
 import time
 from astropy.io import fits
+import pdb
 
 ######## Setting up #########
 
@@ -53,7 +54,9 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     params, xi_mock_array, xi_model_array, covar_array, icovar_array, lndet_array = read_model_grid(modelfile)
 
     logZ_coarse = params['logZ'][0]
+    logZ_coarse = np.round(logZ_coarse, 2)
     logM_coarse = params['logM'][0]
+    logM_coarse = np.round(logM_coarse, 2)
     R_coarse = params['R_Mpc'][0]
     R_coarse = np.round(R_coarse, 2) # need to force this to avoid floating point issue
 
@@ -86,7 +89,7 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     logM_data = logM_coarse[ilogM]
     R_data = R_coarse[iR]
     print('logM_data, R_data, logZ_data', logM_data, R_data, logZ_data)
-
+    #xi_data = np.average(xi_mock_array[ilogM, iR, ilogZ, :, :],axis=0)
     xi_data = xi_mock_array[ilogM, iR, ilogZ, imock, :].flatten()
     xi_mask = np.ones_like(xi_data, dtype=bool)  # in case you want to mask any xi value, otherwise all True
 
@@ -95,7 +98,7 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
 
     return init_out
 
-def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=False, interp_ximodel=False):
+def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=True, interp_ximodel=False):
 
     # ~10 sec to interpolate 3d likelihood for nlogM_fine, nR_fine, nlogZ_fine = 251, 201, 161
     # dlogM_fine 0.01
@@ -138,7 +141,7 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
                 lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask,
                                                                         xi_model_array[ilogM, iR, ilogZ, :],
                                                                         lndet_array[ilogM, iR, ilogZ],
-                                                                        icovar_array[ilogM, iR, ilogZ, :, :])
+                                                                        covar_array[ilogM, iR, ilogZ, :, :])
     if interp_lnlike:
         #lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
         #for ilogM, logM_val in enumerate(logM_coarse):
@@ -146,7 +149,7 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
         #        for ilogZ, logZ_val in enumerate(logZ_coarse):
         #            lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :],
         #                                                        lndet_array[ilogM, iR, ilogZ],
-        #                                                        icovar_array[ilogM, iR, ilogZ, :, :])
+        #                                                        covar_array[ilogM, iR, ilogZ, :, :])
         print('interpolating lnlike')
         start = time.time()
         lnlike_fine = inference.interp_lnlike_3d(logM_fine, R_fine, logZ_fine, logM_coarse, R_coarse, logZ_coarse, lnlike_coarse)
@@ -164,6 +167,14 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=F
         print((end-start)/60.)
     else:
         xi_model_fine = None
+
+    logM_max, R_max, logZ_max = np.where(lnlike_fine==lnlike_fine.max())
+
+    print('The most possible grid is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_fine[logM_max], R_fine[R_max], logZ_fine[logZ_max]))
+
+    logM_max, R_max, logZ_max = np.where(lnlike_coarse==lnlike_coarse.max())
+
+    print('The most possible grid is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_coarse[logM_max], R_coarse[R_max], logZ_coarse[logZ_max]))
 
     return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
@@ -240,7 +251,7 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     return sampler, param_samples, bounds
 
-def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, seed=None):
+def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, outpath_local, seed=None):
     # seed here used to choose random nrand(=50) mcmc realizations to plot on the 2PCF measurement
 
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
@@ -252,10 +263,10 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     truths = [logM_data, R_data, 10**(logZ_data)] if linear_prior else [logM_data, R_data, logZ_data] # (8/16/21) linear_prior only on logZ
     print("truths", truths)
     chain = sampler.get_chain()
-    inference.walker_plot(chain, truths, var_label, walkerfile=None)
+    inference.walker_plot(chain, truths, var_label, walkerfile=outpath_local)
 
     ##### (2) Make the corner plot, again use the true values in the chain
-    fig = corner.corner(param_samples, labels=var_label, truths=truths, levels=(0.68, ), color='k', \
+    fig = corner.corner(param_samples, labels=var_label, range=[(truths[0]*0.8,truths[0]*1.2),(truths[1]*0.8,truths[1]*1.2),(truths[2]*0.8,truths[2]*1.2)], truths=truths, levels=(0.68, ), color='k', \
                         truth_color='darkgreen', \
                         show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
@@ -264,7 +275,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
         # ax.tick_params(axis='both', which='minor', labelsize=12)
         ax.tick_params(labelsize=12)
 
-    plt.show()
+    plt.savefig(outpath_local + 'corner.pdf')
     plt.close()
 
     ##### (3) Make the corrfunc plot with mcmc realizations
@@ -272,7 +283,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
     print("logZ_eff", logZ_eff)
     inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
-                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, nrand=50, seed=seed)
+                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, outpath_local, nrand=50, seed=seed)
 
 ################ run all the driver functions leading to mcmc ################
 import configparser
@@ -419,7 +430,7 @@ def interp_likelihood_fixedlogZ(init_out, ilogZ, nlogM_fine, nR_fine, interp_lnl
         for ilogM, logM_val in enumerate(logM_coarse):
             for iR, R_val in enumerate(R_coarse):
                 lnlike_coarse[ilogM, iR] = inference.lnlike_calc(xi_data, xi_mask, xi_model_array[ilogM, iR, ilogZ, :], \
-                                                                 lndet_array[ilogM, iR, ilogZ], icovar_array[ilogM, iR, ilogZ, :, :])
+                                                                 lndet_array[ilogM, iR, ilogZ], covar_array[ilogM, iR, ilogZ, :, :])
 
         print('interpolating lnlike')
         start = time.time()
@@ -660,4 +671,3 @@ def mcmc_upperlim_boundary():
     plt.axvline(10**logZ_max)
 
     plt.show()
-

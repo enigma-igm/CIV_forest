@@ -252,7 +252,7 @@ def calc_fvfm_all(logM_grid, R_grid):
     end = time.time()
     print("Done in", (end-start)/60)
 
-def get_fvfm(logM_want, R_want, fvfm_file='nyx_sim_data/igm_cluster/enrichment_models/fvfm_all.fits'):
+def get_fvfm(logM_want, R_want, fvfm_file='/Users/xinsheng/civ-cross-lyaf/Nyx_output/fvfm_all.fits'):
     fvfm = Table.read(fvfm_file)
     logM_all = np.round(fvfm['logM'], 2)
     R_all = np.round(np.array(fvfm['R_Mpc']), 2)
