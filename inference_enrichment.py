@@ -1,6 +1,7 @@
 '''
 Functions here:
     - init
+    - interp_likelihood_covar
     - interp_likelihood
     - mcmc_inference
     - plot_mcmc
@@ -40,7 +41,7 @@ import pdb
 #seed = 5382029
 # nlogM, nR, nlogZ = 251, 201, 161
 
-def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
+def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None, choose_mock_data=None):
 
     if seed == None:
         seed = np.random.randint(0, 10000000)
@@ -74,8 +75,12 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
     else:
         nmock = xi_mock_array.shape[3]
 
-    imock = rand.choice(np.arange(nmock), size=1)
-    print('imock', imock)
+    if choose_mock_data==None:
+        imock = rand.choice(np.arange(nmock), size=1)
+        print('imock', imock)
+    else:
+        imock = choose_mock_data
+        print('imock', imock)
 
     #linearZprior = False
 
@@ -97,6 +102,76 @@ def init(modelfile, logM_guess, R_guess, logZ_guess, seed=None):
                covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess
 
     return init_out
+
+
+def interp_likelihood_covar(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=True, interp_ximodel=False):
+
+    # ~10 sec to interpolate 3d likelihood for nlogM_fine, nR_fine, nlogZ_fine = 251, 201, 161
+    # dlogM_fine 0.01
+    # dR 0.015
+    # dlogZ_fine 0.015625
+
+    # unpack input
+    logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
+    covar_array, icovar_array, lndet_array, vel_corr, logM_guess, R_guess, logZ_guess = init_out
+
+    # Interpolate the likelihood onto a fine grid to speed up the MCMC
+
+    nlogM = logM_coarse.size
+    logM_fine_min = logM_coarse.min()
+    logM_fine_max = logM_coarse.max()
+    dlogM_fine = (logM_fine_max - logM_fine_min) / (nlogM_fine - 1)
+    logM_fine = logM_fine_min + np.arange(nlogM_fine) * dlogM_fine
+
+    nR = R_coarse.size
+    R_fine_min = R_coarse.min()
+    R_fine_max = R_coarse.max()
+    dR_fine = (R_fine_max - R_fine_min) / (nR_fine - 1)
+    R_fine = R_fine_min + np.arange(nR_fine) * dR_fine
+
+    nlogZ = logZ_coarse.size
+    logZ_fine_min = logZ_coarse.min()
+    logZ_fine_max = logZ_coarse.max()
+    dlogZ_fine = (logZ_fine_max - logZ_fine_min) / (nlogZ_fine - 1)
+    logZ_fine = logZ_fine_min + np.arange(nlogZ_fine) * dlogZ_fine
+
+    print('dlogM_fine', dlogM_fine)
+    print('%0.2f' %dR_fine)
+    print('dlogZ_fine', dlogZ_fine)
+
+    xi_model_fine, lndet_array_fine, covar_array_fine = inference.interp_model_all(logM_fine, R_fine, \
+    logZ_fine, logM_coarse, R_coarse, logZ_coarse, xi_model_array, lndet_array, covar_array)
+
+    # Loop over the coarse grid and evaluate the likelihood at each location for the chosen mock data
+    # Needs to be repeated for each chosen mock data
+    lnlike_coarse = np.zeros((nlogM, nR, nlogZ))
+    for ilogM, logM_val in enumerate(logM_coarse):
+        for iR, R_val in enumerate(R_coarse):
+            for ilogZ, logZ_val in enumerate(logZ_coarse):
+                lnlike_coarse[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask,
+                                                                        xi_model_array[ilogM, iR, ilogZ, :],
+                                                                        lndet_array[ilogM, iR, ilogZ],
+                                                                        covar_array[ilogM, iR, ilogZ, :, :])
+
+    lnlike_fine = np.zeros((nlogM_fine, nR_fine, nlogZ_fine))
+    for ilogM, logM_val in enumerate(logM_fine):
+        for iR, R_val in enumerate(R_fine):
+            for ilogZ, logZ_val in enumerate(logZ_fine):
+                lnlike_fine[ilogM, iR, ilogZ] = inference.lnlike_calc(xi_data, xi_mask,
+                                                                        xi_model_fine[ilogM, iR, ilogZ, :],
+                                                                        lndet_array_fine[ilogM, iR, ilogZ],
+                                                                        covar_array_fine[ilogM, iR, ilogZ, :, :])
+
+
+    logM_max, R_max, logZ_max = np.where(lnlike_fine==lnlike_fine.max())
+
+    print('The most possible grid in fine_cov is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_fine[logM_max], R_fine[R_max], logZ_fine[logZ_max]))
+
+    logM_max, R_max, logZ_max = np.where(lnlike_coarse==lnlike_coarse.max())
+
+    print('The most possible grid in coarse is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_coarse[logM_max], R_coarse[R_max], logZ_coarse[logZ_max]))
+
+    return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
 def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=True, interp_ximodel=False):
 
@@ -170,17 +245,17 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=T
 
     logM_max, R_max, logZ_max = np.where(lnlike_fine==lnlike_fine.max())
 
-    print('The most possible grid is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_fine[logM_max], R_fine[R_max], logZ_fine[logZ_max]))
+    print('The most possible grid in fine is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_fine[logM_max], R_fine[R_max], logZ_fine[logZ_max]))
 
     logM_max, R_max, logZ_max = np.where(lnlike_coarse==lnlike_coarse.max())
 
-    print('The most possible grid is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_coarse[logM_max], R_coarse[R_max], logZ_coarse[logZ_max]))
+    print('The most possible grid in coarse is logM = %.2f, R = %.2f and logZ = %.2f' % (logM_coarse[logM_max], R_coarse[R_max], logZ_coarse[logZ_max]))
 
     return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
-                   seed=None, savefits_chain=None):
+                   seed=None, savefits_chain=None, backend = None):
 
     if seed == None:
         seed = np.random.randint(0, 10000000)
@@ -221,11 +296,12 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
             tmp.append(np.clip(perturb_pos, bounds[j][0], bounds[j][1]))
         pos.append(tmp)
 
-    #pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
-    #     for i in range(ndim)] for i in range(nwalkers)]
+    pos = [[np.clip(result_opt.x[i] + 1e-2 * (bounds[i][1] - bounds[i][0]) * rand.randn(1)[0], bounds[i][0], bounds[i][1])
+        for i in range(ndim)] for i in range(nwalkers)]
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args)
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args, backend = backend)
     sampler.run_mcmc(pos, nsteps, progress=True)
 
     tau = sampler.get_autocorr_time()
@@ -249,9 +325,12 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
         hdulist.append(fits.ImageHDU(data=param_samples, name='param_samples'))
         hdulist.writeto(savefits_chain, overwrite=True)
 
+    print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)))
+
+
     return sampler, param_samples, bounds
 
-def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, outpath_local, seed=None):
+def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, outpath_local, seed=None, overplot=False, overplot_param=None):
     # seed here used to choose random nrand(=50) mcmc realizations to plot on the 2PCF measurement
 
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
@@ -264,12 +343,14 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     print("truths", truths)
     chain = sampler.get_chain()
     inference.walker_plot(chain, truths, var_label, walkerfile=outpath_local)
-
+    print(param_samples.shape)
     ##### (2) Make the corner plot, again use the true values in the chain
-    fig = corner.corner(param_samples, labels=var_label, range=[(truths[0]*0.8,truths[0]*1.2),(truths[1]*0.8,truths[1]*1.2),(truths[2]*0.8,truths[2]*1.2)], truths=truths, levels=(0.68, ), color='k', \
+    fig = corner.corner(param_samples, labels=var_label, range=[(8.5,11),(0.1,3.0),(-4.5,-2.0)], truths=truths, levels=(0.68, 0.95, 0.997), color='k', \
                         truth_color='darkgreen', \
                         show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
+    if overplot == True:
+        corner.corner(overplot_param, fig=fig, color='r')
     for ax in fig.get_axes():
         # ax.tick_params(axis='both', which='major', labelsize=14)
         # ax.tick_params(axis='both', which='minor', labelsize=12)
