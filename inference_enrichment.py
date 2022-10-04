@@ -330,7 +330,7 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     return sampler, param_samples, bounds
 
-def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, outpath_local, seed=None, overplot=False, overplot_param=None):
+def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_fine, xi_model_fine, linear_prior, outpath_local, seed=None, overplot=False, overplot_param=None, fvfm_file=None):
     # seed here used to choose random nrand(=50) mcmc realizations to plot on the 2PCF measurement
 
     logM_coarse, R_coarse, logZ_coarse, logM_data, R_data, logZ_data, xi_data, xi_mask, xi_model_array, \
@@ -360,7 +360,10 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     plt.close()
 
     ##### (3) Make the corrfunc plot with mcmc realizations
-    fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
+    if fvfm_file == None:
+        fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2), fvfm_file=fvfm_file)
+    else:
+        fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
     print("logZ_eff", logZ_eff)
     inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
