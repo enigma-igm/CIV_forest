@@ -360,7 +360,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     plt.close()
 
     ##### (3) Make the corrfunc plot with mcmc realizations
-    if fvfm_file == None:
+    if fvfm_file != None:
         fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2), fvfm_file=fvfm_file)
     else:
         fv, fm = halos_skewers.get_fvfm(np.round(logM_data,2), np.round(R_data,2))
