@@ -367,7 +367,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
     logZ_eff = halos_skewers.calc_igm_Zeff(fm, logZ_fid=logZ_data)
     print("logZ_eff", logZ_eff)
     inference.corrfunc_plot_3d(xi_data, param_samples, params, logM_fine, R_fine, logZ_fine, xi_model_fine, logM_coarse, R_coarse,
-                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, outpath_local, nrand=50, seed=seed)
+                     logZ_coarse, covar_array, logM_data, R_data, logZ_data, logZ_eff, outpath_local, nrand=50, seed=seed, fvfm_file=fvfm_file)
 
 ################ run all the driver functions leading to mcmc ################
 import configparser
