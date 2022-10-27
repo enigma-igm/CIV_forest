@@ -350,7 +350,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
                         show_titles=True, title_kwargs={"fontsize": 15}, label_kwargs={'fontsize': 20}, \
                         data_kwargs={'ms': 1.0, 'alpha': 0.1})
     if overplot == True:
-        corner.corner(overplot_param, fig=fig, color='r')
+        corner.corner(overplot_param, fig=fig, range=[(8.5,11),(0.1,3.0),(-4.5,-2.0)], levels=(0.68, 0.95, 0.997), color='r')
     for ax in fig.get_axes():
         # ax.tick_params(axis='both', which='major', labelsize=14)
         # ax.tick_params(axis='both', which='minor', labelsize=12)
