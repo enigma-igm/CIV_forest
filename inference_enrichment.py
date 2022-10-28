@@ -256,7 +256,7 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=T
 
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
-                   seed=None, savefits_chain=None, backend = None, nproc=nproc):
+                   seed=None, savefits_chain=None, backend = None, nproc = 30):
 
     if seed == None:
         seed = np.random.randint(0, 10000000)
