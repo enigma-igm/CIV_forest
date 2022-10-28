@@ -32,6 +32,7 @@ import halos_skewers
 import time
 from astropy.io import fits
 import pdb
+from multiprocessing import Pool
 
 ######## Setting up #########
 
@@ -255,7 +256,7 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=T
 
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
-                   seed=None, savefits_chain=None, backend = None):
+                   seed=None, savefits_chain=None, backend = None, nproc=nproc):
 
     if seed == None:
         seed = np.random.randint(0, 10000000)
@@ -301,8 +302,9 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args, backend = backend)
-    sampler.run_mcmc(pos, nsteps, progress=True)
+    with Pool(nproc) as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args, backend = backend, pool=pool)
+        sampler.run_mcmc(pos, nsteps, progress=True)
 
     tau = sampler.get_autocorr_time()
     print('Autocorrelation time')
