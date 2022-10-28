@@ -302,7 +302,7 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    with Pool(nproc) as pool:
+    with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args, backend = backend, pool=pool)
         sampler.run_mcmc(pos, nsteps, progress=True)
 
