@@ -34,7 +34,7 @@ from astropy.io import fits
 import pdb
 from multiprocessing import Pool
 from schwimmbad import MultiPool
-
+import multiprocessing
 ######## Setting up #########
 
 ### debugging config (3.25.2021)
@@ -325,7 +325,9 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     logZ_fine_global = logZ_fine
     linear_prior_global = linear_prior
 
-    with MultiPool() as pool:
+    multiprocessing.set_start_method('fork', force=True)
+
+    with Pool(nproc) as pool:
         # if not pool.is_master():
         #     pool.wait()
         #     sys.exit(0)
