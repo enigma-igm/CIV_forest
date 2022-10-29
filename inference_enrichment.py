@@ -312,11 +312,18 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    global lnlike_fine_global = lnlike_fine
-    global logM_fine_global = logM_fine
-    global R_fine_global = R_fine
-    global logZ_fine_global = logZ_fine
-    global linear_prior_global = linear_prior
+    global lnlike_fine_global
+    global logM_fine_global
+    global R_fine_global
+    global logZ_fine_global
+    global linear_prior_global 
+
+    lnlike_fine_global = lnlike_fine
+    logM_fine_global = logM_fine
+    R_fine_global = R_fine
+    logZ_fine_global = logZ_fine
+    linear_prior_global = linear_prior
+
 
     with Pool(nproc) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, backend = backend, pool=pool)
