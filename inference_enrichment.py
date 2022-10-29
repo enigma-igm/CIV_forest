@@ -33,7 +33,7 @@ import time
 from astropy.io import fits
 import pdb
 from multiprocessing import Pool
-from schwimmbad import MPIPool
+from schwimmbad import MultiPool
 
 ######## Setting up #########
 
@@ -325,10 +325,10 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
     logZ_fine_global = logZ_fine
     linear_prior_global = linear_prior
 
-    with MPIPool() as pool:
-        if not pool.is_master():
-            pool.wait()
-            sys.exit(0)
+    with MultiPool() as pool:
+        # if not pool.is_master():
+        #     pool.wait()
+        #     sys.exit(0)
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, pool=pool, backend = backend)
         sampler.run_mcmc(pos, nsteps, progress=True)
 
