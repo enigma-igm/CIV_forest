@@ -326,7 +326,7 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
 
     # with Pool(nproc) as pool:
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args = args, backend = backend, pool=pool)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args = args, backend = backend)
     sampler.run_mcmc(pos, nsteps, progress=True)
 
     tau = sampler.get_autocorr_time()
