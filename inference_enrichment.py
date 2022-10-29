@@ -254,6 +254,16 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=T
 
     return lnlike_coarse, lnlike_fine, xi_model_fine, logM_fine, R_fine, logZ_fine
 
+def lnprob_3d_global(theta):
+
+    lp = inference.lnprior_3d(theta, logM_fine, R_fine, logZ_fine, linear_prior)
+    if not np.isfinite(lp):
+        return -np.inf
+
+    lnL_3d = inference.lnlike_3d(theta, lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+
+    lnprob = lp + inference.lnlike_3d(theta, lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+    return lnprob
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
                    seed=None, savefits_chain=None, backend = None, nproc = 30):
@@ -302,8 +312,14 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    with Pool() as pool:
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args=args, backend = backend, pool=pool)
+    global lnlike_fine
+    global logM_fine
+    global R_fine
+    global logZ_fine
+    global linear_prior
+
+    with Pool(nproc) as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, backend = backend, pool=pool)
         sampler.run_mcmc(pos, nsteps, progress=True)
 
     tau = sampler.get_autocorr_time()
