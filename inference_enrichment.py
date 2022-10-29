@@ -33,6 +33,7 @@ import time
 from astropy.io import fits
 import pdb
 from multiprocessing import Pool
+from schwimmbad import MPIPool
 
 ######## Setting up #########
 
@@ -312,22 +313,28 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    # global lnlike_fine_global
-    # global logM_fine_global
-    # global R_fine_global
-    # global logZ_fine_global
-    # global linear_prior_global
-    #
-    # lnlike_fine_global = lnlike_fine
-    # logM_fine_global = logM_fine
-    # R_fine_global = R_fine
-    # logZ_fine_global = logZ_fine
-    # linear_prior_global = linear_prior
+    global lnlike_fine_global
+    global logM_fine_global
+    global R_fine_global
+    global logZ_fine_global
+    global linear_prior_global
 
+    lnlike_fine_global = lnlike_fine
+    logM_fine_global = logM_fine
+    R_fine_global = R_fine
+    logZ_fine_global = logZ_fine
+    linear_prior_global = linear_prior
+
+    with MPIPool() as pool:
+        if not pool.is_master():
+            pool.wait()
+            sys.exit(0)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, pool=pool, backend = backend)
+        sampler.run_mcmc(pos, nsteps, progress=True)
 
     # with Pool(nproc) as pool:
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args = args, backend = backend)
-    sampler.run_mcmc(pos, nsteps, progress=True)
+    # sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args = args, backend = backend)
+    # sampler.run_mcmc(pos, nsteps, progress=True)
 
     tau = sampler.get_autocorr_time()
     print('Autocorrelation time')
