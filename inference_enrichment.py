@@ -256,13 +256,13 @@ def interp_likelihood(init_out, nlogM_fine, nR_fine, nlogZ_fine, interp_lnlike=T
 
 def lnprob_3d_global(theta):
 
-    lp = inference.lnprior_3d(theta, logM_fine, R_fine, logZ_fine, linear_prior)
+    lp = inference.lnprior_3d(theta, logM_fine_global, R_fine_global, logZ_fine_global, linear_prior_global)
     if not np.isfinite(lp):
         return -np.inf
 
-    lnL_3d = inference.lnlike_3d(theta, lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+    lnL_3d = inference.lnlike_3d(theta, lnlike_fine_global, logM_fine_global, R_fine_global, logZ_fine_global, linear_prior_global)
 
-    lnprob = lp + inference.lnlike_3d(theta, lnlike_fine, logM_fine, R_fine, logZ_fine, linear_prior)
+    lnprob = lp + inference.lnlike_3d(theta, lnlike_fine_global, logM_fine_global, R_fine_global, logZ_fine_global, linear_prior_global)
     return lnprob
 
 def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlike_fine, linear_prior, ball_size=0.01, \
@@ -312,11 +312,11 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
 
-    global lnlike_fine
-    global logM_fine
-    global R_fine
-    global logZ_fine
-    global linear_prior
+    global lnlike_fine_global = lnlike_fine
+    global logM_fine_global = logM_fine
+    global R_fine_global = R_fine
+    global logZ_fine_global = logZ_fine
+    global linear_prior_global = linear_prior
 
     with Pool(nproc) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, backend = backend, pool=pool)
