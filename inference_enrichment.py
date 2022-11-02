@@ -312,27 +312,27 @@ def mcmc_inference(nsteps, burnin, nwalkers, logM_fine, R_fine, logZ_fine, lnlik
         for i in range(ndim)] for i in range(nwalkers)]
 
     np.random.seed(rand.randint(0, seed, size=1)[0])
+    #
+    # global lnlike_fine_global
+    # global logM_fine_global
+    # global R_fine_global
+    # global logZ_fine_global
+    # global linear_prior_global
+    #
+    # lnlike_fine_global = lnlike_fine
+    # logM_fine_global = logM_fine
+    # R_fine_global = R_fine
+    # logZ_fine_global = logZ_fine
+    # linear_prior_global = linear_prior
 
-    global lnlike_fine_global
-    global logM_fine_global
-    global R_fine_global
-    global logZ_fine_global
-    global linear_prior_global
+    # multiprocessing.set_start_method('fork', force=True)
 
-    lnlike_fine_global = lnlike_fine
-    logM_fine_global = logM_fine
-    R_fine_global = R_fine
-    logZ_fine_global = logZ_fine
-    linear_prior_global = linear_prior
-
-    multiprocessing.set_start_method('fork', force=True)
-
-    with Pool(nproc) as pool:
-        # if not pool.is_master():
-        #     pool.wait()
-        #     sys.exit(0)
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_3d_global, pool=pool, backend = backend)
-        sampler.run_mcmc(pos, nsteps, progress=True)
+    # with Pool(nproc) as pool:
+    #     # if not pool.is_master():
+    #     #     pool.wait()
+    #     #     sys.exit(0)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, backend = backend)
+    sampler.run_mcmc(pos, nsteps, progress=True)
 
     # with Pool(nproc) as pool:
     # sampler = emcee.EnsembleSampler(nwalkers, ndim, inference.lnprob_3d, args = args, backend = backend)
