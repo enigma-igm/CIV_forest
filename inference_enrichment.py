@@ -32,9 +32,9 @@ import halos_skewers
 import time
 from astropy.io import fits
 import pdb
-from multiprocessing import Pool
-from schwimmbad import MultiPool
-import multiprocessing
+# from multiprocessing import Pool
+# from schwimmbad import MultiPool
+# import multiprocessing
 ######## Setting up #########
 
 ### debugging config (3.25.2021)
