@@ -389,7 +389,7 @@ def plot_mcmc(sampler, param_samples, init_out, params, logM_fine, R_fine, logZ_
         # ax.tick_params(axis='both', which='major', labelsize=14)
         # ax.tick_params(axis='both', which='minor', labelsize=12)
         ax.tick_params(labelsize=12)
-
+        
     plt.savefig(outpath_local + 'corner.pdf')
     plt.close()
 
